@@ -87,11 +87,9 @@ function vectorAR(obs_num = 1, var_num = 1, intercept = [0.0,0.0], ar_parameters
                     dist[lag_num*(j-1)+k] = disturbance[i-k,j]
                 end 
             end 
-            vec_dep = vec_int + 
-                    ar_parameters*data[i,:]*vec_dep +
-                    dist  
+            vec_dep = vec_int + ar_parameters*vec_dep + dist  
             for j in 1:var_num
-                data[i,j] = vec_int[1+((j-1)*lag_num)]
+                data[i,j] = vec_dep[1+((j-1)*lag_num)]
             end
         end 
     end 
@@ -103,3 +101,4 @@ end
 ######################
 ######################
 ######################
+
