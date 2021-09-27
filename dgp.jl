@@ -1,5 +1,9 @@
-using Random; Distributions 
+using Random
+using Distributions 
 
+######################
+######################
+######################
 @doc """
     
     gen_rand_cov(N,μ,σ)
@@ -24,17 +28,11 @@ function gen_rand_cov(N,μ,σ)
     return cov_mat
 end 
 
+######################
+######################
+######################
 @doc """
-    
-    gen_rand_cov(N,μ,σ)
 
-Description:
-Generate a random covariance matrix. 
-
-Inputs:
-- N = number of variables
-- μ = expected covariance 
-- σ = expected std. deviation of covariance
 """
 function univariateAR(obs_num = 1, parameters = [0.0,0.0], error_distribution = Normal())
 
@@ -47,12 +45,61 @@ function univariateAR(obs_num = 1, parameters = [0.0,0.0], error_distribution = 
             data[i] =  parameters[1] + 
                         reverse(parameters[2:length(parameters)])'*data[(i-lag_num):(i-1)]+ 
                         disturbance[i]
-        else 
-            data[i] = parameters[1] + 
-                        reverse(parameters[2:length(parameters)])[1:(i-1)]'*data[1:(i-1)] +
-                        disturbance[i]
         end 
     end 
 
     return data
 end 
+
+######################
+######################
+######################
+@doc """
+
+"""
+function vectorAR(obs_num = 1, var_num = 1, intercept = [0.0,0.0], ar_parameters = zeros(2,2), error_distribution = Normal())
+
+    # Compute number of lags 
+    lag_num = floor(Int64, length(ar_parameters[1,:])/var_num)
+    
+    # Generate empty data matrix 
+    data = convert(Array{Float64,2}, zeros(obs_num,var_num))
+
+    # Simulate disturbances 
+    disturbance = rand(error_distribution, obs_num, var_num)
+    
+    # Stacked dependent vector 
+    vec_dep = zeros(length(ar_parameters[1,:]))
+    dist = zeros(length(ar_parameters[1,:]))
+
+    # Stacked intercept vector 
+    vec_int = zeros(length(ar_parameters[1,:]))
+    for i in 1:var_num
+        vec_int[1+((i-1)*lag_num)] = intercept[i] 
+    end
+
+    # Simulate 
+    for i in 1:obs_num
+        if i > lag_num
+            for j in 1:var_num
+                for k in 1:lag_num
+                    vec_dep[lag_num*(j-1)+k] = data[i-k,j]
+                    dist[lag_num*(j-1)+k] = disturbance[i-k,j]
+                end 
+            end 
+            vec_dep = vec_int + 
+                    ar_parameters*data[i,:]*vec_dep +
+                    dist  
+            for j in 1:var_num
+                data[i,j] = vec_int[1+((j-1)*lag_num)]
+            end
+        end 
+    end 
+
+    # Return 
+    return data 
+end 
+
+######################
+######################
+######################
