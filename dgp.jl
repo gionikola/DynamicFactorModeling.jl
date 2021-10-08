@@ -101,4 +101,16 @@ end
 ######################
 ######################
 ######################
+@doc """
 
+"""
+function instantDFM(num_vars = 4, num_obs = 10000, num_hierarchies = 2, factor_lags = [1,1])
+
+    # Create factor container 
+    num_factors = 0
+    for i in 1:num_hierarchies
+        num_factors += 2^(i-1)
+    end 
+    factors = zeros(num_obs, num_factors)
+
+end 
