@@ -1,5 +1,6 @@
 using Random
 using Distributions 
+using LinearAlgebra
 
 ######################
 ######################
@@ -113,4 +114,24 @@ function instantDFM(num_vars = 4, num_obs = 10000, num_hierarchies = 2, factor_l
     end 
     factors = zeros(num_obs, num_factors)
 
+end 
+
+######################
+######################
+######################
+@doc """
+
+"""
+function firstComponentFactor(data)
+
+    num_obs = size(data)[1]
+    centering = I - 1/(num_obs)*ones(num_obs,num_obs) # centering matrix
+    data = centering*data # center the data 
+    cov_mat = data'*data
+    cov_mat_eigen = eigen(cov_mat)
+    components = cov_mat_eigen.vectors
+    firstComponent = components[:,end] # eigenvalues ordered from smallest to largest
+    factor = data*firstComponent
+
+    return factor 
 end 
