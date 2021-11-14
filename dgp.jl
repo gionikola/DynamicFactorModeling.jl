@@ -1,6 +1,8 @@
 using Random
 using Distributions 
 using LinearAlgebra
+using PDMats 
+using PDMatsExtras 
 
 ######################
 ######################
@@ -166,6 +168,13 @@ Inputs:
 """
 function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
     
+    # Convert cov matrices to PSDMat 
+    # to allow for simulation using MvNormal()
+    # (MvNormal() needs a positive definite cov matrix)
+    R = PSDMat(R)
+    Q = PSDMat(Q)
+    Z = PSDMat(Z)
+
     # Create empty data storage matrices 
     data_y  = zeros(num_obs, size(H)[1])
     data_z  = zeros(num_obs, size(Z)[1])
