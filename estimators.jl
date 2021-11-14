@@ -39,15 +39,16 @@ function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
 
     # Initialize β_pred and P_pred 
     β_pred_laglag = inv(I - F) * μ
-    P_pred_laglag = zeros(size(Q)[1],size(Q)[1])
+    P_pred_laglag = ones(size(Q)[1],size(Q)[1])
 
     for t = 1:num_obs
-        # Save current obs of z 
+        # Save current obs of z & y
         z = data_z[t,:]
+        y = data_y[t,:]
 
         # Prediction 
         β_pred_lag = μ + F * β_pred_laglag
-        P_pred_lag = F * P_pred_laglag * transpose(P) + Q
+        P_pred_lag = F * P_pred_laglag * transpose(F) + Q
         y_pred_lag = H * β_pred_lag + A * z
         η_pred_lag = y - y_pred_lag
         f_pred_lag = H * P_pred_lag * transpose(H) + R
