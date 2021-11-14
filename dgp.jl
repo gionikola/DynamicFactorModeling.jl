@@ -167,67 +167,75 @@ Inputs:
 - Z         = covariance matrix on predetermined var vector 
 """
 function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
-    
+
     # Convert cov matrices to PSDMat 
     # to allow for simulation using MvNormal()
     # (MvNormal() needs a positive definite cov matrix)
-    R = PSDMat(R)
-    Q = PSDMat(Q)
-    Z = PSDMat(Z)
+
+    if isposdef(R) == false
+        R = PSDMat(R)
+    end
+    if isposdef(Q) == false
+        Q = PSDMat(Q)
+    end
+    if isposdef(Z) == false
+        Z = PSDMat(Z)
+    end
 
     # Create empty data storage matrices 
-    data_y  = zeros(num_obs, size(H)[1])
-    data_z  = zeros(num_obs, size(Z)[1])
+    data_y = zeros(num_obs, size(H)[1])
+    data_z = zeros(num_obs, size(Z)[1])
 
     # Initialize β and y 
-    β0 = inv(I-F)*μ
-    y0 = H*β0
+    β0 = inv(I - F) * μ
+    y0 = H * β0
 
     # Initialize z
     if Z == zeros(size(Z)[1], size(Z)[1])
         z0 = zeros(size(Z)[1])
-    else 
-        z0 = rand( MvNormal(zeros(size(Z)[1]), Z))
-    end 
+    else
+        z0 = rand(MvNormal(zeros(size(Z)[1]), Z))
+    end
 
     # Save first observations of y and z
-    data_y[1,:] = y0
-    data_z[1,:] = z0
+    data_y[1, :] = y0
+    data_z[1, :] = z0
 
     # Initialize β lag for recursion 
-    β_lag       = β0
+    β_lag = β0
 
     # Recursively generate data
-    for t in 2:num_obs
+    for t = 2:num_obs
         # Draw transition distrubance 
         if Q == zeros(size(Q)[1], size(Q)[1])
             v = zeros(size(Q)[1])
-        else 
+        else
             v = rand(MvNormal(zeros(size(Q)[1]), Q))
-        end 
+        end
         # Record new state observation 
-        β           = μ + F*β_lag + v
+        β = μ + F * β_lag + v
         # Draw new z observation
         if Z == zeros(size(Z)[1], size(Z)[1])
             z = zeros(size(Z)[1])
-        else 
+        else
             z = rand(MvNormal(zeros(size(Z)[1]), Z))
-        end 
+        end
         # Draw measurement distrubance 
         if R == zeros(size(R)[1], size(R)[1])
             e = zeros(size(R)[1])
-        else 
+        else
             e = rand(MvNormal(zeros(size(R)[1]), R))
-        end 
+        end
         # Record new measurement observation 
-        y           = H*β + A*z + e
+        y = H * β + A * z + e
         # Save generated data 
-        data_y[t,:] = y
-        data_z[t,:] = z
+        data_y[t, :] = y
+        data_z[t, :] = z
         # Update β lag for recursion 
-        β_lag       = β
-    end 
+        β_lag = β
+    end
 
     # Return data 
-    return data_y, data_z 
+    return data_y, data_z
 end 
+
