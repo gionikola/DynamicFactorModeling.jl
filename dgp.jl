@@ -194,7 +194,7 @@ function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
         if Q == zeros(size(Q)[1],size(Q)[1])
             v = zeros(size(Q)[1])
         else 
-            v = rand(MvNormal(0*[1:size(Q)[1]], Q))
+            v = rand(MvNormal(zeros(size(Q)[1]), Q))
         end 
         # Record new state observation 
         β           = μ + F*β_lag + v
@@ -202,13 +202,13 @@ function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
         if Z == zeros(size(Z)[1],size(Z)[1])
             z = zeros(size(Z)[1])
         else 
-            z = rand( MvNormal( zeros( size(Z)[1] ), Z ) )
+            z = rand( MvNormal( zeros(size(Z)[1]), Z ) )
         end 
         # Draw measurement distrubance 
         if R == zeros(size(R)[1],size(R)[1])
             e = zeros(size(R)[1])
         else 
-            e = rand(MvNormal(0*[1:size(R)[1]], R))
+            e = rand(MvNormal(zeros(size(R)[1]), R))
         end 
         # Record new measurement observation 
         y           = H*β + A*z + e
