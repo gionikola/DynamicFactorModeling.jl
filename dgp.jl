@@ -151,6 +151,7 @@ Transition Equation:
     β_{t} = μ + F β_{t-1} + v_{t}
     e_{t} ~ i.i.d.N(0,R)
     v_{t} ~ i.i.d.N(0,Q)
+    z_{t} ~ i.i.d.N(0,Z)
     E(e_t v_s') = 0
 
 Inputs: 
@@ -161,8 +162,35 @@ Inputs:
 - μ         = state eq. intercept term
 - R         = covariance matrix on measurement disturbance
 - Q         = covariance matrix on state disturbance
+- Z         = covariance matrix on predetermined var vector 
 """
-function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q)
-    data  = 0
-    return data
+function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
+    
+    data_y  = zeros(num_obs,size(R)[1])
+    data_z  = zeros(num_obs,size(Z)[1])
+
+    β0 = inv(I-F)*μ
+    y0 = H*β0
+    z0 = rand(MvNormal(0*[1:size(Z)[1]], Z)) 
+
+    data_y[1,:]   = y0
+    data_z[1,:]   = z0 
+
+    β_lag       = β0 
+
+    for t in 2:num_obs
+        v           = rand(MvNormal(0*[1:size(Q)[1]], Q))
+        β           = μ 
+                        + F*β_lag 
+                        + v
+        z           = rand(MvNormal(0*[1:size(Z)[1]], Z)) 
+        y           = H*β 
+                        + A*z
+                        + rand(MvNormal(0*[1:size(R)[1]], R))
+        data_y[t,:] = y
+        data_z[t,:] = z
+        β_lag       = β
+    end 
+
+    return data_y, data_z 
 end 
