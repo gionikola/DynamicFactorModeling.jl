@@ -167,18 +167,18 @@ Inputs:
 function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
     
     # Create empty data storage matrices 
-    data_y  = zeros(num_obs,size(H)[1])
-    data_z  = zeros(num_obs,size(Z)[1])
+    data_y  = zeros(num_obs, size(H)[1])
+    data_z  = zeros(num_obs, size(Z)[1])
 
     # Initialize β and y 
     β0 = inv(I-F)*μ
     y0 = H*β0
 
     # Initialize z
-    if Z == zeros(size(Z)[1],size(Z)[1])
+    if Z == zeros(size(Z)[1], size(Z)[1])
         z0 = zeros(size(Z)[1])
     else 
-        z0 = rand( MvNormal( zeros( size(Z)[1] ), Z ) )
+        z0 = rand( MvNormal(zeros(size(Z)[1]), Z))
     end 
 
     # Save first observations of y and z
@@ -191,7 +191,7 @@ function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
     # Recursively generate data
     for t in 2:num_obs
         # Draw transition distrubance 
-        if Q == zeros(size(Q)[1],size(Q)[1])
+        if Q == zeros(size(Q)[1], size(Q)[1])
             v = zeros(size(Q)[1])
         else 
             v = rand(MvNormal(zeros(size(Q)[1]), Q))
@@ -199,13 +199,13 @@ function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
         # Record new state observation 
         β           = μ + F*β_lag + v
         # Draw new z observation
-        if Z == zeros(size(Z)[1],size(Z)[1])
+        if Z == zeros(size(Z)[1], size(Z)[1])
             z = zeros(size(Z)[1])
         else 
-            z = rand( MvNormal( zeros(size(Z)[1]), Z ) )
+            z = rand(MvNormal(zeros(size(Z)[1]), Z))
         end 
         # Draw measurement distrubance 
-        if R == zeros(size(R)[1],size(R)[1])
+        if R == zeros(size(R)[1], size(R)[1])
             e = zeros(size(R)[1])
         else 
             e = rand(MvNormal(zeros(size(R)[1]), R))
