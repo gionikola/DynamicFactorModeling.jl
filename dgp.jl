@@ -188,7 +188,7 @@ function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
     data_β = zeros(num_obs, size(Q)[1])
 
     # Initialize β and y 
-    β0 = inv(I - F) * μ
+    β0 = inv(I - F) * μ .+ rand()
     y0 = H * β0
 
     # Initialize z
