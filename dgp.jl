@@ -166,27 +166,33 @@ Inputs:
 """
 function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
     
-    data_y  = zeros(num_obs,size(R)[1])
+    data_y  = zeros(num_obs,size(H)[1])
     data_z  = zeros(num_obs,size(Z)[1])
 
     β0 = inv(I-F)*μ
     y0 = H*β0
-    z0 = rand(MvNormal(0*[1:size(Z)[1]], Z)) 
 
-    data_y[1,:]   = y0
-    data_z[1,:]   = z0 
+    if Z == zeros(size(Z)[1],size(Z)[1])
+        z0 = zeros(size(Z)[1])
+    else 
+        z0 = rand( MvNormal( zeros( size(Z)[1] ), Z ) )
+    end 
 
-    β_lag       = β0 
+    data_y[1,:] = y0
+    data_z[1,:] = z0
+
+    β_lag       = β0
 
     for t in 2:num_obs
         v           = rand(MvNormal(0*[1:size(Q)[1]], Q))
-        β           = μ 
-                        + F*β_lag 
-                        + v
-        z           = rand(MvNormal(0*[1:size(Z)[1]], Z)) 
-        y           = H*β 
-                        + A*z
-                        + rand(MvNormal(0*[1:size(R)[1]], R))
+        β           = μ + F*β_lag + v
+        if Z == zeros(size(Z)[1],size(Z)[1])
+            z = zeros(size(Z)[1])
+        else 
+            z = rand( MvNormal( zeros( size(Z)[1] ), Z ) )
+        end 
+        e = rand(MvNormal(0*[1:size(R)[1]], R))
+        y           = H*β + A*z + e
         data_y[t,:] = y
         data_z[t,:] = z
         β_lag       = β
