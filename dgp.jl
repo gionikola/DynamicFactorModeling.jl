@@ -185,6 +185,7 @@ function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
     # Create empty data storage matrices 
     data_y = zeros(num_obs, size(H)[1])
     data_z = zeros(num_obs, size(Z)[1])
+    data_β = zeros(num_obs, size(Q)[1])
 
     # Initialize β and y 
     β0 = inv(I - F) * μ
@@ -200,6 +201,7 @@ function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
     # Save first observations of y and z
     data_y[1, :] = y0
     data_z[1, :] = z0
+    data_β[1, :] = β0
 
     # Initialize β lag for recursion 
     β_lag = β0
@@ -231,11 +233,11 @@ function simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
         # Save generated data 
         data_y[t, :] = y
         data_z[t, :] = z
+        data_β[t, :] = β
         # Update β lag for recursion 
         β_lag = β
     end
 
     # Return data 
-    return data_y, data_z
+    return data_y, data_z, data_β
 end 
-
