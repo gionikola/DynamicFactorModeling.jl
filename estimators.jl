@@ -37,6 +37,10 @@ function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
     data_filtered_y = similar(data_y)
     data_filtered_β = zeros(num_obs, size(Q)[1])
 
+    # Create empty lists for P_{t}, P_{t|t-1}
+    Ptt     = Any[] 
+    Pttlag  = Any[] 
+
     # Initialize β_pred and P_pred 
     β_pred_laglag = inv(I - F) * μ
     P_pred_laglag = ones(size(Q)[1],size(Q)[1])
@@ -53,10 +57,16 @@ function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
         η_pred_lag = y - y_pred_lag
         f_pred_lag = H * P_pred_lag * transpose(H) + R
 
+        # Save P_{t|t-1}
+        push!(Pttlag, P_pred_lag)
+
         # Updating 
         K = P_pred_lag * transpose(H) * inv(f_pred_lag)
         β_pred = β_pred_lag + K * η_pred_lag
         P_pred = P_pred_lag - K * H * P_pred_lag
+
+        # Save P_{t|t}
+        push!(Ptt, P_pred)
 
         # Save data 
         data_filtered_y[t,:] = y_pred_lag 
@@ -69,7 +79,7 @@ function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
 
     # Returned filtered series 
     # for obs variable and state 
-    return data_filtered_y, data_filtered_β
+    return data_filtered_y, data_filtered_β, Pttlag, Ptt 
 end 
 
 ######################
