@@ -125,31 +125,51 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
     # Run Kalman filter 
     data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
 
-    # Initialize β_{t+1|T}
+    # Initialize β_{t+1|T} (β_{T|T})
     βtflagT = data_filtered_β[end]
     data_smoothed_β[end] = βtflagT
 
-    # Initialize P_{t+1|T}
+    # Initialize P_{t+1|T} (P_{T|T})
     Ptflag_T = Ptt[end] 
+    push!(PtT, Ptflag_T)
 
-    # Initialize y_{t|T} 
+    # Initialize y_{t|T} (y_{T|T})
     data_smoothed_y[end] = data_filtered_y[end] 
 
     # Run Kalman smoother 
     for i = 1:(num_obs-1)
-        βtt     = data_filtered_β[end-i]
-        βtT     = βtt + 
-                    Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]) * (βtflagT - F * βtt - μ)
-        βtflagT[end-i] = βtT
+
+        # Retrieve β_{t|t}
+        βtt = data_filtered_β[end-i]
+    
+        # Compute β_{t|T} using β_{t+1|T}, β_{t|t}, P_{t|t}, and P_{t+1|t}
+        βtT = βtt +
+              Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]) *
+              (βtflagT - F * βtt - μ)
+
+        # Store β_{t+1|T} in smoothed data 
+        data_smoothed_β[end-i] = βtT
+
+        # Set β_{t|T} as new β_{t+1|T} for next iteration 
         βtflagT = βtT
-        Pt_T    = Ptt[end-i] +
-                    Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]) *
-                    (Ptflag_T - Pttlag[end-i+1]) *
-                    transpose(Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]))
+
+        # Compute P_{t|T} using P_{t|t}, P_{t+1|t}, and P_{t+1|T}
+        Pt_T = Ptt[end-i] +
+               Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]) *
+               (Ptflag_T - Pttlag[end-i+1]) *
+               transpose(Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]))
+        
+        # Store P_{t|T}
         push!(PtT, Pt_T)
+
+        # Set P_{t|T} as new P_{t+1|T} for next iteration 
         Ptflag_T = Pt_T
-        ytT = H*βtT + A*data_z[end-i]
-        data_smoothed_y[end-i] = ytT 
+        
+        # Generate y_{t|T} (smoothed obs.)
+        ytT = H * βtT + A * data_z[end-i]
+
+        # Store smoothed obs.
+        data_smoothed_y[end-i] = ytT
     end
 
     # Flip P_{t|T} list 
