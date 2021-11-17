@@ -183,3 +183,45 @@ end
 ######################
 ######################
 ######################
+@doc """
+    
+    staticLinearGibbsSampler(Y,X)
+
+Description: 
+Estimate β and σ^2 in Y = Xβ + e, e ~ N(0,σ^2 I_T).
+Generate samples of β and σ^2. 
+
+Inputs: 
+- Y     = Dependent data matrix
+- X     = Independent data matrix 
+"""
+function staticLinearGibbsSampler(Y, X)
+
+    # Create parameter lists 
+    data_β  = Any[] 
+    data_σ2 = Any[] 
+
+    # Initialize σ2 
+    #
+
+    # Apply iterated updating of β and σ^2 
+    for j in 1:10000
+        # Generate new β^j 
+        # 
+
+        # Record new β^j
+        #
+
+        # Update σ2^j 
+        #
+        
+        # Record new σ2^j
+        # 
+    end 
+
+    # Drop first 3000 observations for all parameters 
+    # 
+
+    # Return parameters 
+    return data_β, data_σ2 
+end 
