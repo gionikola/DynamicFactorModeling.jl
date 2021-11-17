@@ -115,26 +115,49 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
     # Save number of observations 
     num_obs = size(data_y)[1]
 
-    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, 
-                                                                data_z,     
-                                                                H,  
-                                                                A,  
-                                                                F,  
-                                                                μ,  
-                                                                R,  
-                                                                Q,  
-                                                                Z)
+    # Empty filtered data matrices 
+    data_smoothed_y = similar(data_y)
+    data_smoothed_β = zeros(num_obs, size(Q)[1])
 
-    #######################
-    ### Kalman Smoother ###
-    #######################
+    # Create empty list for P_{t|T}
+    PtT = Any[]
+
+    # Run Kalman filter 
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
+
+    # Initialize β_{t+1|T}
+    βtflagT = data_filtered_β[end]
+    data_smoothed_β[end] = βtflagT
+
+    # Initialize P_{t+1|T}
+    Ptflag_T = Ptt[end] 
+
+    # Initialize y_{t|T} 
+    data_smoothed_y[end] = data_filtered_y[end] 
+
+    # Run Kalman smoother 
     for i = 1:(num_obs-1)
-
+        βtt     = data_filtered_β[end-i]
+        βtT     = βtt + 
+                    Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]) * (βtflagT - F * βtt - μ)
+        βtflagT[end-i] = βtT
+        βtflagT = βtT
+        Pt_T    = Ptt[end-i] +
+                    Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]) *
+                    (Ptflag_T - Pttlag[end-i+1]) *
+                    transpose(Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]))
+        push!(PtT, Pt_T)
+        Ptflag_T = Pt_T
+        ytT = H*βtT + A*data_z[end-i]
+        data_smoothed_y[end-i] = ytT 
     end
+
+    # Flip P_{t|T} list 
+    PtT = reverse(PtT)
 
     # Returned filtered series 
     # for obs variable and state 
-    return data_smoothed_β
+    return data_smoothed_y, data_smoothed_β, PtT 
 end 
 
 ######################
