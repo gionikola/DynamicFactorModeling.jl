@@ -115,46 +115,21 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
     # Save number of observations 
     num_obs = size(data_y)[1]
 
-    # Initialize β_pred and P_pred 
-    β_pred_laglag = inv(I - F) * μ
-    P_pred_laglag = ones(size(Q)[1], size(Q)[1])
-
-    #####################
-    ### Kalman Filter ###
-    #####################
-    for t = 1:num_obs
-        # Save current obs of z & y
-        z = data_z[t, :]
-        y = data_y[t, :]
-
-        # Prediction 
-        β_pred_lag = μ + F * β_pred_laglag
-        P_pred_lag = F * P_pred_laglag * transpose(F) + Q
-        y_pred_lag = H * β_pred_lag + A * z
-        η_pred_lag = y - y_pred_lag
-        f_pred_lag = H * P_pred_lag * transpose(H) + R
-
-        # Updating 
-        K = P_pred_lag * transpose(H) * inv(f_pred_lag)
-        β_pred = β_pred_lag + K * η_pred_lag
-        P_pred = P_pred_lag - K * H * P_pred_lag
-
-        # Lag the predictions 
-        β_pred_laglag = β_pred
-        P_pred_laglag = P_pred
-    end
-
-    # Empty filtered data matrices 
-    data_smoothed_β = zeros(num_obs, size(Q)[1])
-
-    # Last filtered estimates for β and P
-    data_smoothed_β[num_obs, :] = β_pred
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, 
+                                                                data_z,     
+                                                                H,  
+                                                                A,  
+                                                                F,  
+                                                                μ,  
+                                                                R,  
+                                                                Q,  
+                                                                Z)
 
     #######################
     ### Kalman Smoother ###
     #######################
     for i = 1:(num_obs-1)
-        
+
     end
 
     # Returned filtered series 
