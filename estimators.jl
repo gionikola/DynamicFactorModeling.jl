@@ -244,14 +244,23 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
     # Generate `β_t_mean` and `β_t_var`
     # for all time periods 
     if isposdef(Q) == false
+    ## IF Q IS SINGULAR 
+        
+        # Determine number of rows
+        # of state factor used 
         num_use_rows = 0
         for i = 1:size(Q)[1]
             if Q[i, i] != 0
                 num_use_rows += 1
             end
         end
+        
+        # Create modified F and Q matrices 
         F_star = F[1:num_use_rows, :]
         Q_star = Q[1:num_use_rows, 1:num_use_rows]
+        
+        # Iteratively generate conditional draws 
+        # of state vector 
         for j = 1:(T-1)
         
             # β_{t|t,β*_{t+1}}
@@ -270,6 +279,7 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
             β_realized[T-j, :] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
         end
     else
+    ## IF Q IS NOT SINGULAR (redundant, but potentially faster) 
         for j = 1:(T-1)
     
             # β_{t|t,β_{t+1}}
