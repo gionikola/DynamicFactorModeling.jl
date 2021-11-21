@@ -322,32 +322,49 @@ Inputs:
 function staticLinearGibbsSampler(Y, X)
 
     # Create parameter lists 
-    data_β  = Any[] 
-    data_σ2 = Any[] 
+    data_β = Any[]
+    data_σ2 = Any[]
+
+    # Save number of obs 
+    T = size(X)[1]
 
     # Initialize σ2 
-    # 
-
+    σ2 = 1 
 
     # Apply iterated updating of β and σ^2 
-    for j in 1:10000
-        
+    for j = 1:10000
+    
         # Generate new β^j 
-        # 
-
+        ## Prior parameters in N(β0,Σ0)
+        β0 = ones(size(X)[2])
+        Σ0 = Matrix(I, size(β0)[1], size(β0)[1])
+        ## Posterior parameters in N(β1,Σ1) 
+        β1 = transpose(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+        Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+        ## Generate new β
+        β = rand(MvNormal(β1, Σ1))
+    
         # Record new β^j
-        #
-
+        push!(data_β, β)
+    
         # Update σ2^j 
-        #
-        
+        ## Prior parameters in IG(ν0/2, δ0/2) 
+        ν0 = 0.002
+        δ0 = 0.002
+        ## Posterior parameters in IG(ν1/2, δ1/2)
+        ν1 = ν0 + T
+        δ1 = δ0 + transpose(Y - X * β) * (Y - X * β)
+        ## Generate new σ2
+        σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
+    
         # Record new σ2^j
-        # 
-    end 
+        push!(data_σ2, σ2)
+    end
 
     # Drop first 3000 observations for all parameters 
-    # 
-
+    data_β = data_β[3000:10000]
+    data_σ2 = data_σ2[3000:10000]
+    
     # Return parameters 
-    return data_β, data_σ2 
+    return data_β, data_σ2
 end 
