@@ -20,6 +20,34 @@ using Parameters
 ######################
 ######################
 @doc """
+
+    SSModelParameters(H, A, F, μ, R, Q, Z)
+
+Description:     
+State space model parameters. 
+
+- H     = measurement eq. factor coef. matrix 
+- A     = measurement eq. predetermined var. coef. matrix 
+- F     = transition eq. companion matrix 
+- μ     = transition eq. intercept 
+- R     = measurement eq. error covariance matrix 
+- Q     = transition eq. error covariance matrix 
+- Z     = predetermined var. covariance matrix 
+"""
+@with_kw mutable struct SSModelParameters
+    H       
+    A      
+    F      
+    μ       
+    R       
+    Q      
+    Z       
+end;  
+
+######################
+######################
+######################
+@doc """
     
     kalmanFilter(data, H, A, F, μ, R, Q, Z)
 
