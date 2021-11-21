@@ -1,8 +1,8 @@
 using LinearAlgebra
 using Random
-using Distributions 
-using PDMats 
-using PDMatsExtras 
+using Distributions
+using PDMats
+using PDMatsExtras
 
 ######################
 ######################
@@ -42,17 +42,17 @@ function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
     data_filtered_β = zeros(num_obs, size(Q)[1])
 
     # Create empty lists for P_{t}, P_{t|t-1}
-    Ptt     = Any[] 
-    Pttlag  = Any[] 
+    Ptt = Any[]
+    Pttlag = Any[]
 
     # Initialize β_pred and P_pred 
     β_pred_laglag = inv(I - F) * μ
-    P_pred_laglag = ones(size(Q)[1],size(Q)[1])
+    P_pred_laglag = ones(size(Q)[1], size(Q)[1])
 
     for t = 1:num_obs
         # Save current obs of z & y
-        z = data_z[t,:]
-        y = data_y[t,:]
+        z = data_z[t, :]
+        y = data_y[t, :]
 
         # Prediction 
         β_pred_lag = μ + F * β_pred_laglag
@@ -73,8 +73,8 @@ function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
         push!(Ptt, P_pred)
 
         # Save data 
-        data_filtered_y[t,:] = y_pred_lag 
-        data_filtered_β[t,:] = β_pred 
+        data_filtered_y[t, :] = y_pred_lag
+        data_filtered_β[t, :] = β_pred
 
         # Lag the predictions 
         β_pred_laglag = β_pred
@@ -83,8 +83,8 @@ function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
 
     # Returned filtered series 
     # for obs variable and state 
-    return data_filtered_y, data_filtered_β, Pttlag, Ptt 
-end 
+    return data_filtered_y, data_filtered_β, Pttlag, Ptt
+end
 
 ######################
 ######################
@@ -182,7 +182,7 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
     # Returned filtered series 
     # for obs variable and state 
     return data_smoothed_y, data_smoothed_β, PtT
-end 
+end
 
 ######################
 ######################
@@ -219,11 +219,11 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
 
     # Format non-positive definite P_{t|t}
     # matrices as PSDMat for sampler 
-    for t in 1:size(Ptt)[1] 
+    for t = 1:size(Ptt)[1]
         if isposdef(Ptt[t]) == false
             Ptt[t] = PSDMat(Ptt[t])
         end
-    end 
+    end
 
     # Create placeholders for factor distr. 
     # mean vector and covariance matrix for all t 
@@ -237,15 +237,15 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
     β_realized = similar(data_filtered_β)
 
     # Initialize β_realized 
-    push!(β_t_mean, data_filtered_β[T,:])
+    push!(β_t_mean, data_filtered_β[T, :])
     push!(β_t_var, Ptt[T])
-    β_realized[T,:] = rand(MvNormal(β_t_mean[1], β_t_var[1]))
+    β_realized[T, :] = rand(MvNormal(β_t_mean[1], β_t_var[1]))
 
     # Generate `β_t_mean` and `β_t_var`
     # for all time periods 
     if isposdef(Q) == false
-    ## IF Q IS SINGULAR 
-        
+        ## IF Q IS SINGULAR 
+
         # Determine number of rows
         # of state factor used 
         num_use_rows = 0
@@ -254,55 +254,55 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
                 num_use_rows += 1
             end
         end
-        
+
         # Create modified F and Q matrices 
         F_star = F[1:num_use_rows, :]
         Q_star = Q[1:num_use_rows, 1:num_use_rows]
-        
+
         # Iteratively generate conditional draws 
         # of state vector 
         for j = 1:(T-1)
-        
+
             # β_{t|t,β*_{t+1}}
             β_t_mean_temp = data_filtered_β[T-j, :]
             +Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * (β_realized[T+1-j, :][1:num_use_rows] - μ[1:num_use_rows] - F_star * data_filtered_β[T-j, :])
             push!(β_t_mean, β_t_mean_temp)
-        
+
             # P_{t|t,β*_{t+1}}
             β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * F_star * Ptt[T-j]
             if isposdef(β_t_var_temp) == false
                 β_t_var_temp = PSDMat(β_t_var_temp)
             end
             push!(β_t_var, β_t_var_temp)
-        
+
             # Draw new β_t 
             β_realized[T-j, :] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
         end
     else
-    ## IF Q IS NOT SINGULAR (redundant, but potentially faster) 
+        ## IF Q IS NOT SINGULAR (redundant, but potentially faster) 
         for j = 1:(T-1)
-    
+
             # β_{t|t,β_{t+1}}
             β_t_mean_temp = data_filtered_β[T-j, :]
             +Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * (β_realized[T+1-j, :] - μ - F * data_filtered_β[T-j, :])
             push!(β_t_mean, β_t_mean_temp)
-    
+
             # P_{t|t,β_{t+1}}
             β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * F * Ptt[T-j]
             if isposdef(β_t_var_temp) == false
                 β_t_var_temp = PSDMat(β_t_var_temp)
             end
             push!(β_t_var, β_t_var_temp)
-    
+
             # Draw new β_t 
             β_realized[T-j, :] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
         end
-    end 
+    end
 
     # Return sampled factor series 
     # fot t = 1,...,T 
     return β_realized
-end 
+end
 
 ######################
 ######################
@@ -329,11 +329,11 @@ function staticLinearGibbsSampler(Y, X)
     T = size(X)[1]
 
     # Initialize σ2 
-    σ2 = 1 
+    σ2 = 1
 
     # Apply iterated updating of β and σ^2 
     for j = 1:10000
-    
+
         # Generate new β^j 
         ## Prior parameters in N(β0,Σ0)
         β0 = ones(size(X)[2])
@@ -343,10 +343,10 @@ function staticLinearGibbsSampler(Y, X)
         Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
         ## Generate new β
         β = rand(MvNormal(β1, Σ1))
-    
+
         # Record new β^j
         push!(data_β, β)
-    
+
         # Update σ2^j 
         ## Prior parameters in IG(ν0/2, δ0/2) 
         ν0 = 0.002
@@ -356,7 +356,7 @@ function staticLinearGibbsSampler(Y, X)
         δ1 = δ0 + transpose(Y - X * β) * (Y - X * β)
         ## Generate new σ2
         σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
-    
+
         # Record new σ2^j
         push!(data_σ2, σ2)
     end
@@ -364,7 +364,26 @@ function staticLinearGibbsSampler(Y, X)
     # Drop first 3000 observations for all parameters 
     data_β = data_β[3000:10000]
     data_σ2 = data_σ2[3000:10000]
-    
+
     # Return parameters 
     return data_β, data_σ2
+end
+
+######################
+######################
+######################
+@doc """
+    
+    autocorrelatedDisturbanceRegressionGibbsSampler(Y,X)
+
+Description: 
+Estimate β, σ^2, and ϕ in Y = Xβ + e, e = Eϕ + ν, ν_t ~ i.i.d.N(0,σ^2).  
+Generate samples of β, σ^2, and ϕ.  
+
+Inputs: 
+- Y     = Dependent data matrix
+- X     = Independent data matrix 
+"""
+
+function autocorrelatedDisturbanceRegressionGibbsSampler(Y, X)
 end 
