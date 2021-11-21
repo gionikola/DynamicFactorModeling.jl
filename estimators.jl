@@ -229,6 +229,14 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
         Z = PSDMat(Z)
     end
 
+    # Format non-positive definite P_{t|t}
+    # matrices as PSDMat for sampler 
+    for t in 1:size(Ptt)[1] 
+        if isposdef(Ptt[t]) == false
+            Ptt[t] = PSDMat(Ptt[t])
+        end
+    end 
+
     # Create placeholders for factor distr. 
     # mean vector and covariance matrix for all t 
     β_t_mean = Any[]
@@ -238,12 +246,12 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
     T = size(data_y)[1]
 
     # Create empty vector for factor realizations
-    β_realized = zeros(T)
+    β_realized = similar(data_filtered_β)
 
     # Initialize β_realized 
     push!(β_t_mean, data_filtered_β[T,:])
     push!(β_t_var, Ptt[T])
-    β_realized[T] = rand(MvNormal(β_t_mean[1], β_t_var[1]))
+    β_realized[T,:] = rand(MvNormal(β_t_mean[1], β_t_var[1]))
 
     # Generate `β_t_mean` and `β_t_var`
     # for all time periods 
@@ -259,7 +267,7 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
         push!(β_t_var, β_t_var_temp)
 
         # Draw new β_t 
-        β_realized[T-j] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
+        β_realized[T-j,:] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
     end
 
     # Return sampled factor series 
