@@ -189,6 +189,39 @@ end
 ######################
 @doc """
     
+    dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
+
+Description: 
+Draw a sample of dynamic factor from conditional distribution in Ch 8, Kim & Nelson (1999).
+Measurement Equation:   
+    y_{t} = H_{t} β_{t} + A z_{t} + e_{t}.
+Transition Equation:    
+    β_{t} = μ + F β_{t-1} + v_{t};
+    e_{t} ~ i.i.d.N(0,R);
+    v_{t} ~ i.i.d.N(0,Q);
+    z_{t} ~ i.i.d.N(0,Z);
+    E(e_t v_s') = 0.
+
+Inputs: 
+- data      = observed data 
+- H         = measurement eq. state coef. matrix
+- A         = measurement eq. exogenous coef. matrix
+- F         = state eq. companion matrix
+- μ         = state eq. intercept term
+- R         = covariance matrix on measurement disturbance
+- Q         = covariance matrix on state disturbance
+- Z         = covariance matrix on predetermined var vector 
+"""
+function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
+
+    return factor_series 
+end 
+
+######################
+######################
+######################
+@doc """
+    
     staticLinearGibbsSampler(Y,X)
 
 Description: 
