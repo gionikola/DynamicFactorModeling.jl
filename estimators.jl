@@ -365,10 +365,12 @@ function staticLinearGibbsSampler(Y, X)
     # Drop first 3000 observations for all parameters 
     data_β = data_β[3000:10000]
     data_σ2 = data_σ2[3000:10000]
-    
+
     # Integrate over samples 
     β   = mean(data_β, dims = 1)
     σ2  = mean(data_σ2, dims = 1)
+    β   = vec(β)
+    σ2  = vec(σ2)
 
     # Return parameters 
     return β, σ2
@@ -487,7 +489,10 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     β   = mean(data_β, dims = 1)
     σ2  = mean(data_σ2, dims = 1)
     ϕ   = mean(data_ϕ, dims = 1)
-
+    β   = vec(β)
+    σ2  = vec(σ2)
+    ϕ   = vec(ϕ)
+    
     # Return parameters 
     return β, σ2, ϕ
 end 
