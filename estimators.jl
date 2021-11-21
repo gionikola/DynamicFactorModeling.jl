@@ -250,22 +250,22 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
                 num_use_rows += 1
             end
         end
-        F_star = F[1:num_use_rows, 1:num_use_rows]
+        F_star = F[1:num_use_rows, :]
         Q_star = Q[1:num_use_rows, 1:num_use_rows]
         for j = 1:(T-1)
-    
+        
             # β_{t|t,β*_{t+1}}
             β_t_mean_temp = data_filtered_β[T-j, :]
-                            + Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * (β_realized[T+1-j, :][1:num_use_rows] - μ - F_star * data_filtered_β[T-j, :])
+            +Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * (β_realized[T+1-j, :][1:num_use_rows] - μ[1:num_use_rows] - F_star * data_filtered_β[T-j, :])
             push!(β_t_mean, β_t_mean_temp)
-    
+        
             # P_{t|t,β*_{t+1}}
-            β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * F * Ptt[T-j]
+            β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * F_star * Ptt[T-j]
             if isposdef(β_t_var_temp) == false
                 β_t_var_temp = PSDMat(β_t_var_temp)
             end
             push!(β_t_var, β_t_var_temp)
-    
+        
             # Draw new β_t 
             β_realized[T-j, :] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
         end
