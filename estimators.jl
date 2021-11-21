@@ -217,18 +217,6 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
     # Run Kalman filter 
     data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
 
-    # Format non-positive definite 
-    # matrices as PSDMat for sampler 
-    if isposdef(R) == false
-        R = PSDMat(R)
-    end
-    if isposdef(Q) == false
-        Q = PSDMat(Q)
-    end
-    if isposdef(Z) == false
-        Z = PSDMat(Z)
-    end
-
     # Format non-positive definite P_{t|t}
     # matrices as PSDMat for sampler 
     for t in 1:size(Ptt)[1] 
@@ -255,23 +243,51 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
 
     # Generate `β_t_mean` and `β_t_var`
     # for all time periods 
-    for j = 1:(T-1)
-
-        # β_{t|t,β_{t+1}}
-        β_t_mean_temp = data_filtered_β[T-j,:]
-                        + Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * (β_realized[T+1-j,:] - μ - F * data_filtered_β[T-j,:])
-        push!(β_t_mean, β_t_mean_temp)
-
-        # P_{t|t,β_{t+1}}
-        β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * F * Ptt[T-j]
-        if isposdef(β_t_var_temp) == false
-            β_t_var_temp = PSDMat(β_t_var_temp)
+    if isposdef(Q) == false
+        num_use_rows = 0
+        for i = 1:size(Q)[1]
+            if Q[i, i] != 0
+                num_use_rows += 1
+            end
         end
-        push!(β_t_var, β_t_var_temp)
-
-        # Draw new β_t 
-        β_realized[T-j,:] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
-    end
+        F_star = F[1:num_use_rows, 1:num_use_rows]
+        Q_star = Q[1:num_use_rows, 1:num_use_rows]
+        for j = 1:(T-1)
+    
+            # β_{t|t,β*_{t+1}}
+            β_t_mean_temp = data_filtered_β[T-j, :]
+                            + Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * (β_realized[T+1-j, :][1:num_use_rows] - μ - F_star * data_filtered_β[T-j, :])
+            push!(β_t_mean, β_t_mean_temp)
+    
+            # P_{t|t,β*_{t+1}}
+            β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * F * Ptt[T-j]
+            if isposdef(β_t_var_temp) == false
+                β_t_var_temp = PSDMat(β_t_var_temp)
+            end
+            push!(β_t_var, β_t_var_temp)
+    
+            # Draw new β_t 
+            β_realized[T-j, :] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
+        end
+    else
+        for j = 1:(T-1)
+    
+            # β_{t|t,β_{t+1}}
+            β_t_mean_temp = data_filtered_β[T-j, :]
+            +Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * (β_realized[T+1-j, :] - μ - F * data_filtered_β[T-j, :])
+            push!(β_t_mean, β_t_mean_temp)
+    
+            # P_{t|t,β_{t+1}}
+            β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * F * Ptt[T-j]
+            if isposdef(β_t_var_temp) == false
+                β_t_var_temp = PSDMat(β_t_var_temp)
+            end
+            push!(β_t_var, β_t_var_temp)
+    
+            # Draw new β_t 
+            β_realized[T-j, :] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
+        end
+    end 
 
     # Return sampled factor series 
     # fot t = 1,...,T 
