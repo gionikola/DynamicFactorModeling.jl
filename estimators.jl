@@ -365,9 +365,13 @@ function staticLinearGibbsSampler(Y, X)
     # Drop first 3000 observations for all parameters 
     data_β = data_β[3000:10000]
     data_σ2 = data_σ2[3000:10000]
+    
+    # Integrate over samples 
+    β   = mean(data_β, dims = 1)
+    σ2  = mean(data_σ2, dims = 1)
 
     # Return parameters 
-    return data_β, data_σ2
+    return β, σ2
 end
 
 ######################
