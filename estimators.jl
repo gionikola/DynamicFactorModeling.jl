@@ -258,12 +258,15 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
     for j = 1:(T-1)
 
         # β_{t|t,β_{t+1}}
-        β_t_mean_temp = data_filtered_β[T-j]
-        +Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * (β_realized[T+1-j] - μ - F * data_filtered_β[T-j])
+        β_t_mean_temp = data_filtered_β[T-j,:]
+                        + Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * (β_realized[T+1-j,:] - μ - F * data_filtered_β[T-j,:])
         push!(β_t_mean, β_t_mean_temp)
 
         # P_{t|t,β_{t+1}}
         β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * F * Ptt[T-j]
+        if isposdef(β_t_var_temp) == false
+            β_t_var_temp = PSDMat(β_t_var_temp)
+        end
         push!(β_t_var, β_t_var_temp)
 
         # Draw new β_t 
