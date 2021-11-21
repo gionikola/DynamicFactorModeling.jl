@@ -484,9 +484,9 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     data_ϕ = data_ϕ[3000:10000]
 
     # Integrate over samples 
-    β   = sum(data_β, dims = 1)
-    σ2  = sum(data_σ2, dims = 1)
-    ϕ   = sum(data_ϕ, dims = 1)
+    β   = mean(data_β, dims = 1)
+    σ2  = mean(data_σ2, dims = 1)
+    ϕ   = mean(data_ϕ, dims = 1)
 
     # Return parameters 
     return β, σ2, ϕ
