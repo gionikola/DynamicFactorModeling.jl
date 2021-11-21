@@ -541,11 +541,22 @@ end
 ######################
 @doc """
     
-    hdfmStateSpaceGibbsSampler()
+    HDFMStateSpaceGibbsSampler(data_y, data_z, param_init)
 
 Description: 
-Text.
+Estimate hierarchical dynamic factor model by applying Gibbs sampler to state space model.
+Refer to Kim and Nelson (1999) for discussion of the procedure. 
 
 Inputs: 
-- input             = 
+- data_y        = observed data
+- data_z        = predetermined variable data 
+- param_init    = initial model hyperparameters 
+
+Output:
+- factor_distr  = sample representing dynamic factor marginal density 
+- param_distr   = sample representing model hyperparameter marginal density 
+
 """
+function HDFMStateSpaceGibbsSampler(data_y, data_z, param_init::SSModelParameters) 
+    
+end 
