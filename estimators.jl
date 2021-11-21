@@ -1,4 +1,8 @@
 using LinearAlgebra
+using Random
+using Distributions 
+using PDMats 
+using PDMatsExtras 
 
 ######################
 ######################
@@ -10,13 +14,13 @@ using LinearAlgebra
 Description: 
 Apply Kalman filter to observed data. 
 Measurement Equation:   
-    y_{t} = H_{t} β_{t} + A z_{t} + e_{t} 
+    y_{t} = H_{t} β_{t} + A z_{t} + e_{t} .
 Transition Equation:    
-    β_{t} = μ + F β_{t-1} + v_{t}
-    e_{t} ~ i.i.d.N(0,R)
-    v_{t} ~ i.i.d.N(0,Q)
-    z_{t} ~ i.i.d.N(0,Z)
-    E(e_t v_s') = 0
+    β_{t} = μ + F β_{t-1} + v_{t};
+    e_{t} ~ i.i.d.N(0,R);
+    v_{t} ~ i.i.d.N(0,Q);
+    z_{t} ~ i.i.d.N(0,Z);
+    E(e_t v_s') = 0.
 
 Inputs: 
 - data      = observed data 
@@ -92,13 +96,13 @@ end
 Description: 
 Apply Kalman smoother to observed data. 
 Measurement Equation:   
-    y_{t} = H_{t} β_{t} + A z_{t} + e_{t} 
+    y_{t} = H_{t} β_{t} + A z_{t} + e_{t}.
 Transition Equation:    
-    β_{t} = μ + F β_{t-1} + v_{t}
-    e_{t} ~ i.i.d.N(0,R)
-    v_{t} ~ i.i.d.N(0,Q)
-    z_{t} ~ i.i.d.N(0,Z)
-    E(e_t v_s') = 0
+    β_{t} = μ + F β_{t-1} + v_{t};
+    e_{t} ~ i.i.d.N(0,R);
+    v_{t} ~ i.i.d.N(0,Q);
+    z_{t} ~ i.i.d.N(0,Z);
+    E(e_t v_s') = 0.
 
 Inputs: 
 - data      = observed data 
@@ -202,10 +206,12 @@ function staticLinearGibbsSampler(Y, X)
     data_σ2 = Any[] 
 
     # Initialize σ2 
-    #
+    # 
+
 
     # Apply iterated updating of β and σ^2 
     for j in 1:10000
+        
         # Generate new β^j 
         # 
 
