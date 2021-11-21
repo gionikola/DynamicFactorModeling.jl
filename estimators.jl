@@ -134,18 +134,18 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
     data_smoothed_β[end] = βtflagT
 
     # Initialize P_{t+1|T} (P_{T|T})
-    Ptflag_T = Ptt[end] 
+    Ptflag_T = Ptt[end]
     push!(PtT, Ptflag_T)
 
     # Initialize y_{t|T} (y_{T|T})
-    data_smoothed_y[end] = data_filtered_y[end] 
+    data_smoothed_y[end] = data_filtered_y[end]
 
     # Run Kalman smoother 
     for i = 1:(num_obs-1)
 
         # Retrieve β_{t|t}
         βtt = data_filtered_β[end-i]
-    
+
         # Compute β_{t|T} using β_{t+1|T}, β_{t|t}, P_{t|t}, and P_{t+1|t}
         βtT = βtt +
               Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]) *
@@ -162,13 +162,13 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
                Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]) *
                (Ptflag_T - Pttlag[end-i+1]) *
                transpose(Ptt[end-i] * transpose(F) * inv(Pttlag[end-i+1]))
-        
+
         # Store P_{t|T}
         push!(PtT, Pt_T)
 
         # Set P_{t|T} as new P_{t+1|T} for next iteration 
         Ptflag_T = Pt_T
-        
+
         # Generate y_{t|T} (smoothed obs.)
         ytT = H * βtT + A * data_z[end-i]
 
@@ -181,7 +181,7 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
 
     # Returned filtered series 
     # for obs variable and state 
-    return data_smoothed_y, data_smoothed_β, PtT 
+    return data_smoothed_y, data_smoothed_β, PtT
 end 
 
 ######################
@@ -217,6 +217,18 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
     # Run Kalman filter 
     data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
 
+    # Format non-positive definite 
+    # matrices as PSDMat for sampler 
+    if isposdef(R) == false
+        R = PSDMat(R)
+    end
+    if isposdef(Q) == false
+        Q = PSDMat(Q)
+    end
+    if isposdef(Z) == false
+        Z = PSDMat(Z)
+    end
+
     # Create placeholders for factor distr. 
     # mean vector and covariance matrix for all t 
     β_t_mean = Any[]
@@ -236,21 +248,23 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
     # Generate `β_t_mean` and `β_t_var`
     # for all time periods 
     for j = 1:(T-1)
+
         # β_{t|t,β_{t+1}}
         β_t_mean_temp = data_filtered_β[T-j]
-                        + Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * (β_realized[T+1-j] - μ - F * data_filtered_β[T-j])
+        +Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * (β_realized[T+1-j] - μ - F * data_filtered_β[T-j])
         push!(β_t_mean, β_t_mean_temp)
+
         # P_{t|t,β_{t+1}}
         β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * F * Ptt[T-j]
         push!(β_t_var, β_t_var_temp)
-    
+
         # Draw new β_t 
         β_realized[T-j] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
     end
 
     # Return sampled factor series 
     # fot t = 1,...,T 
-    return β_realized 
+    return β_realized
 end 
 
 ######################
