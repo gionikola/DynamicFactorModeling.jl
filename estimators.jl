@@ -241,7 +241,7 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
     β_realized = zeros(T)
 
     # Initialize β_realized 
-    push!(β_t_mean, data_filtered_β[T])
+    push!(β_t_mean, data_filtered_β[T,:])
     push!(β_t_var, Ptt[T])
     β_realized[T] = rand(MvNormal(β_t_mean[1], β_t_var[1]))
 
