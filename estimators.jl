@@ -192,7 +192,7 @@ end
     dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
 
 Description: 
-Draw a sample of dynamic factor from conditional distribution in Ch 8, Kim & Nelson (1999).
+Draw a sample series of dynamic factor from conditional distribution in Ch 8, Kim & Nelson (1999).
 Measurement Equation:   
     y_{t} = H_{t} β_{t} + A z_{t} + e_{t}.
 Transition Equation:    
@@ -214,7 +214,43 @@ Inputs:
 """
 function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
 
-    return factor_series 
+    # Run Kalman filter 
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
+
+    # Create placeholders for factor distr. 
+    # mean vector and covariance matrix for all t 
+    β_t_mean = Any[]
+    β_t_var = Any[]
+
+    # Record number of time periods 
+    T = size(data_y)[1]
+
+    # Create empty vector for factor realizations
+    β_realized = zeros(T)
+
+    # Initialize β_realized 
+    push!(β_t_mean, data_filtered_β[T])
+    push!(β_t_var, Ptt[T])
+    β_realized[T] = rand(MvNormal(β_t_mean[1], β_t_var[1]))
+
+    # Generate `β_t_mean` and `β_t_var`
+    # for all time periods 
+    for j = 1:(T-1)
+        # β_{t|t,β_{t+1}}
+        β_t_mean_temp = data_filtered_β[T-j]
+                        + Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * (β_realized[T+1-j] - μ - F * data_filtered_β[T-j])
+        push!(β_t_mean, β_t_mean_temp)
+        # P_{t|t,β_{t+1}}
+        β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * F * Ptt[T-j]
+        push!(β_t_var, β_t_var_temp)
+    
+        # Draw new β_t 
+        β_realized[T-j] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
+    end
+
+    # Return sampled factor series 
+    # fot t = 1,...,T 
+    return β_realized 
 end 
 
 ######################
