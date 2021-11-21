@@ -479,6 +479,29 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     data_σ2 = data_σ2[3000:10000]
     data_ϕ = data_ϕ[3000:10000]
 
+    # Integrate over samples 
+    β   = sum(data_β, dims = 1)
+    σ2  = sum(data_σ2, dims = 1)
+    ϕ   = sum(data_ϕ, dims = 1)
+
     # Return parameters 
-    return data_β, data_σ2, data_ϕ
+    return β, σ2, ϕ
 end 
+
+######################
+######################
+######################
+@doc """
+    
+    ()
+
+Description: 
+Estimate β, σ^2, and ϕ in Y = Xβ + e, e = Eϕ + ν, ν_t ~ i.i.d.N(0,σ^2).  
+Generate samples of β, σ^2, and ϕ.  
+Procedure descried in Section 7.4.2 in Kim & Nelson.
+
+Inputs: 
+- Y             = Dependent data matrix
+- X             = Independent data matrix 
+- error_lag_num = Number of lags in the disturbance DGP 
+"""
