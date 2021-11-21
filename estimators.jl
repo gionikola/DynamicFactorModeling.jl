@@ -1,9 +1,20 @@
+######################
+######################
+######################
+# Load DGP sim functions 
+include("dgp.jl");
+
+######################
+######################
+######################
+# Import packages 
 using LinearAlgebra
 using Random
 using Distributions
 using PDMats
 using PDMatsExtras
 using ShiftedArrays
+using Parameters
 
 ######################
 ######################
@@ -367,10 +378,10 @@ function staticLinearGibbsSampler(Y, X)
     data_σ2 = data_σ2[3000:10000]
 
     # Integrate over samples 
-    β   = mean(data_β, dims = 1)
-    σ2  = mean(data_σ2, dims = 1)
-    β   = vec(β)
-    σ2  = vec(σ2)
+    β = mean(data_β, dims = 1)
+    σ2 = mean(data_σ2, dims = 1)
+    β = vec(β)
+    σ2 = vec(σ2)
 
     # Return parameters 
     return β, σ2
@@ -486,31 +497,27 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     data_ϕ = data_ϕ[3000:10000]
 
     # Integrate over samples 
-    β   = mean(data_β, dims = 1)
-    σ2  = mean(data_σ2, dims = 1)
-    ϕ   = mean(data_ϕ, dims = 1)
-    β   = vec(β)
-    σ2  = vec(σ2)
-    ϕ   = vec(ϕ)
-    
+    β = mean(data_β, dims = 1)
+    σ2 = mean(data_σ2, dims = 1)
+    ϕ = mean(data_ϕ, dims = 1)
+    β = vec(β)
+    σ2 = vec(σ2)
+    ϕ = vec(ϕ)
+
     # Return parameters 
     return β, σ2, ϕ
-end 
+end
 
 ######################
 ######################
 ######################
 @doc """
     
-    ()
+    hdfmStateSpaceGibbsSampler()
 
 Description: 
-Estimate β, σ^2, and ϕ in Y = Xβ + e, e = Eϕ + ν, ν_t ~ i.i.d.N(0,σ^2).  
-Generate samples of β, σ^2, and ϕ.  
-Procedure descried in Section 7.4.2 in Kim & Nelson.
+Text.
 
 Inputs: 
-- Y             = Dependent data matrix
-- X             = Independent data matrix 
-- error_lag_num = Number of lags in the disturbance DGP 
+- input             = 
 """
