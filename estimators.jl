@@ -1,12 +1,4 @@
 ######################
-######################
-######################
-# Load DGP sim functions 
-include("dgp.jl");
-
-######################
-######################
-######################
 # Import packages 
 using LinearAlgebra
 using Random
@@ -16,6 +8,30 @@ using PDMatsExtras
 using ShiftedArrays
 using Parameters
 
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+# Load DGP sim functions 
+include("dgp.jl");
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 ######################
 ######################
 ######################
@@ -35,15 +51,24 @@ State space model parameters.
 - Z     = predetermined var. covariance matrix 
 """
 @with_kw mutable struct SSModelParameters
-    H       
-    A      
-    F      
-    μ       
-    R       
-    Q      
-    Z       
-end;  
+    H
+    A
+    F
+    μ
+    R
+    Q
+    Z
+end;
 
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 ######################
 ######################
 ######################
@@ -126,6 +151,15 @@ function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
     return data_filtered_y, data_filtered_β, Pttlag, Ptt
 end
 
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 ######################
 ######################
 ######################
@@ -224,6 +258,15 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
     return data_smoothed_y, data_smoothed_β, PtT
 end
 
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 ######################
 ######################
 ######################
@@ -347,6 +390,15 @@ end
 ######################
 ######################
 ######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 @doc """
     
     staticLinearGibbsSampler(Y,X)
@@ -415,6 +467,77 @@ function staticLinearGibbsSampler(Y, X)
     return β, σ2
 end
 
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+@doc """
+    
+    staticLinearGibbsSamplerRestrictedVariance(Y,X)
+
+Description: 
+Estimate β and σ^2 in Y = Xβ + e, e ~ N(0,σ^2 I_T),
+where σ^2 is restricted to some chosen value. 
+Generate samples of β and σ^2. 
+
+Inputs: 
+- Y     = Dependent data matrix
+- X     = Independent data matrix 
+- σ2    = Restricted error variance 
+"""
+function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
+
+    # Create parameter lists 
+    data_β = Any[]
+
+    # Save number of obs 
+    T = size(X)[1]
+
+    # Apply iterated updating of β and σ^2 
+    for j = 1:10000
+
+        # Generate new β^j 
+        ## Prior parameters in N(β0,Σ0)
+        β0 = ones(size(X)[2])
+        Σ0 = Matrix(I, size(β0)[1], size(β0)[1])
+        ## Posterior parameters in N(β1,Σ1) 
+        β1 = transpose(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+        Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+        ## Generate new β
+        β = rand(MvNormal(β1, Σ1))
+
+        # Record new β^j
+        push!(data_β, β)
+    end
+
+    # Drop first 3000 observations for all parameters 
+    data_β = data_β[3000:10000]
+
+    # Integrate over samples 
+    β = mean(data_β, dims = 1)
+    β = vec(β)
+
+    # Return parameters 
+    return β
+end
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 ######################
 ######################
 ######################
@@ -539,6 +662,15 @@ end
 ######################
 ######################
 ######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 @doc """
     
     HDFMStateSpaceGibbsSampler(data_y, data_z, param_init)
@@ -557,6 +689,6 @@ Output:
 - param_distr   = sample representing model hyperparameter marginal density 
 
 """
-function HDFMStateSpaceGibbsSampler(data_y, data_z, param_init::SSModelParameters) 
-    
+function HDFMStateSpaceGibbsSampler(data_y, data_z, param_init::SSModelParameters)
+
 end 
