@@ -510,6 +510,7 @@ function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
         Σ0 = Matrix(I, size(β0)[1], size(β0)[1])
         ## Posterior parameters in N(β1,Σ1) 
         β1 = transpose(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+        β1 = vec(β1) 
         Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
         ## Generate new β
         β = rand(MvNormal(β1, Σ1))
