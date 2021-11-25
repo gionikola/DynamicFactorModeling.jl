@@ -3,6 +3,9 @@ uuid = "d26fc6f6-4598-442a-ab75-ae1dece03a7b"
 authors = ["Giorgi Nikolaishvili"]
 version = "0.1.0"
 
+[deps]
+StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
+
 [compat]
 julia = "1"
 

@@ -431,7 +431,8 @@ function staticLinearGibbsSampler(Y, X)
         β0 = ones(size(X)[2])
         Σ0 = Matrix(I, size(β0)[1], size(β0)[1])
         ## Posterior parameters in N(β1,Σ1) 
-        β1 = transpose(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+        β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+        β1 = vec(β1) 
         Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
         ## Generate new β
         β = rand(MvNormal(β1, Σ1))
@@ -506,10 +507,10 @@ function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
 
         # Generate new β^j 
         ## Prior parameters in N(β0,Σ0)
-        β0 = ones(size(X)[2])
+        β0 = zeros(size(X)[2])
         Σ0 = Matrix(I, size(β0)[1], size(β0)[1])
         ## Posterior parameters in N(β1,Σ1) 
-        β1 = transpose(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+        β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
         β1 = vec(β1) 
         Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
         ## Generate new β
@@ -577,7 +578,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         ###############################
         # Generate β^j 
         ## Prior parameters in N(b0,A0)
-        b0 = ones(size(X)[2])
+        b0 = zeros(size(X)[2])
         A0 = Matrix(I, size(b0)[1], size(b0)[1])
         ## Generate X^⋆ 
         X_star = similar(X[(1+length(ϕ)):end, :])
@@ -599,7 +600,6 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         #y_temp = y_temp[(1+length(ϕ)):end, :]
         Y_star = y_temp
         ## Posterior parameters in N(b1,A1) 
-        println(j)
         b1 = inv(inv(A0) + inv(σ2) * transpose(X_star) * X_star) * (inv(A0) * b0 + inv(σ2) * transpose(X_star) * Y_star)
         A1 = inv(inv(A0) + inv(σ2) * transpose(X_star) * X_star)
         ## Vectorize b1 
@@ -613,7 +613,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         ###############################
         # Generate ϕ^j 
         ## Prior parameters in N(c0,B0)
-        c0 = ones(size(ϕ)[1])
+        c0 = zeros(size(ϕ)[1])
         B0 = Matrix(I, size(c0)[1], size(c0)[1])
         ## Generate e^⋆ 
         e_star = Y - X * β
@@ -626,8 +626,8 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         end
         e_star = e_star[(1+length(ϕ)):end]
         ## Posterior parameters in N(c1,B1)
-        c1 = (inv(B0) + inv(σ2) * transpose(E_star) * E_star) * (inv(B0) * c0 + inv(σ2) * transpose(E_star) * e_star)
-        B1 = (inv(B0) + inv(σ2) * transpose(E_star) * E_star)
+        c1 = inv(inv(B0) + inv(σ2) * transpose(E_star) * E_star) * (inv(B0) * c0 + inv(σ2) * transpose(E_star) * e_star)
+        B1 = inv(inv(B0) + inv(σ2) * transpose(E_star) * E_star)
         ## Generate new ϕ
         ϕ = rand(MvNormal(c1, B1))
     
