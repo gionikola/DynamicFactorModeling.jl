@@ -584,7 +584,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         for i = 1:size(X)[2] # iterate over variables in X
             x_temp = X[:, i]
             for p = 1:length(ϕ) # iterate over lag params in ϕ
-                x_temp = x_temp - ϕ[p] .* lag(x_temp, p)
+                x_temp[(1+length(ϕ)):end, :] = x_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(x_temp, p)[(1+length(ϕ)):end, :]
             end
             x_temp = x_temp[(1+length(ϕ)):end, :]
             X_star[:, i] = x_temp
@@ -593,11 +593,13 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         Y_star = similar(Y[(1+length(ϕ)):end, :])
         y_temp = Y
         for p = 1:length(ϕ)
-            y_temp = y_temp - ϕ[p] .* lag(y_temp, p)
+            y_temp = Y
+            y_temp = y_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(y_temp, p)[(1+length(ϕ)):end, :]
         end
-        y_temp = y_temp[(1+length(ϕ)):end, :]
+        #y_temp = y_temp[(1+length(ϕ)):end, :]
         Y_star = y_temp
         ## Posterior parameters in N(b1,A1) 
+        println(j)
         b1 = inv(inv(A0) + inv(σ2) * transpose(X_star) * X_star) * (inv(A0) * b0 + inv(σ2) * transpose(X_star) * Y_star)
         A1 = inv(inv(A0) + inv(σ2) * transpose(X_star) * X_star)
         ## Vectorize b1 
@@ -639,8 +641,8 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         δ0 = 0.002
         ## Posterior parameters in IG(ν1/2, δ1/2)
         ν1 = ν0 + T
-        δ1 = δ0 .+ transpose(Y_star - X_star * β) * (Y_star - X_star * β) 
-        δ1 = δ1[1,1] 
+        δ1 = δ0 .+ transpose(Y_star - X_star * β) * (Y_star - X_star * β)
+        δ1 = δ1[1, 1]
         ## Generate new σ2
         σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
     
