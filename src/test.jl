@@ -6,6 +6,10 @@ t = Template(;
             dir     = "package", 
             authors = ["Giorgi Nikolaishvili"],
             plugins = [
+                TravisCI(),
+                Codecov(),
+                Coveralls(),
+                AppVeyor()
             ],
 )
 
