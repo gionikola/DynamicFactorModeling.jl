@@ -508,7 +508,7 @@ function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
         # Generate new β^j 
         ## Prior parameters in N(β0,Σ0)
         β0 = zeros(size(X)[2])
-        Σ0 = Matrix(I, size(β0)[1], size(β0)[1])
+        Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
         ## Posterior parameters in N(β1,Σ1) 
         β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
         β1 = vec(β1) 
@@ -569,7 +569,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     T = size(X)[1]
 
     # Initialize σ2 
-    ϕ = 0.5 .* ones(error_lag_num)
+    ϕ = 0.0 .* ones(error_lag_num)
     σ2 = 1
 
     # Apply iterated updating of β, σ^2, ϕ
@@ -579,7 +579,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         # Generate β^j 
         ## Prior parameters in N(b0,A0)
         b0 = zeros(size(X)[2])
-        A0 = Matrix(I, size(b0)[1], size(b0)[1])
+        A0 = Matrix(I, size(b0)[1], size(b0)[1]) .* 1000.0
         ## Generate X^⋆ 
         X_star = similar(X[(1+length(ϕ)):end, :])
         for i = 1:size(X)[2] # iterate over variables in X
@@ -614,7 +614,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         # Generate ϕ^j 
         ## Prior parameters in N(c0,B0)
         c0 = zeros(size(ϕ)[1])
-        B0 = Matrix(I, size(c0)[1], size(c0)[1])
+        B0 = Matrix(I, size(c0)[1], size(c0)[1]) .* 1000.0
         ## Generate e^⋆ 
         e_star = Y - X * β
         ## Generate E^⋆
