@@ -359,7 +359,7 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
             push!(β_t_var, β_t_var_temp)
 
             # Draw new β_t 
-            β_realized[T-j, :] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
+            β_realized[T-j, :] = rand(MvNormal(β_t_mean[1+j], β_t_var[1+j]))
         end
     else
         ## IF Q IS NOT SINGULAR (redundant, but potentially faster) 
@@ -378,7 +378,7 @@ function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
             push!(β_t_var, β_t_var_temp)
 
             # Draw new β_t 
-            β_realized[T-j, :] = rand(MvNormal(β_t_mean[j], β_t_var[j]))
+            β_realized[T-j, :] = rand(MvNormal(β_t_mean[1+j], β_t_var[1+j]))
         end
     end
 
