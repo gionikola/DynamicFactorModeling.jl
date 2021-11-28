@@ -424,7 +424,7 @@ function staticLinearGibbsSampler(Y, X)
     σ2 = 1.0 
 
     # Apply iterated updating of β and σ^2 
-    for j = 1:10000
+    for j = 1:5000
     
         # Generate new β^j 
         ## Prior parameters in N(β0,Σ0)
@@ -458,8 +458,8 @@ function staticLinearGibbsSampler(Y, X)
     end
 
     # Drop first 3000 observations for all parameters 
-    data_β = data_β[3000:10000]
-    data_σ2 = data_σ2[3000:10000]
+    data_β = data_β[1000:5000]
+    data_σ2 = data_σ2[1000:5000]
 
     # Integrate over samples 
     β = mean(data_β, dims = 1)
@@ -506,7 +506,7 @@ function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
     T = size(X)[1]
 
     # Apply iterated updating of β and σ^2 
-    for j = 1:10000
+    for j = 1:5000
 
         # Generate new β^j 
         ## Prior parameters in N(β0,Σ0)
@@ -524,7 +524,7 @@ function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
     end
 
     # Drop first 3000 observations for all parameters 
-    data_β = data_β[3000:10000]
+    data_β = data_β[1000:5000]
 
     # Integrate over samples 
     β = mean(data_β, dims = 1)
@@ -576,7 +576,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     σ2 = 1
 
     # Apply iterated updating of β, σ^2, ϕ
-    for j = 1:10000
+    for j = 1:5000
     
         ###############################
         # Generate β^j 
@@ -656,9 +656,9 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     end
 
     # Drop first 3000 observations for all parameters 
-    data_β = data_β[3000:10000]
-    data_σ2 = data_σ2[3000:10000]
-    data_ϕ = data_ϕ[3000:10000]
+    data_β = data_β[1000:5000]
+    data_σ2 = data_σ2[1000:5000]
+    data_ϕ = data_ϕ[1000:5000]
 
     # Integrate over samples 
     β = mean(data_β, dims = 1)
@@ -704,4 +704,4 @@ Output:
 """
 function HDFMStateSpaceGibbsSampler(data_y, data_z, param_init::SSModelParameters)
 
-end 
+end; 
