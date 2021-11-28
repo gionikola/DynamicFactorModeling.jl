@@ -421,25 +421,25 @@ function staticLinearGibbsSampler(Y, X)
     T = size(X)[1]
 
     # Initialize σ2 
-    σ2 = 1
+    σ2 = 1000.0 
 
     # Apply iterated updating of β and σ^2 
     for j = 1:10000
-
+    
         # Generate new β^j 
         ## Prior parameters in N(β0,Σ0)
-        β0 = ones(size(X)[2])
-        Σ0 = Matrix(I, size(β0)[1], size(β0)[1])
+        β0 = zeros(size(X)[2])
+        Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
         ## Posterior parameters in N(β1,Σ1) 
         β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
-        β1 = vec(β1) 
+        β1 = vec(β1)
         Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
         ## Generate new β
         β = rand(MvNormal(β1, Σ1))
-
+    
         # Record new β^j
         push!(data_β, β)
-
+    
         # Update σ2^j 
         ## Prior parameters in IG(ν0/2, δ0/2) 
         ν0 = 0.002
@@ -449,7 +449,7 @@ function staticLinearGibbsSampler(Y, X)
         δ1 = δ0 + transpose(Y - X * β) * (Y - X * β)
         ## Generate new σ2
         σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
-
+    
         # Record new σ2^j
         push!(data_σ2, σ2)
     end
