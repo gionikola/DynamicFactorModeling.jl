@@ -434,6 +434,9 @@ function staticLinearGibbsSampler(Y, X)
         β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
         β1 = vec(β1)
         Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+        if isposdef(Σ1) == false
+            Σ1 = PSDMat(Σ1)
+        end
         ## Generate new β
         β = rand(MvNormal(β1, Σ1))
     
@@ -446,7 +449,7 @@ function staticLinearGibbsSampler(Y, X)
         δ0 = 0.002
         ## Posterior parameters in IG(ν1/2, δ1/2)
         ν1 = ν0 + T
-        δ1 = δ0 + transpose(Y - X * β) * (Y - X * β)
+        δ1 = δ0 + (transpose(Y - X * β)*(Y-X*β))[1]
         ## Generate new σ2
         σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
     
@@ -605,8 +608,10 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         ## Vectorize b1 
         b1 = vec(b1)
         ## Generate new β
+        if isposdef(A1) == false
+            A1 = PSDMat(A1)
+        end
         β = rand(MvNormal(b1, A1))
-    
         # Record new β^j
         push!(data_β, β)
     
