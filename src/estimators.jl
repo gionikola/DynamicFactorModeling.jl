@@ -421,7 +421,7 @@ function staticLinearGibbsSampler(Y, X)
     T = size(X)[1]
 
     # Initialize σ2 
-    σ2 = 1000.0 
+    σ2 = 1.0 
 
     # Apply iterated updating of β and σ^2 
     for j = 1:10000
