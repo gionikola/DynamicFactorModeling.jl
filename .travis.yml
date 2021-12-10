@@ -34,3 +34,5 @@ deploy:
   on:
     tags: true
     all_branches: true
+codecov: true
+coveralls: true
