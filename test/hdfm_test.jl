@@ -126,7 +126,7 @@ function HDFMSamplerGivenFactors(data_y, data_z, data_β)
     Q_list = Any[]
     Z_list = Any[]
 
-    for i = 1:10
+    for i = 1:500
 
         # Estimate obs eq. and autoreg hyperparameters
         Y = reshape(data_y[:, 1], length(data_y[:, 1]), 1)
