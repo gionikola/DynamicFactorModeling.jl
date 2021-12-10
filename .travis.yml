@@ -30,3 +30,7 @@ after_success:
       Pkg.add("Coverage")
       using Coverage
       Coveralls.submit(process_folder())'
+deploy:
+  on:
+    tags: true
+    all_branches: true
