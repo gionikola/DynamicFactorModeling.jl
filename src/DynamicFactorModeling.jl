@@ -16,11 +16,13 @@ export simulateStateSpaceModel, SSModelParameters,
     kalmanFilter, kalmanSmoother,
     dynamicFactorGibbsSampler,
     staticLinearGibbsSampler, staticLinearGibbsSamplerRestrictedVariance,
-    autocorrErrorRegGibbsSampler
+    autocorrErrorRegGibbsSampler, 
+    sayhi
 
 ######################
 # Include all package scripts 
 include("dgp.jl")
 include("estimators.jl")
+include("test_scripts.jl")
 
 end
