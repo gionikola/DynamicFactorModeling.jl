@@ -1,13 +1,12 @@
 name = "DynamicFactorModeling"
 uuid = "d26fc6f6-4598-442a-ab75-ae1dece03a7b"
-authors = ["Giorgi Nikolaishvili"]
+authors = ["Giorgi Nikolaishvili <gnikolai@uoregon.edu> and contributors"]
 version = "0.1.0"
 
 [deps]
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 
 [compat]
-StatsPlots = "0.14"
 julia = "1"
 
 [extras]
