@@ -17,6 +17,8 @@ StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 
 [compat]
 Parameters = "0.12"
+ShiftedArrays = "1"
+StatsPlots = "0.14"
 julia = "1"
 
 [extras]
