@@ -17,6 +17,7 @@ export simulateStateSpaceModel, SSModelParameters,
     dynamicFactorGibbsSampler,
     staticLinearGibbsSampler, staticLinearGibbsSamplerRestrictedVariance,
     autocorrErrorRegGibbsSampler, 
+    otrokWhitemanFactorSampler,
     sayhi
 
 ######################
@@ -24,5 +25,6 @@ export simulateStateSpaceModel, SSModelParameters,
 include("dgp.jl")
 include("estimators.jl")
 include("test_scripts.jl")
+include("otrok_whiteman_1998_estimator.jl")
 
 end
