@@ -105,6 +105,53 @@ plot(data_β[:, 1:3])
 ####################
 ####################
 ####################
+# Create function for full Kim-Nelson algo 
+# conditional on true hyperparameter values 
+function HDFMSamplerGivenHyperparameters(data_y, data_z, H, A, F, μ, R, Q, Z)
+
+    # Create empty lists 
+    factor_list = Any[]
+
+    for i = 1:5000
+
+        println(i) 
+
+        # Estimate factors 
+        factor = dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
+        factor_global = factor[:, 1]
+        factor_reg12 = factor[:, 2]
+        factor_reg34 = factor[:, 3]
+
+        # Add updated parameter estimates to
+        # their corresponding sample lists 
+        push!(factor_list, factor)
+    end
+
+    return factor_list
+end
+
+factor_list = HDFMSamplerGivenHyperparameters(data_y, data_z, H, A, F, μ, R, Q, Z)
+
+factor_est  = mean(factor_list) 
+
+plot(factor_est[:,3])
+plot!(data_β[:,3])
+
+####################
+####################
+####################
+####################
+####################
+####################
+####################
+####################
+####################
+####################
+####################
+####################
+####################
+####################
+####################
 # Create function for full algorithm applied 
 # to the above Kim-Nelson model.
 function HDFMSamplerGivenFactors(data_y, data_z, data_β)
@@ -373,13 +420,13 @@ function HDFMSampler(data_y, data_z)
     Q[7, 7] = σ2_4
 
     for i = 1:10
-    
+
         # Estimate factors 
         factor = dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
         factor_global = factor[:, 1]
         factor_reg12 = factor[:, 2]
         factor_reg34 = factor[:, 3]
-    
+
         # Estimate obs eq. and autoreg hyperparameters
         Y = reshape(data_y[:, 1], length(data_y[:, 1]), 1)
         X = [factor_global factor_reg12]
@@ -412,7 +459,7 @@ function HDFMSampler(data_y, data_z)
         α4 = par4[1][2]
         σ2_4 = σ2_4[1]
         ψ4 = ψ4[1][1]
-    
+
         # Estimate global factor autoreg state eq. hyperparmeters
         σ2 = 1.0
         X = zeros(size(data_y)[1], 2)
@@ -427,7 +474,7 @@ function HDFMSampler(data_y, data_z)
         ϕ = staticLinearGibbsSamplerRestrictedVariance(factor_temp, X, σ2)
         ϕ1 = ϕ[1][1]
         ϕ2 = ϕ[1][2]
-    
+
         # Estimate region-12 factor autoreg state eq. hyperparmeters
         σ2 = 1.0
         X = zeros(size(data_y)[1], 2)
@@ -444,7 +491,7 @@ function HDFMSampler(data_y, data_z)
         ϕ1_12 = ϕ[1][1]
         ϕ2_12 = ϕ[1][2]
         σ2_12 = σ2_12[1]
-    
+
         # Estimate region-12 factor autoreg state eq. hyperparmeters
         σ2 = 1.0
         X = zeros(size(data_y)[1], 2)
@@ -461,7 +508,7 @@ function HDFMSampler(data_y, data_z)
         ϕ1_34 = ϕ[1][1]
         ϕ2_34 = ϕ[1][2]
         σ2_34 = σ2_34[1]
-    
+
         # Update hyperparameters 
         H = zeros(4, 10)
         H[1, 1] = γ1
@@ -503,7 +550,7 @@ function HDFMSampler(data_y, data_z)
         Q[5, 5] = σ2_2
         Q[6, 6] = σ2_3
         Q[7, 7] = σ2_4
-    
+
         # Add updated parameter estimates to
         # their corresponding sample lists 
         push!(H_list, H)
@@ -514,7 +561,7 @@ function HDFMSampler(data_y, data_z)
         push!(Q_list, Q)
         push!(Z_list, Z)
         push!(factor_list, factor)
-    
+
         println(i)
     end
 
