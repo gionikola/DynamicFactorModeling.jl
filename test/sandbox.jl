@@ -4,6 +4,7 @@
 ####################
 ####################
 using Plots
+using DynamicFactorModeling
 
 num_obs = 100
 H = [1.0 0.0]
