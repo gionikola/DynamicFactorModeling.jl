@@ -102,7 +102,7 @@ function OWSingleFactorEstimator(data, priorsIN)
             # call arobs to draw observable coefficients
             xft                 = [ones(capt,1) facts(:,1)]  
 
-            [b1,s21,phi1,facts] = ar(y[:,i],xft,arterms,b0_,B0__,r0_,R0__,v0_,d0_,bold[i,:]',SigE[i],phimat0[:,i],i,nf,facts)
+            b1,s21,phi1,facts   = ar(y[:,i],xft,arterms,b0_,B0__,r0_,R0__,v0_,d0_,bold[i,:]',SigE[i],phimat0[:,i],i,nf,facts)
             bold[i,1:nreg]      = b1'
             phimat0[:,i]        = phi1
             SigE[i]             = s21
