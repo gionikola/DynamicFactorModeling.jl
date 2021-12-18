@@ -10,6 +10,71 @@
 ######################
 ######################
 ######################
+function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt, counter, metcount)
+
+    # Generation of phi 
+    yp      = y[1:p, 1]          # the first p observations  
+    e       = y
+    e1      = e[p+1:capt, 1]
+    ecap    = zeros(capt, p)
+
+    for j in 1:p
+        ecap[:,j] = lag(e, j)  
+    end 
+    ecap = ecap[p+1:capt, :]
+
+    V       = invpd(R0__ + sig2^(-1) * ecap' * ecap)
+    phihat  = V*(R0__ * r0_ + sig2^(-1) * ecap' * e1)
+    
+    phi1    = phihat + cholesky(V)' * randn(p,1)        # candidate draw 
+
+    coef    = [-rev(phi1); 1]                           # check stationarity 
+    root    = roots(coef')                              # (FIX WITH POLYNOMIALS.JL)
+
+    rootmod = abs(root)
+    accept  = min(rootmod) >= 1.001                     # all the roots bigger than 1 
+    
+    if accept == 0                                      # doesn't pass stationarity 
+        phi1 = phi0
+    else
+        sigma1  = sigmat(phi1, p)                        # numerator of acceptance prob 
+        sigroot = cholesky(sigma1)
+        p1      = inv(sigroot)'
+        ypst    = p1 * yp
+        d       = det(p1' * p1)
+        psi1    = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
+    
+        sigma1  = sigmat(phi0, p)                       # denominator of acceptance prob 
+        sigroot = cholesky(sigma1)
+        p1      = inv(sigroot)'
+        ypst    = p1 * yp
+        d       = det(p1' * p1)
+        psi0    = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
+
+        if psi0 == 0 
+            accept =  1
+        else 
+            u = rand(1,1)
+            accept = u <= psi1/psi0 
+        end 
+        phi1 = phi1 * accept + phi0 * (1-accept) 
+    end 
+
+    return phi1
+end 
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 """
     seqm(a,b,c)
 
