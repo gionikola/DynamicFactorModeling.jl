@@ -11,6 +11,48 @@
 ######################
 ######################
 """
+    invpdf(X)
+
+Description:
+Invert matrix X using augmented eigenvalues if X is not positive-definite. 
+
+Inputs:
+- X = matrix of interest 
+
+Output:
+- X_inv = inverse of input matrix X 
+"""
+function invpd(X)
+
+    X_inv = similar(X) 
+
+    if isposdef(X)
+        X_inv = inv(X) 
+    else 
+        n, m        = size(X)
+        U, dd, V    = svd(X) 
+        xchk        = U * Diagonal(dd) * V' 
+        dd = dd .+ 1000 * 2.2204e-16
+        di = ones(n,1) ./ dd 
+        X_inv = U * Diagonal(di) * V 
+    end 
+
+    return X_inv 
+end 
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
     diagrv(X,V)
 
 Description: 
