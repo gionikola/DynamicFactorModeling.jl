@@ -77,20 +77,34 @@ end
 ######################
 ######################
 ######################
+"""
+    sigbig(phi, p, capt)
+
+Description:
+Create T×T matrix S^(-1) (pg. 1003 of Otrok and Whiteman (1998)). 
+
+Inputs: 
+- phi   = Lag coefficients associated with idiosyncratic error autoregression.
+- p     = Number of lags.
+- capt  = total number of time periods in the sample.
+
+Outputs:
+- Si    = T×T matrix S^(-1). 
+"""
 function sigbig(phi, p, capt)
 
-    rotate = seqa(0, 1, capt - p)
-    siupper = sigmat(phi, p)
-    siupper = [inv(cholesky(siupper))' zeros(p, capt - p)]
-    silower = [kron((-rev(phi)')), ones(capt - p, 1)ones(capt - p, 1)zeros(capt - p, capt - p - 1)]
+    rotate      = trunc.(Int, seqa(0, 1, capt - p))
+    Siinv_upper = sigmat(phi, p)
+    Siinv_upper = [inv(cholesky(siupper))' zeros(p, capt - p)]
+    Siinv_lower = [kron((-reverse(phi, dims = 1)'), ones(capt - p, 1)) ones(capt - p, 1) zeros(capt - p, capt - p - 1)]
 
     for s = 1:(capt-p)
-        silower[s, :] = circshift(silower[s, :], [0, rotate(s)])
+        Siinv_lower[s, :] = circshift(Siinv_lower, (0, rotate[s]))[s, :]
     end
 
-    si = [siupper; silower]
+    Si = [Siinv_upper; Siinv_lower]
 
-    return si
+    return Si
 end
 
 ######################
