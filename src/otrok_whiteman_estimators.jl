@@ -40,7 +40,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         coef = [-rev(phi1); 1]                      # check stationarity 
         root = roots(coef')
         rootmod = abs(root) 
-        accept = ge(min(rootmod), 1.0001)           # all the roots bigger than 1 
+        accept = min(rootmod) >= 1.0001             # all the roots bigger than 1 
 
         if accept == 0
             phi1 = phi0
