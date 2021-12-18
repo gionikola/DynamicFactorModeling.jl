@@ -56,13 +56,14 @@ Outputs:
 function sigmat(phi, p)
 
     r2      = p^2
-    i       = [I(p-1) zeros(p-1,1)]
+    i       = [ident(p-1) zeros(p-1,1)]
     Pcap    = [phi'; i]
-    pp      = I(r2) - kron(Pcap, Pcap)
+    pp      = ident(r2) - kron(Pcap, Pcap)
     e1      = [1; zeros(p-1,1)]
     sig     = inv(pp) * vec(e1 * e1')
     sigma   = reshape(sig',p,p)
-
+    sigma   = Matrix(sigma) 
+    
     return sigma 
 end 
 
