@@ -25,7 +25,73 @@ Outputs:
 function ident(p)
     ident_mat = 1.0 * Matrix(I, p, p)
     return ident_mat
-end 
+end
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
+    seqa(a, b, c)
+
+Description:
+Create a sequence with `c` # of inputs, starting at `a` with `b` increments.
+
+Inputs:
+- a = starting value of the sequence.
+- b = increment size.
+- c = number of increments. 
+
+Outputs:
+- seq = sequence with `c` # of inputs, starting at `a` with `b` increments.
+
+"""
+function seqa(a, b, c)
+
+    seq = zeros(c)
+
+    for i = 1:c
+        seq[i] = a + b * (i - 1)
+    end
+
+    return seq
+end
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+function sigbig(phi, p, capt)
+
+    rotate = seqa(0, 1, capt - p)
+    siupper = sigmat(phi, p)
+    siupper = [inv(cholesky(siupper))' zeros(p, capt - p)]
+    silower = [kron((-rev(phi)')), ones(capt - p, 1)ones(capt - p, 1)zeros(capt - p, capt - p - 1)]
+
+    for s = 1:(capt-p)
+        silower[s, :] = circshift(silower[s, :], [0, rotate(s)])
+    end
+
+    si = [siupper; silower]
+
+    return si
+end
 
 ######################
 ######################
@@ -41,19 +107,19 @@ end
 ######################
 function rnchisq(m)
 
-    g = Any[] 
+    g = Any[]
 
-    v = trunc(Int, round(m/2)) 
+    v = trunc(Int, round(m / 2))
 
     if trunc(Int, round(v) - v) == 0
-        g = -2 * sum(log.(rand(v, 1)), dims = 1) 
+        g = -2 * sum(log.(rand(v, 1)), dims = 1)
     else
         v = (m - 1) / 2
-        g = -2 * sum(log.(rand(v, 1)), dims = 1) + randn(1,1)^2
-    end 
+        g = -2 * sum(log.(rand(v, 1)), dims = 1) + randn(1, 1)^2
+    end
 
-    return g 
-end 
+    return g
+end
 
 ######################
 ######################
@@ -83,17 +149,17 @@ Outputs:
 """
 function sigmat(phi, p)
 
-    r2      = p^2
-    i       = [ident(p-1) zeros(p-1,1)]
-    Pcap    = [phi'; i]
-    pp      = ident(r2) - kron(Pcap, Pcap)
-    e1      = [1; zeros(p-1,1)]
-    sig     = inv(pp) * vec(e1 * e1')
-    sigma   = reshape(sig',p,p)
-    sigma   = Matrix(sigma) 
+    r2 = p^2
+    i = [ident(p - 1) zeros(p - 1, 1)]
+    Pcap = [phi'; i]
+    pp = ident(r2) - kron(Pcap, Pcap)
+    e1 = [1; zeros(p - 1, 1)]
+    sig = inv(pp) * vec(e1 * e1')
+    sigma = reshape(sig', p, p)
+    sigma = Matrix(sigma)
 
-    return sigma 
-end 
+    return sigma
+end
 
 ######################
 ######################
@@ -109,16 +175,16 @@ end
 ######################
 function gendiff(z, phi)
 
-    p       = size(phi)[1] 
-    ztrim   = z[p+1:end]
-    zgdiff  = ztrim
-    
+    p = size(phi)[1]
+    ztrim = z[p+1:end]
+    zgdiff = ztrim
+
     for i = 1:p
         zgdiff = zgdiff - phi[i, 1] * z[(p-i+1):(end-i)]
-    end 
+    end
 
-    return zgdiff 
-end 
+    return zgdiff
+end
 
 ######################
 ######################
@@ -135,55 +201,55 @@ end
 function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt)
 
     # Generation of phi 
-    yp      = y[1:p, 1]          # the first p observations  
-    e       = y
-    e1      = e[p+1:capt, 1]
-    ecap    = zeros(capt, p)
+    yp = y[1:p, 1]          # the first p observations  
+    e = y
+    e1 = e[p+1:capt, 1]
+    ecap = zeros(capt, p)
 
-    for j in 1:p
-        ecap[:,j] = lag(e, j)  
-    end 
+    for j = 1:p
+        ecap[:, j] = lag(e, j)
+    end
     ecap = ecap[p+1:capt, :]
 
-    V       = invpd(R0__ + sig2^(-1) * ecap' * ecap)
-    phihat  = V*(R0__ * r0_ + sig2^(-1) * ecap' * e1)
-    
-    phi1    = phihat + cholesky(V)' * randn(p,1)        # candidate draw 
+    V = invpd(R0__ + sig2^(-1) * ecap' * ecap)
+    phihat = V * (R0__ * r0_ + sig2^(-1) * ecap' * e1)
 
-    coef    = [-reverse(phi1, dims=1); 1]               # check stationarity 
-    root    = roots(Polynomial(reverse(coef, dims=1)))  # Find lag polynomial roots 
+    phi1 = phihat + cholesky(V)' * randn(p, 1)        # candidate draw 
+
+    coef = [-reverse(phi1, dims = 1); 1]               # check stationarity 
+    root = roots(Polynomial(reverse(coef, dims = 1)))  # Find lag polynomial roots 
 
     rootmod = abs(root)
-    accept  = min(rootmod) >= 1.001                     # all the roots bigger than 1 
-    
+    accept = min(rootmod) >= 1.001                     # all the roots bigger than 1 
+
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
-        sigma1  = sigmat(phi1, p)                        # numerator of acceptance prob 
+        sigma1 = sigmat(phi1, p)                        # numerator of acceptance prob 
         sigroot = cholesky(sigma1)
-        p1      = inv(sigroot)'
-        ypst    = p1 * yp
-        d       = det(p1' * p1)
-        psi1    = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
-    
-        sigma1  = sigmat(phi0, p)                       # denominator of acceptance prob 
-        sigroot = cholesky(sigma1)
-        p1      = inv(sigroot)'
-        ypst    = p1 * yp
-        d       = det(p1' * p1)
-        psi0    = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
+        p1 = inv(sigroot)'
+        ypst = p1 * yp
+        d = det(p1' * p1)
+        psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
 
-        if psi0 == 0 
-            accept =  1
-        else 
-            u = rand(1,1)
-            accept = u <= psi1/psi0 
-        end 
-        phi1 = phi1 * accept + phi0 * (1-accept) 
-    end 
+        sigma1 = sigmat(phi0, p)                       # denominator of acceptance prob 
+        sigroot = cholesky(sigma1)
+        p1 = inv(sigroot)'
+        ypst = p1 * yp
+        d = det(p1' * p1)
+        psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
+
+        if psi0 == 0
+            accept = 1
+        else
+            u = rand(1, 1)
+            accept = u <= psi1 / psi0
+        end
+        phi1 = phi1 * accept + phi0 * (1 - accept)
+    end
 
     return phi1
-end 
+end
 
 ######################
 ######################
@@ -211,23 +277,23 @@ Inputs:
 Outputs:
 - seq = geometric sequence 
 """
-function seqm(a,b,c) 
+function seqm(a, b, c)
 
-    seq = zeros(c,1)
+    seq = zeros(c, 1)
 
-    seq[1] = a 
+    seq[1] = a
 
     if c > 1
-        
-        seq[2] = a * b 
 
-        for i in 3:c 
-            seq[i] = seq[i-1] * b 
-        end 
-    end 
+        seq[2] = a * b
 
-    return seq 
-end 
+        for i = 3:c
+            seq[i] = seq[i-1] * b
+        end
+    end
+
+    return seq
+end
 
 ######################
 ######################
@@ -255,21 +321,21 @@ Output:
 """
 function invpd(X)
 
-    X_inv = similar(X) 
+    X_inv = similar(X)
 
     if isposdef(X)
-        X_inv = inv(X) 
-    else 
-        n, m        = size(X)
-        U, dd, V    = svd(X) 
-        xchk        = U * Diagonal(dd) * V' 
+        X_inv = inv(X)
+    else
+        n, m = size(X)
+        U, dd, V = svd(X)
+        xchk = U * Diagonal(dd) * V'
         dd = dd .+ 1000 * 2.2204e-16
-        di = ones(n,1) ./ dd 
-        X_inv = U * Diagonal(di) * V 
-    end 
+        di = ones(n, 1) ./ dd
+        X_inv = U * Diagonal(di) * V
+    end
 
-    return X_inv 
-end 
+    return X_inv
+end
 
 ######################
 ######################
@@ -506,14 +572,14 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     ## Begin Monte Carlo Loop
     for dr = 1:ndraws+burnin
-    
+
         nf = 1
-    
+
         for i = 1:nvar
-    
+
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts(:, 1)]
-    
+
             b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :]', SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
             phimat0[:, i] = phi1
@@ -521,35 +587,35 @@ function OWSingleFactorEstimator(data, priorsIN)
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = b1'
             ssave[dr, i] = s21
             psave2[dr, ((i-1)*arterms)+1:i*arterms] = phi1'
-    
+
         end #end of loop for drawing the coefficients for each observable equation
-    
+
         # draw factor AR coefficients
         i = 1
         phi = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], i, sigU[1, 1])
         psave[dr, (i-1)*arlag+1:(i-1)*arlag+arlag] = phi
-    
+
         #draw factor
         #take drawing of World factor 
         sinvf1 = sigbig(phi, arlag, capt)
         f = zeros(capt, 1)
         H = ((1 / sigU[1]) * sinvf1' * sinvf1)
-    
+
         for i = 1:nvar
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
             H = H + ((bold[i, 2]^2 / (SigE[i])) * sinv1' * sinv1)
             f = f + (bold[i, 2] / SigE[i]) * sinv1' * sinv1 * (y[:, i])
         end
-    
+
         Hinv = invpd(H)
         f = Hinv * f
         fact1 = f + cholesky(Hinv)' * randn(capt, 1)
-    
+
         for i = 1:nfact
             Xtsave[:, ((dr-1)*nfact)+i] = fact1
             facts[:, 1] = fact1
         end
-    
+
     end
 
     # Save results 
