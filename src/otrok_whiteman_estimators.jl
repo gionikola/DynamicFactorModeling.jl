@@ -1,3 +1,109 @@
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
+
+    n = capt
+    signmax1 = 1
+    signbeta1 = 1 
+
+    while signbeta1 >= 1
+    
+        # generation of phi1 
+        yp = y[1:p, 1]          # the first p observations 
+        xp = x[1:p, :]
+
+        e = y - x * b0 
+        e1 = e[(p+1):n, 1]
+        ecap = zeros(n,p)
+
+        for j in 1:p
+            ecap[:,j] = lagmatrix(e,j) 
+        end 
+        
+        ecap = ecap[p+1:n, :]
+
+        V = invpd(R0__ + s20^(-1) * ecap' * ecap)
+        phihat = V * (R0__ * r0_ + s20^(-1) * ecap' * e1)
+
+        phi1 = phihat + chol(V)' * randn(p,1)       # candidate draw 
+
+        coef = [-rev(phi1); 1]                      # check stationarity 
+        root = roots(coef')
+        rootmod = abs(root) 
+        accept = ge(min(rootmod), 1.0001)           # all the roots bigger than 1 
+
+        if accept == 0
+            phi1 = phi0
+        else
+            sigma1 = sigmat(phi1, p)               # numerator of acceptance prob 
+            sigroot = chol(sigma1)
+            p1 = inv(sigroot)'
+            ypst = p1 * yp
+            xpst = p1 * xp
+            d = det(p1' * p1)
+            psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
+        
+            sigma1 = sigmat(phi0, p)
+            sigroot = chol(sigma1)
+            p1 = inv(sigroot)'
+            ypst = p1 * yp
+            xpst = p1 * xp
+            d = det(p1' * p1)
+            psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
+        end 
+
+        if psi0 == 0
+            accept = 1
+        else
+            u = rand(1, 1)
+            accept = u <= psi1 / psi0
+        end 
+        phi1 = phi1 * accept + phi0 * (1-accept) 
+
+        # generation of beta 
+        sigma   = sigmat(phi1, p)             # sigma = sigroot' * sigroot 
+        sigroot = chol(sigma)                 # signber2v = p1' * p1 
+        p1      = inv(sigroot)' 
+        ypst    = p1 * yp 
+        xpst    = p1 * xp
+        yst = [ypst; gendiff(y,phil)]
+        xst = [xpst; gendiff(x,phi1)]
+
+        V       = invpd(B0__ + s20^(-1) * xst' * xst)
+        bhat    = V * (B0__ * b0 + s20^(-1) * xst' * yst)
+        b1      = bhat + chol(V)' * randn(nreg, 1)          # the draw of beta 
+        
+        signbeta1   = (b1[2,1] <= 0.0) * (xvar == 1)
+        signmax1    = signmax1 + (1 * signbeta1)
+        
+        if signmax1 >= 100
+            facts[:,1]  = (-1)*facts[:,1] 
+            x[:,2]      = facts[:,1] 
+            signmax1    = 1 
+        end 
+    end 
+
+    # generation of s2 
+    nn  = n + v0_ 
+    d   = d0_ + (yst - xst * b1)' * (yst - xst * b1) 
+    c   = rnchisq(nn) 
+    t2  = c/d 
+    s21 = 1/t2 
+    b0  = b1 
+    s20 = s21 
+    
+    return b0, s20, phi1, facts
+end 
 
 ######################
 ######################
@@ -98,18 +204,18 @@ function OWSingleFactorEstimator(data, priorsIN)
         nf = 1
 
         for i = 1:nvar
-
+        
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts(:, 1)]
-
-            b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :]', SigE[i], phimat0[:, i], i, nf, facts)
+        
+            b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :]', SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
             phimat0[:, i] = phi1
             SigE[i] = s21
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = b1'
             ssave[dr, i] = s21
             psave2[dr, ((i-1)*arterms)+1:i*arterms] = phi1'
-
+        
         end #end of loop for drawing the coefficients for each observable equation
 
         # draw factor AR coefficients
