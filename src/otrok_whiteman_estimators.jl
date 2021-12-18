@@ -28,8 +28,8 @@ function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt, counter, metcount)
     
     phi1    = phihat + cholesky(V)' * randn(p,1)        # candidate draw 
 
-    coef    = [-rev(phi1); 1]                           # check stationarity 
-    root    = roots(coef')                              # (FIX WITH POLYNOMIALS.JL)
+    coef    = [-reverse(phi1, dims=1); 1]               # check stationarity 
+    root    = roots(Polynomial(reverse(coef, dims=1)))  # Find lag polynomial roots 
 
     rootmod = abs(root)
     accept  = min(rootmod) >= 1.001                     # all the roots bigger than 1 
