@@ -93,7 +93,7 @@ Outputs:
 """
 function sigbig(phi, p, capt)
 
-    rotate      = trunc.(Int, seqa(0, 1, capt - p))
+    rotate = trunc.(Int, seqa(0, 1, capt - p))
     Siinv_upper = sigmat(phi, p)
     Siinv_upper = [inv(cholesky(siupper))' zeros(p, capt - p)]
     Siinv_lower = [kron((-reverse(phi, dims = 1)'), ones(capt - p, 1)) ones(capt - p, 1) zeros(capt - p, capt - p - 1)]
@@ -119,18 +119,21 @@ end
 ######################
 ######################
 ######################
+"""
+    rnchisq(m)
+
+Description:
+Draw sample from a chi-square distribution.
+
+Inputs:
+- m = degrees of freedom. 
+
+Outputs:
+- g = draw from a chi-square distribution with m degrees of freedom. 
+"""
 function rnchisq(m)
 
-    g = Any[]
-
-    v = trunc(Int, round(m / 2))
-
-    if trunc(Int, round(v) - v) == 0
-        g = -2 * sum(log.(rand(v, 1)), dims = 1)
-    else
-        v = (m - 1) / 2
-        g = -2 * sum(log.(rand(v, 1)), dims = 1) + randn(1, 1)^2
-    end
+    g = rand(Chisq(m))
 
     return g
 end
