@@ -190,6 +190,20 @@ end
 ######################
 ######################
 ######################
+"""
+    gendiff(z, phi)
+
+Description:
+Difference a series `z` using the lag coefficients provided in `phi`. 
+
+Inputs:
+- z = time series. 
+- phi = lag coefficient vector. 
+
+Outputs:
+- zgdiff = quasi-differenced version of the inputted series `z`. 
+
+"""
 function gendiff(z, phi)
 
     p = size(phi)[1]
@@ -676,11 +690,3 @@ end
 ######################
 ######################
 ######################
-function otrokWhitemanFactorSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
-
-    β_realized = Any[]
-
-    # Return sampled factor series 
-    # fot t = 1,...,T 
-    return β_realized
-end 
