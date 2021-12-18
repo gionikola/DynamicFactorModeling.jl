@@ -11,7 +11,7 @@
 ######################
 ######################
 """
-    invpdf(X)
+    invpd(X)
 
 Description:
 Invert matrix X using augmented eigenvalues if X is not positive-definite. 
@@ -110,7 +110,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         V = invpd(R0__ + s20^(-1) * ecap' * ecap)
         phihat = V * (R0__ * r0_ + s20^(-1) * ecap' * e1)
 
-        phi1 = phihat + chol(V)' * randn(p, 1)       # candidate draw 
+        phi1 = phihat + cholesky(V)' * randn(p, 1)       # candidate draw 
 
         coef = [-rev(phi1); 1]                      # check stationarity 
         root = roots(coef')
@@ -121,7 +121,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             phi1 = phi0
         else
             sigma1 = sigmat(phi1, p)               # numerator of acceptance prob 
-            sigroot = chol(sigma1)
+            sigroot = cholesky(sigma1)
             p1 = inv(sigroot)'
             ypst = p1 * yp
             xpst = p1 * xp
@@ -129,7 +129,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
 
             sigma1 = sigmat(phi0, p)
-            sigroot = chol(sigma1)
+            sigroot = cholesky(sigma1)
             p1 = inv(sigroot)'
             ypst = p1 * yp
             xpst = p1 * xp
@@ -147,7 +147,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
 
         # generation of beta 
         sigma = sigmat(phi1, p)             # sigma = sigroot' * sigroot 
-        sigroot = chol(sigma)                 # signber2v = p1' * p1 
+        sigroot = cholesky(sigma)                 # signber2v = p1' * p1 
         p1 = inv(sigroot)'
         ypst = p1 * yp
         xpst = p1 * xp
@@ -156,7 +156,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
 
         V = invpd(B0__ + s20^(-1) * xst' * xst)
         bhat = V * (B0__ * b0 + s20^(-1) * xst' * yst)
-        b1 = bhat + chol(V)' * randn(nreg, 1)          # the draw of beta 
+        b1 = bhat + cholesky(V)' * randn(nreg, 1)          # the draw of beta 
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
         signmax1 = signmax1 + (1 * signbeta1)
@@ -275,14 +275,14 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     ## Begin Monte Carlo Loop
     for dr = 1:ndraws+burnin
-
+    
         nf = 1
-
+    
         for i = 1:nvar
-
+    
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts(:, 1)]
-
+    
             b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :]', SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
             phimat0[:, i] = phi1
@@ -290,35 +290,35 @@ function OWSingleFactorEstimator(data, priorsIN)
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = b1'
             ssave[dr, i] = s21
             psave2[dr, ((i-1)*arterms)+1:i*arterms] = phi1'
-
+    
         end #end of loop for drawing the coefficients for each observable equation
-
+    
         # draw factor AR coefficients
         i = 1
         phi = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], i, sigU[1, 1])
         psave[dr, (i-1)*arlag+1:(i-1)*arlag+arlag] = phi
-
+    
         #draw factor
         #take drawing of World factor 
         sinvf1 = sigbig(phi, arlag, capt)
         f = zeros(capt, 1)
         H = ((1 / sigU[1]) * sinvf1' * sinvf1)
-
+    
         for i = 1:nvar
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
             H = H + ((bold[i, 2]^2 / (SigE[i])) * sinv1' * sinv1)
             f = f + (bold[i, 2] / SigE[i]) * sinv1' * sinv1 * (y[:, i])
         end
-
+    
         Hinv = invpd(H)
         f = Hinv * f
-        fact1 = f + chol(Hinv)' * randn(capt, 1)
-
+        fact1 = f + cholesky(Hinv)' * randn(capt, 1)
+    
         for i = 1:nfact
             Xtsave[:, ((dr-1)*nfact)+i] = fact1
             facts[:, 1] = fact1
         end
-
+    
     end
 
     # Save results 
