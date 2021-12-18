@@ -10,6 +10,45 @@
 ######################
 ######################
 ######################
+"""
+    sigmat(phi, p)
+
+Description:
+Yield the stationary covariance matrix of the first p errors (pg 1001 of Otrok and Whiteman (1998)).
+
+Inputs:
+- phi  = Lag coefficients associated with idiosyncratic error autoregression.
+- p    = Number of lags.
+
+Outputs:
+- Stationary covariance matrix of the first p errors.  
+
+"""
+function sigmat(phi, p)
+
+    r2      = p^2
+    i       = [I(p-1) zeros(p-1,1)]
+    Pcap    = [phi'; i]
+    pp      = I(r2) - kron(Pcap, Pcap)
+    e1      = [1; zeros(p-1,1)]
+    sig     = inv(pp) * vec(e1 * e1')
+    sigma   = reshape(sig',p,p)
+
+    return sigma 
+end 
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 function gendiff(z, phi)
 
     p       = size(phi)[1] 
