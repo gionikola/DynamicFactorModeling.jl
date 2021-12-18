@@ -10,36 +10,69 @@
 ######################
 ######################
 ######################
+"""
+    diagrv(X,V)
+
+Description: 
+Replace the diagonal of matrix X with vector V. 
+
+Inputs: 
+- X = matrix of interest 
+- V = new diagonal of X 
+
+Outputs:
+- X_new = X with new diagonal V 
+"""
+function diagrv(X, V)
+
+    X_new = X
+    X_new[diagind(X_new)] = V
+
+    X_new
+end
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
 
     n = capt
     signmax1 = 1
-    signbeta1 = 1 
+    signbeta1 = 1
 
     while signbeta1 >= 1
-    
+
         # generation of phi1 
         yp = y[1:p, 1]          # the first p observations 
         xp = x[1:p, :]
 
-        e = y - x * b0 
+        e = y - x * b0
         e1 = e[(p+1):n, 1]
-        ecap = zeros(n,p)
+        ecap = zeros(n, p)
 
-        for j in 1:p
-            ecap[:,j] = lag(e,j) 
-        end 
-        
+        for j = 1:p
+            ecap[:, j] = lag(e, j)
+        end
+
         ecap = ecap[p+1:n, :]
 
         V = invpd(R0__ + s20^(-1) * ecap' * ecap)
         phihat = V * (R0__ * r0_ + s20^(-1) * ecap' * e1)
 
-        phi1 = phihat + chol(V)' * randn(p,1)       # candidate draw 
+        phi1 = phihat + chol(V)' * randn(p, 1)       # candidate draw 
 
         coef = [-rev(phi1); 1]                      # check stationarity 
         root = roots(coef')
-        rootmod = abs(root) 
+        rootmod = abs(root)
         accept = min(rootmod) >= 1.0001             # all the roots bigger than 1 
 
         if accept == 0
@@ -52,7 +85,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             xpst = p1 * xp
             d = det(p1' * p1)
             psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-        
+
             sigma1 = sigmat(phi0, p)
             sigroot = chol(sigma1)
             p1 = inv(sigroot)'
@@ -60,50 +93,50 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             xpst = p1 * xp
             d = det(p1' * p1)
             psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-        end 
+        end
 
         if psi0 == 0
             accept = 1
         else
             u = rand(1, 1)
             accept = u <= psi1 / psi0
-        end 
-        phi1 = phi1 * accept + phi0 * (1-accept) 
+        end
+        phi1 = phi1 * accept + phi0 * (1 - accept)
 
         # generation of beta 
-        sigma   = sigmat(phi1, p)             # sigma = sigroot' * sigroot 
+        sigma = sigmat(phi1, p)             # sigma = sigroot' * sigroot 
         sigroot = chol(sigma)                 # signber2v = p1' * p1 
-        p1      = inv(sigroot)' 
-        ypst    = p1 * yp 
-        xpst    = p1 * xp
-        yst = [ypst; gendiff(y,phil)]
-        xst = [xpst; gendiff(x,phi1)]
+        p1 = inv(sigroot)'
+        ypst = p1 * yp
+        xpst = p1 * xp
+        yst = [ypst; gendiff(y, phil)]
+        xst = [xpst; gendiff(x, phi1)]
 
-        V       = invpd(B0__ + s20^(-1) * xst' * xst)
-        bhat    = V * (B0__ * b0 + s20^(-1) * xst' * yst)
-        b1      = bhat + chol(V)' * randn(nreg, 1)          # the draw of beta 
-        
-        signbeta1   = (b1[2,1] <= 0.0) * (xvar == 1)
-        signmax1    = signmax1 + (1 * signbeta1)
-        
+        V = invpd(B0__ + s20^(-1) * xst' * xst)
+        bhat = V * (B0__ * b0 + s20^(-1) * xst' * yst)
+        b1 = bhat + chol(V)' * randn(nreg, 1)          # the draw of beta 
+
+        signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
+        signmax1 = signmax1 + (1 * signbeta1)
+
         if signmax1 >= 100
-            facts[:,1]  = (-1)*facts[:,1] 
-            x[:,2]      = facts[:,1] 
-            signmax1    = 1 
-        end 
-    end 
+            facts[:, 1] = (-1) * facts[:, 1]
+            x[:, 2] = facts[:, 1]
+            signmax1 = 1
+        end
+    end
 
     # generation of s2 
-    nn  = n + v0_ 
-    d   = d0_ + (yst - xst * b1)' * (yst - xst * b1) 
-    c   = rnchisq(nn) 
-    t2  = c/d 
-    s21 = 1/t2 
-    b0  = b1 
-    s20 = s21 
-    
+    nn = n + v0_
+    d = d0_ + (yst - xst * b1)' * (yst - xst * b1)
+    c = rnchisq(nn)
+    t2 = c / d
+    s21 = 1 / t2
+    b0 = b1
+    s20 = s21
+
     return b0, s20, phi1, facts
-end 
+end
 
 ######################
 ######################
@@ -204,10 +237,10 @@ function OWSingleFactorEstimator(data, priorsIN)
         nf = 1
 
         for i = 1:nvar
-        
+
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts(:, 1)]
-        
+
             b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :]', SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
             phimat0[:, i] = phi1
@@ -215,7 +248,7 @@ function OWSingleFactorEstimator(data, priorsIN)
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = b1'
             ssave[dr, i] = s21
             psave2[dr, ((i-1)*arterms)+1:i*arterms] = phi1'
-        
+
         end #end of loop for drawing the coefficients for each observable equation
 
         # draw factor AR coefficients
@@ -247,33 +280,33 @@ function OWSingleFactorEstimator(data, priorsIN)
     end
 
     # Save results 
-    Xtsave  = Xtsave[:, (burnin*nfact)+1:(burnin+ndraws)*nfact]
-    bsave   = bsave[burnin+1:burnin+ndraws, :]
-    ssave   = ssave[burnin+1:burnin+ndraws, :]
-    psave   = psave[burnin+1:burnin+ndraws, :]
-    psave2  = psave2[burnin+1:burnin+ndraws, :]
+    Xtsave = Xtsave[:, (burnin*nfact)+1:(burnin+ndraws)*nfact]
+    bsave = bsave[burnin+1:burnin+ndraws, :]
+    ssave = ssave[burnin+1:burnin+ndraws, :]
+    psave = psave[burnin+1:burnin+ndraws, :]
+    psave2 = psave2[burnin+1:burnin+ndraws, :]
 
-    Xtsort          = sort(Xtsave, dims = 2)
-    results.Xt05    = Xtsort[:, trunc(Int, round(0.05 * ndraws))]
-    results.Xt16    = Xtsort[:, trunc(Int, round(0.16 * ndraws))]
-    results.Xt50    = Xtsort[:, trunc(Int, round(0.50 * ndraws))]
-    results.Xt84    = Xtsort[:, trunc(Int, round(0.84 * ndraws))]
-    results.Xt95    = Xtsort[:, trunc(Int, round(0.95 * ndraws))]
+    Xtsort = sort(Xtsave, dims = 2)
+    results.Xt05 = Xtsort[:, trunc(Int, round(0.05 * ndraws))]
+    results.Xt16 = Xtsort[:, trunc(Int, round(0.16 * ndraws))]
+    results.Xt50 = Xtsort[:, trunc(Int, round(0.50 * ndraws))]
+    results.Xt84 = Xtsort[:, trunc(Int, round(0.84 * ndraws))]
+    results.Xt95 = Xtsort[:, trunc(Int, round(0.95 * ndraws))]
 
-    results.Xt  = Xtsave
-    results.B   = bsave
-    results.S   = ssave
-    results.P   = psave
-    results.P2  = psave2
+    results.Xt = Xtsave
+    results.B = bsave
+    results.S = ssave
+    results.P = psave
+    results.P2 = psave2
 
-    meanz.F     = mean(Xtsave, dims = 2)
-    meanz.B     = mean(bsave, dims = 1)
-    meanz.S     = mean(ssave, dims = 1)
-    meanz.P     = mean(psave, dims = 1)
-    meanz.P2    = mean(psave2, dims = 1)
+    meanz.F = mean(Xtsave, dims = 2)
+    meanz.B = mean(bsave, dims = 1)
+    meanz.S = mean(ssave, dims = 1)
+    meanz.P = mean(psave, dims = 1)
+    meanz.P2 = mean(psave2, dims = 1)
 
     return meanz, results
-end 
+end
 
 ######################
 ######################
