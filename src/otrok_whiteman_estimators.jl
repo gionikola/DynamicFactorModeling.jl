@@ -27,7 +27,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         ecap = zeros(n,p)
 
         for j in 1:p
-            ecap[:,j] = lagmatrix(e,j) 
+            ecap[:,j] = lag(e,j) 
         end 
         
         ecap = ecap[p+1:n, :]
