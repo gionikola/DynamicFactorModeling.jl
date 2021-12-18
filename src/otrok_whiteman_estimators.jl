@@ -10,7 +10,7 @@
 ######################
 ######################
 ######################
-function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt, counter, metcount)
+function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt)
 
     # Generation of phi 
     yp      = y[1:p, 1]          # the first p observations  
