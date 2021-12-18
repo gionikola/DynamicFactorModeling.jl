@@ -11,6 +11,50 @@
 ######################
 ######################
 """
+    seqm(a,b,c)
+
+Description:
+Prouce a sequence of values.
+
+Inputs:
+- a = initial value of sequence 
+- b = increment scaling size 
+- c = number of values in the sequence
+
+Outputs:
+- seq = geometric sequence 
+"""
+function seqm(a,b,c) 
+
+    seq = zeros(c,1)
+
+    seq[1] = a 
+
+    if c > 1
+        
+        seq[2] = a * b 
+
+        for i in 3:c 
+            seq[i] = seq[i-1] * b 
+        end 
+    end 
+
+    return seq 
+end 
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
     invpd(X)
 
 Description:
