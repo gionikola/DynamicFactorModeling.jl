@@ -9,6 +9,7 @@ using PDMats
 using PDMatsExtras
 using ShiftedArrays
 using Parameters
+using Polynomials
 
 ######################
 # Export package objects 
