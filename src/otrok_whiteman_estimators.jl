@@ -11,6 +11,35 @@
 ######################
 ######################
 """
+    ident(p)
+
+Description:
+Create dense identity matrix of dimension p × p.
+
+Inputs:
+- p = number of columns and rows of identity matrix.
+
+Outputs:
+- ident_mat = p × p dense identity matrix with Float64.
+"""
+function ident(p)
+    ident_mat = 1.0 * Matrix(I, p, p)
+    return ident_mat
+end 
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
     sigmat(phi, p)
 
 Description:
