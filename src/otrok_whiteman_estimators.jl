@@ -297,7 +297,7 @@ function gendiff(z, phi)
     zgdiff = ztrim
 
     for i = 1:p
-        zgdiff = zgdiff - phi[i, 1] * z[(p-i+1):(end-i)]
+        zgdiff = zgdiff - phi[i, 1] * z[(p-i+1):(end-i),:]
     end
 
     return zgdiff
