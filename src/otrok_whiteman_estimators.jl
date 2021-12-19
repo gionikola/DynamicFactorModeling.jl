@@ -293,7 +293,7 @@ Outputs:
 function gendiff(z, phi)
 
     p = size(phi)[1]
-    ztrim = z[p+1:end]
+    ztrim = z[(p+1):end,:]
     zgdiff = ztrim
 
     for i = 1:p
@@ -563,7 +563,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         # generation of beta 
         sigma = sigmat(phi1, p)             # sigma = sigroot' * sigroot 
         sigroot = cholesky(sigma)                 # signber2v = p1' * p1 
-        p1 = inv(sigroot)'
+        p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
         xpst = p1 * xp
         yst = [ypst; gendiff(y, phi1)]
