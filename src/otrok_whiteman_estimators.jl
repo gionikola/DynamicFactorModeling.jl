@@ -501,6 +501,8 @@ end
 ######################
 function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
 
+    local xst, yst, b1, phi1 
+
     n = capt
     signmax1 = 1
     signbeta1 = 1
@@ -558,7 +560,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
                 accept = u <= psi1 / psi0
             end
             phi1 = phi1 * accept + phi0 * (1 - accept)
-        end 
+        end
 
         # generation of beta 
         sigma = sigmat(phi1, p)             # sigma = sigroot' * sigroot 
@@ -571,7 +573,8 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
 
         V = invpd(B0__ + s20^(-1) * xst' * xst)
         bhat = V * (B0__ * b0 + s20^(-1) * xst' * yst)
-        b1 = bhat + cholesky(V)' * randn(nreg, 1)          # the draw of beta 
+        #b1 = bhat + cholesky(V)' * randn(nreg, 1)          # the draw of beta 
+        b1 = rand(MvNormal(vec(bhat), PSDMat(Matrix(V))))
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
         signmax1 = signmax1 + (1 * signbeta1)
@@ -585,12 +588,12 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
 
     # generation of s2 
     nn = n + v0_
-    d = d0_ + (yst - xst * b1)' * (yst - xst * b1)
+    d = d0_ + transp_dbl(yst - xst * b1) * (yst - xst * b1)
     c = rnchisq(nn)
-    t2 = c / d
-    s21 = 1 / t2
+    t2 = c ./ d
+    s21 = 1 ./ t2
     b0 = b1
-    s20 = s21
+    s20 = s21[1,1]
 
     return b0, s20, phi1, facts
 end
@@ -660,7 +663,8 @@ function OWSingleFactorEstimator(data, priorsIN)
     phipri = 0.25
     R0__v2 = phipri * I(arlag * 2)        # prior precision
 
-    v0_ = ones(1, 1) * ceil(capt * 0.05)    # inverted gamma parameters of for innovation variances
+    #v0_ = ones(1, 1) * ceil(capt * 0.05)    # inverted gamma parameters of for innovation variances
+    v0_ = ceil(capt * 0.05)    # inverted gamma parameters of for innovation variances
     d0_ = ones(1, 1) * 0.25^2               # v0 is an integer
 
     # prior for factor AR polynomial
