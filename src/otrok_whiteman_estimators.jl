@@ -11,6 +11,34 @@
 ######################
 ######################
 """
+    priorsSET(K, Plags, Llags)
+
+Description:
+Model priors for the Otrok-Whiteman estimator. 
+
+Inputs:
+- K = Number of factors.
+- Plags = Number of lags in the factor equation. 
+- Llags = Number of AR lags in the observation equation. 
+"""
+@with_kw mutable struct priorsSET
+    K::Int64 
+    Plags::Int64  
+    Llags::Int64 
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
     ident(p)
 
 Description:
