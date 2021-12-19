@@ -569,7 +569,7 @@ function OWSingleFactorEstimator(data, priorsIN)
     y = ytemp - repeat(mean(ytemp, dims = 1), capt, 1)
 
     # set up some matricies for storage (optional)
-    Xtsave = zeros(rows(y), (ndraws + burnin) * nfact)    # just keep draw of factor, not all states (others are trivial)
+    Xtsave = zeros(size(y)[1], (ndraws + burnin) * nfact)    # just keep draw of factor, not all states (others are trivial)
     bsave = zeros(ndraws + burnin, nreg * nvar)          # observable equation regression coefficients
     ssave = zeros(ndraws + burnin, nvar)               # innovation variances
     psave = zeros(ndraws + burnin, nfact * arlag)        # factor autoregressive polynomials
@@ -606,10 +606,10 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     # prior for factor AR polynomial
     prem = [1; seqm(1, 0.85, arlag - 1)]
-    phiprif = 1 / prem
+    phiprif = 1 ./ prem
     r0f_ = zeros(arlag, 1)               # prior mean of phi
-    R0f__ = diagrv(I(arlag), phiprif)
-    R0f__ = phipri * I(arlag)
+    R0f__ = diagrv(ident(arlag), phiprif)
+    R0f__ = phipri * ident(arlag)
 
     # Normalize innovation variance for the factor, vector since diagonal,
     # variance set to 1
@@ -637,7 +637,7 @@ function OWSingleFactorEstimator(data, priorsIN)
         for i = 1:nvar
 
             # call arobs to draw observable coefficients
-            xft = [ones(capt, 1) facts(:, 1)]
+            xft = [ones(capt, 1) facts[:, 1] ]
 
             b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :]', SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
