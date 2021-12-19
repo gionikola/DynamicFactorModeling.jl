@@ -22,9 +22,9 @@ Inputs:
 - Llags = Number of AR lags in the observation equation. 
 """
 @with_kw mutable struct priorsSET
-    K::Int64 
-    Plags::Int64  
-    Llags::Int64 
+    K::Int64
+    Plags::Int64
+    Llags::Int64
 end;
 ######################
 ######################
@@ -53,6 +53,35 @@ Outputs:
 function ident(p)
     ident_mat = 1.0 * Matrix(I, p, p)
     return ident_mat
+end
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
+    transp_dbl(A)
+
+Description:
+Transpose matrix, so that the output type is Array{Flat64,2}. 
+
+Inputs:
+- A = matrix.
+
+Outputs:
+- transp_A = dense transposed matrix A. 
+"""
+function transp_dbl(A)
+    transp_A = 1.0 * Matrix(A')
+    return transp_A
 end
 
 ######################
@@ -637,7 +666,7 @@ function OWSingleFactorEstimator(data, priorsIN)
         for i = 1:nvar
 
             # call arobs to draw observable coefficients
-            xft = [ones(capt, 1) facts[:, 1] ]
+            xft = [ones(capt, 1) facts[:, 1]]
 
             b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :]', SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
