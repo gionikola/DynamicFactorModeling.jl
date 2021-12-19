@@ -293,11 +293,11 @@ Outputs:
 function gendiff(z, phi)
 
     p = size(phi)[1]
-    ztrim = z[(p+1):end,:]
+    ztrim = z[(p+1):end, :]
     zgdiff = ztrim
 
     for i = 1:p
-        zgdiff = zgdiff - phi[i, 1] * z[(p-i+1):(end-i),:]
+        zgdiff = zgdiff - phi[i, 1] * z[(p-i+1):(end-i), :]
     end
 
     return zgdiff
@@ -499,9 +499,41 @@ end
 ######################
 ######################
 ######################
+"""
+    ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
+    
+Description:
+Generate β_i , ϕ_i, and σ^2_i estimates based on the posterior distributions (eqs. 6-8) on pg. 1002 of Otrok and Whiteman (1998). 
+
+Inputs:
+- y = observed dependent variable / data.  
+- x = measurement equation regressors (intercept + factor).
+- p = number of state eq. lags. 
+- b0_ = prior mean of factor loading (factor coefficient in measurement equation). 
+- B0__ = prior variance of factor loading (factor coefficient in measurement equation). 
+- r0_ = prior mean of phi (idiosyncratic AR polynomial). 
+- R0__ = prior precision of phi (idiosyncratic AR polynomial). 
+- v0_ = inverted gamma parameter of innovation variances. 
+- d0_ = inverted gamma parameter of innovation variances. 
+- b0 = old draw of factor loading. 
+- s20 = old draw of innovation variances. 
+- phi0 = old draw of phi (idiosyncratic AR polynomial). 
+- xvar = measurement eq. regressor index. 
+- nfc = number of factors. 
+- facts = factor draw. 
+- capt = total number of time periods / observations in the sample. 
+- nreg = number of regressors in each observable equation, constant plus K factors   
+- Size = number of variables each factor loads on
+
+Outputs:
+- b0 = β coefficient hyperparameter estimates. 
+- s20 = σ^2 coefficient hyperparameter estimate. 
+- phi1 = ϕ coefficient hyperparameter estimates. 
+- facts = factor estimate. 
+"""
 function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
 
-    local xst, yst, b1, phi1 
+    local xst, yst, b1, phi1
 
     n = capt
     signmax1 = 1
@@ -593,7 +625,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
     t2 = c ./ d
     s21 = 1 ./ t2
     b0 = b1
-    s20 = s21[1,1]
+    s20 = s21[1, 1]
 
     return b0, s20, phi1, facts
 end
