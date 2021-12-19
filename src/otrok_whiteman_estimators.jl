@@ -71,7 +71,7 @@ end
     transp_dbl(A)
 
 Description:
-Transpose matrix, so that the output type is Array{Flat64,2}. 
+Transpose matrix, so that the output type is Array{Float64,2}. 
 
 Inputs:
 - A = matrix.
@@ -81,6 +81,35 @@ Outputs:
 """
 function transp_dbl(A)
     transp_A = 1.0 * Matrix(A')
+    return transp_A
+end
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
+    transp_int(A)
+
+Description:
+Transpose matrix, so that the output type is Array{Int64,2}. 
+
+Inputs:
+- A = matrix.
+
+Outputs:
+- transp_A = dense transposed matrix A. 
+"""
+function transp_int(A)
+    transp_A = 1 * Matrix(A')
     return transp_A
 end
 
