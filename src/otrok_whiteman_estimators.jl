@@ -516,20 +516,21 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         ecap = zeros(n, p)
 
         for j = 1:p
-            ecap[:, j] = lag(e, j)
+            ecap[:, j] = lag(e, j, default = 0.0)
         end
 
-        ecap = ecap[p+1:n, :]
+        ecap = ecap[(p+1):n, :]
 
-        V = invpd(R0__ + s20^(-1) * ecap' * ecap)
-        phihat = V * (R0__ * r0_ + s20^(-1) * ecap' * e1)
+        V = invpd(R0__ .+ inv(s20) * (transp_dbl(ecap) * ecap))
+        phihat = V * (R0__ * r0_ + inv(s20) * (transp_dbl(ecap) * e1))
 
-        phi1 = phihat + cholesky(V)' * randn(p, 1)       # candidate draw 
+        #phi1 = phihat + transp_dbl(cholesky(V)) * randn(p, 1)       # candidate draw 
+        phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
 
-        coef = [-rev(phi1); 1]                      # check stationarity 
-        root = roots(coef')
-        rootmod = abs(root)
-        accept = min(rootmod) >= 1.0001             # all the roots bigger than 1 
+        coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
+        root = roots(Polynomial(coef))
+        rootmod = abs.(root)
+        accept = min(rootmod...) >= 1.0001             # all the roots bigger than 1 
 
         if accept == 0
             phi1 = phi0
@@ -549,15 +550,15 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             xpst = p1 * xp
             d = det(p1' * p1)
             psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-        end
 
-        if psi0 == 0
-            accept = 1
-        else
-            u = rand(1, 1)
-            accept = u <= psi1 / psi0
-        end
-        phi1 = phi1 * accept + phi0 * (1 - accept)
+            if psi0 == 0
+                accept = 1
+            else
+                u = rand(1, 1)
+                accept = u <= psi1 / psi0
+            end
+            phi1 = phi1 * accept + phi0 * (1 - accept)
+        end 
 
         # generation of beta 
         sigma = sigmat(phi1, p)             # sigma = sigroot' * sigroot 
@@ -565,7 +566,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         p1 = inv(sigroot)'
         ypst = p1 * yp
         xpst = p1 * xp
-        yst = [ypst; gendiff(y, phil)]
+        yst = [ypst; gendiff(y, phi1)]
         xst = [xpst; gendiff(x, phi1)]
 
         V = invpd(B0__ + s20^(-1) * xst' * xst)
@@ -685,7 +686,7 @@ function OWSingleFactorEstimator(data, priorsIN)
     phimat0 = zeros(arterms, nvar)      # observable equation AR coefficients
 
     facts = randn(capt, nfact)     # random starting factor
-    facts[:, 1] = mean(y, dims = 2) |> transpose
+    facts[:, 1] = mean(y, dims = 2) |> transp_dbl
 
     ## Begin Monte Carlo Loop
     for dr = 1:ndraws+burnin
@@ -697,7 +698,7 @@ function OWSingleFactorEstimator(data, priorsIN)
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts[:, 1]]
 
-            b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :]', SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
+            b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :], SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
             phimat0[:, i] = phi1
             SigE[i] = s21
