@@ -180,8 +180,8 @@ Outputs:
 function sigbig(phi, p, capt)
 
     rotate = trunc.(Int, seqa(0, 1, capt - p))
-    Siinv_upper = sigmat(phi, p)
-    Siinv_upper = [inv(cholesky(siupper))' zeros(p, capt - p)]
+    Siinv_upper =  Hermitian(sigmat(phi, p))
+    Siinv_upper = [inv(cholesky(Siinv_upper))' zeros(p, capt - p)]
     Siinv_lower = [kron((-reverse(phi, dims = 1)'), ones(capt - p, 1)) ones(capt - p, 1) zeros(capt - p, capt - p - 1)]
 
     for s = 1:(capt-p)
@@ -315,7 +315,8 @@ end
 ######################
 ######################
 ######################
-function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt)
+#function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt)
+function arfac(y, p, r0_, R0__, phi0, sig2, capt)
 
     # Generation of phi 
     yp = y[1:p, 1]          # the first p observations  
@@ -323,33 +324,35 @@ function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt)
     e1 = e[p+1:capt, 1]
     ecap = zeros(capt, p)
 
-    for j = 1:p
-        ecap[:, j] = lag(e, j)
+    for j in 1:p
+        ecap[:, j] = lag(e, j, default = 0.0)
     end
+
     ecap = ecap[p+1:capt, :]
 
     V = invpd(R0__ + sig2^(-1) * ecap' * ecap)
     phihat = V * (R0__ * r0_ + sig2^(-1) * ecap' * e1)
 
-    phi1 = phihat + cholesky(V)' * randn(p, 1)        # candidate draw 
+    #phi1 = phihat + cholesky(V)' * randn(p, 1)        # candidate draw 
+    phi1 = rand(MvNormal(phihat, PSDMat(V)))
 
     coef = [-reverse(phi1, dims = 1); 1]               # check stationarity 
     root = roots(Polynomial(reverse(coef, dims = 1)))  # Find lag polynomial roots 
 
-    rootmod = abs(root)
-    accept = min(rootmod) >= 1.001                     # all the roots bigger than 1 
+    rootmod = abs.(root)
+    accept = min(rootmod...) >= 1.001                     # all the roots bigger than 1 
 
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
-        sigma1 = sigmat(phi1, p)                        # numerator of acceptance prob 
+        sigma1 = Hermitian(sigmat(vec(phi1), p))                        # numerator of acceptance prob 
         sigroot = cholesky(sigma1)
         p1 = inv(sigroot)'
         ypst = p1 * yp
         d = det(p1' * p1)
         psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
 
-        sigma1 = sigmat(phi0, p)                       # denominator of acceptance prob 
+        sigma1 =  Hermitian(sigmat(vec(phi0), p))                       # denominator of acceptance prob 
         sigroot = cholesky(sigma1)
         p1 = inv(sigroot)'
         ypst = p1 * yp
@@ -359,8 +362,8 @@ function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt)
         if psi0 == 0
             accept = 1
         else
-            u = rand(1, 1)
-            accept = u <= psi1 / psi0
+            u = rand(1)
+            accept = u[1] <= psi1 / psi0
         end
         phi1 = phi1 * accept + phi0 * (1 - accept)
     end
@@ -569,7 +572,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         if accept == 0
             phi1 = phi0
         else
-            sigma1 = sigmat(phi1, p)               # numerator of acceptance prob 
+            sigma1 =  Hermitian(sigmat(phi1, p))               # numerator of acceptance prob 
             sigroot = cholesky(sigma1)
             p1 = inv(sigroot)'
             ypst = p1 * yp
@@ -577,7 +580,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             d = det(p1' * p1)
             psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
 
-            sigma1 = sigmat(phi0, p)
+            sigma1 =  Hermitian(sigmat(phi0, p))
             sigroot = cholesky(sigma1)
             p1 = inv(sigroot)'
             ypst = p1 * yp
@@ -588,7 +591,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             if psi0 == 0
                 accept = 1
             else
-                u = rand(1, 1)
+                u = rand(1)[1] 
                 accept = u <= psi1 / psi0
             end
             phi1 = phi1 * accept + phi0 * (1 - accept)
@@ -663,13 +666,11 @@ function OWSingleFactorEstimator(data, priorsIN)
     y = ytemp - repeat(mean(ytemp, dims = 1), capt, 1)
 
     # set up some matricies for storage (optional)
-    Xtsave = zeros(size(y)[1], (ndraws + burnin) * nfact)    # just keep draw of factor, not all states (others are trivial)
+    Xtsave = zeros(size(y)[1], ((ndraws + burnin) * nfact) )    # just keep draw of factor, not all states (others are trivial)
     bsave = zeros(ndraws + burnin, nreg * nvar)          # observable equation regression coefficients
     ssave = zeros(ndraws + burnin, nvar)               # innovation variances
     psave = zeros(ndraws + burnin, nfact * arlag)        # factor autoregressive polynomials
     psave2 = zeros(ndraws + burnin, nvar * arterms)       # factor autoregressive polynomials
-    counter = zeros(nfact, 1)                           # number of nonstationary draws
-    metcount = zeros(nfact, 1)                           # number of accepted draws in AR proc
 
 
     ##### include a necessary procedure #####
@@ -702,7 +703,7 @@ function OWSingleFactorEstimator(data, priorsIN)
     # prior for factor AR polynomial
     prem = [1; seqm(1, 0.85, arlag - 1)]
     phiprif = 1 ./ prem
-    r0f_ = zeros(arlag, 1)               # prior mean of phi
+    r0f_ = vec(zeros(arlag, 1))               # prior mean of phi
     R0f__ = diagrv(ident(arlag), phiprif)
     R0f__ = phipri * ident(arlag)
 
@@ -726,14 +727,14 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     ## Begin Monte Carlo Loop
     for dr = 1:ndraws+burnin
-
+    
         nf = 1
-
+    
         for i = 1:nvar
-
+    
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts[:, 1]]
-
+    
             b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :], SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
             phimat0[:, i] = phi1
@@ -741,35 +742,37 @@ function OWSingleFactorEstimator(data, priorsIN)
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = b1'
             ssave[dr, i] = s21
             psave2[dr, ((i-1)*arterms)+1:i*arterms] = phi1'
-
+    
         end #end of loop for drawing the coefficients for each observable equation
-
+    
         # draw factor AR coefficients
         i = 1
-        phi = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], i, sigU[1, 1])
+        phi = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], sigU[1, 1], capt)
         psave[dr, (i-1)*arlag+1:(i-1)*arlag+arlag] = phi
-
+    
         #draw factor
         #take drawing of World factor 
         sinvf1 = sigbig(phi, arlag, capt)
         f = zeros(capt, 1)
         H = ((1 / sigU[1]) * sinvf1' * sinvf1)
-
+    
         for i = 1:nvar
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
             H = H + ((bold[i, 2]^2 / (SigE[i])) * sinv1' * sinv1)
             f = f + (bold[i, 2] / SigE[i]) * sinv1' * sinv1 * (y[:, i])
         end
-
+    
         Hinv = invpd(H)
         f = Hinv * f
-        fact1 = f + cholesky(Hinv)' * randn(capt, 1)
-
-        for i = 1:nfact
-            Xtsave[:, ((dr-1)*nfact)+i] = fact1
+        #fact1 = f + cholesky(Hinv)' * randn(capt, 1)
+        fact1 = rand(MvNormal(vec(f), PSDMat(Hinv)))
+        
+        for i = 1:nfact 
+            Xtsave[:, (((dr-1)*nfact)+i)] = vec(fact1)
             facts[:, 1] = fact1
         end
-
+        
+        println(dr) 
     end
 
     # Save results 
@@ -778,13 +781,6 @@ function OWSingleFactorEstimator(data, priorsIN)
     ssave = ssave[burnin+1:burnin+ndraws, :]
     psave = psave[burnin+1:burnin+ndraws, :]
     psave2 = psave2[burnin+1:burnin+ndraws, :]
-
-    Xtsort = sort(Xtsave, dims = 2)
-    results.Xt05 = Xtsort[:, trunc(Int, round(0.05 * ndraws))]
-    results.Xt16 = Xtsort[:, trunc(Int, round(0.16 * ndraws))]
-    results.Xt50 = Xtsort[:, trunc(Int, round(0.50 * ndraws))]
-    results.Xt84 = Xtsort[:, trunc(Int, round(0.84 * ndraws))]
-    results.Xt95 = Xtsort[:, trunc(Int, round(0.95 * ndraws))]
 
     results.Xt = Xtsave
     results.B = bsave
@@ -800,7 +796,7 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     return meanz, results
 end
-
+;
 ######################
 ######################
 ######################
