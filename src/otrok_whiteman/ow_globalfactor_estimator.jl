@@ -657,6 +657,21 @@ end
 ######################
 ######################
 ######################
+"""
+    OWSingleFactorEstimator(data, priorsIN)
+
+Description:
+Estimate a single-factor DFM. 
+
+Inputs:
+- data = set of observed variables with a hypothesized common trend.
+- priorsIN = model priors. 
+
+Outputs:
+- B = single-factor DFM coefficient hyperparameter estimates. 
+- F = single-factor DFM factor estimate. 
+- S = single-factor DFM error variance estimates. 
+"""
 function OWSingleFactorEstimator(data, priorsIN)
 
     # nvar = number of variables including the variable with missing date
