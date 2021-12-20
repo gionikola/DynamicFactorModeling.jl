@@ -19,7 +19,6 @@ export simulateStateSpaceModel, SSModelParameters,
     staticLinearGibbsSampler, staticLinearGibbsSamplerRestrictedVariance,
     autocorrErrorRegGibbsSampler,
     priorsSET
-    otrokWhitemanFactorSampler,
     OWSingleFactorEstimator,
     sayhi
 
