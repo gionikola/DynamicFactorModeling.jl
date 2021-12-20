@@ -324,7 +324,7 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     e1 = e[p+1:capt, 1]
     ecap = zeros(capt, p)
 
-    for j in 1:p
+    for j = 1:p
         ecap[:, j] = lag(e, j, default = 0.0)
     end
 
@@ -336,8 +336,8 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     #phi1 = phihat + cholesky(V)' * randn(p, 1)        # candidate draw 
     phi1 = rand(MvNormal(phihat, PSDMat(V)))
 
-    coef = [-reverse(phi1, dims = 1); 1]               # check stationarity 
-    root = roots(Polynomial(reverse(coef, dims = 1)))  # Find lag polynomial roots 
+    coef = [-reverse(phi1, dims = 1); 1]                # check stationarity 
+    root = roots(Polynomial(coef))                      # Find lag polynomial roots 
 
     rootmod = abs.(root)
     accept = min(rootmod...) >= 1.001                     # all the roots bigger than 1 
@@ -352,7 +352,7 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         d = det(p1' * p1)
         psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
 
-        sigma1 =  Hermitian(sigmat(vec(phi0), p))                       # denominator of acceptance prob 
+        sigma1 = Hermitian(sigmat(vec(phi0), p))                       # denominator of acceptance prob 
         sigroot = cholesky(sigma1)
         p1 = inv(sigroot)'
         ypst = p1 * yp
