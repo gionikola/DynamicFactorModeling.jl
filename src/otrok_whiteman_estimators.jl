@@ -572,33 +572,45 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         if accept == 0
             phi1 = phi0
         else
-            sigma1 =  Hermitian(sigmat(phi1, p))               # numerator of acceptance prob 
+            #=
+            ##### THE FOLLOWING CODE HAS POSITIVE-DEFINITENESS ISSUES 
+            ##### IN SIGMA1 
+            sigma1 =  Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
             sigroot = cholesky(sigma1)
             p1 = inv(sigroot)'
             ypst = p1 * yp
             xpst = p1 * xp
             d = det(p1' * p1)
             psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-
-            sigma1 =  Hermitian(sigmat(phi0, p))
+            =#
+            sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
+            d = Complex(det(sigma1))
+            psi1 = (d^(-0.5)) * exp( (-0.5/s20) * (transp_dbl(yp - xp * b0) * invpd(sigma1) * (yp - xp * b0))[1] )
+        
+            #=
+            sigma1 = Hermitian(sigmat(phi0, p))
             sigroot = cholesky(sigma1)
             p1 = inv(sigroot)'
             ypst = p1 * yp
             xpst = p1 * xp
             d = det(p1' * p1)
             psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-
+            =#
+            sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
+            d = Complex(det(sigma1))
+            psi0 = (d^(1 / 2)) * exp( (-0.5/s20) * (transp_dbl(yp - xp * b0) * invpd(sigma1) * (yp - xp * b0))[1] )
+        
             if psi0 == 0
                 accept = 1
             else
-                u = rand(1)[1] 
-                accept = u <= psi1 / psi0
+                u = rand(1)[1]
+                accept = u <= real(psi1) / real(psi0)
             end
-            phi1 = phi1 * accept + phi0 * (1 - accept)
+            phi1 = real(phi1) * accept + real(phi0) * (1 - accept)
         end
 
         # generation of beta 
-        sigma = sigmat(phi1, p)             # sigma = sigroot' * sigroot 
+        sigma = Hermitian(sigmat(phi1, p))             # sigma = sigroot' * sigroot 
         sigroot = cholesky(sigma)                 # signber2v = p1' * p1 
         p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
@@ -666,7 +678,7 @@ function OWSingleFactorEstimator(data, priorsIN)
     y = ytemp - repeat(mean(ytemp, dims = 1), capt, 1)
 
     # set up some matricies for storage (optional)
-    Xtsave = zeros(size(y)[1], ((ndraws + burnin) * nfact) )    # just keep draw of factor, not all states (others are trivial)
+    Xtsave = zeros(size(y)[1], ((ndraws + burnin) * nfact))    # just keep draw of factor, not all states (others are trivial)
     bsave = zeros(ndraws + burnin, nreg * nvar)          # observable equation regression coefficients
     ssave = zeros(ndraws + burnin, nvar)               # innovation variances
     psave = zeros(ndraws + burnin, nfact * arlag)        # factor autoregressive polynomials
@@ -727,14 +739,14 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     ## Begin Monte Carlo Loop
     for dr = 1:ndraws+burnin
-    
+
         nf = 1
-    
+
         for i = 1:nvar
-    
+
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts[:, 1]]
-    
+
             b1, s21, phi1, facts = ar(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, bold[i, :], SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
             bold[i, 1:nreg] = b1'
             phimat0[:, i] = phi1
@@ -742,59 +754,67 @@ function OWSingleFactorEstimator(data, priorsIN)
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = b1'
             ssave[dr, i] = s21
             psave2[dr, ((i-1)*arterms)+1:i*arterms] = phi1'
-    
+
         end #end of loop for drawing the coefficients for each observable equation
-    
+
         # draw factor AR coefficients
         i = 1
         phi = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], sigU[1, 1], capt)
         psave[dr, (i-1)*arlag+1:(i-1)*arlag+arlag] = phi
-    
+
         #draw factor
         #take drawing of World factor 
         sinvf1 = sigbig(phi, arlag, capt)
         f = zeros(capt, 1)
         H = ((1 / sigU[1]) * sinvf1' * sinvf1)
-    
+
         for i = 1:nvar
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
             H = H + ((bold[i, 2]^2 / (SigE[i])) * sinv1' * sinv1)
             f = f + (bold[i, 2] / SigE[i]) * sinv1' * sinv1 * (y[:, i])
         end
-    
+
         Hinv = invpd(H)
         f = Hinv * f
         #fact1 = f + cholesky(Hinv)' * randn(capt, 1)
         fact1 = rand(MvNormal(vec(f), PSDMat(Hinv)))
-        
-        for i = 1:nfact 
+
+        for i = 1:nfact
             Xtsave[:, (((dr-1)*nfact)+i)] = vec(fact1)
             facts[:, 1] = fact1
         end
-        
-        println(dr) 
+
+        println(dr)
     end
 
     # Save results 
     Xtsave = Xtsave[:, (burnin*nfact)+1:(burnin+ndraws)*nfact]
     bsave = bsave[burnin+1:burnin+ndraws, :]
     ssave = ssave[burnin+1:burnin+ndraws, :]
-    psave = psave[burnin+1:burnin+ndraws, :]
-    psave2 = psave2[burnin+1:burnin+ndraws, :]
+    #psave = psave[burnin+1:burnin+ndraws, :]
+    #psave2 = psave2[burnin+1:burnin+ndraws, :]
 
+    #=
     results.Xt = Xtsave
     results.B = bsave
     results.S = ssave
     results.P = psave
     results.P2 = psave2
+    =#
 
+    #=
     meanz.F = mean(Xtsave, dims = 2)
     meanz.B = mean(bsave, dims = 1)
     meanz.S = mean(ssave, dims = 1)
     meanz.P = mean(psave, dims = 1)
     meanz.P2 = mean(psave2, dims = 1)
+    =#
 
-    return meanz, results
+    F = mean(Xtsave, dims = 2)
+    B = mean(bsave, dims = 1)
+    S = mean(ssave, dims = 1)
+
+    return F, B, S
 end
 ;
 ######################
