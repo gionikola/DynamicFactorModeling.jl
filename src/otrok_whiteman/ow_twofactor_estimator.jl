@@ -256,7 +256,7 @@ function OWTwoFactorEstimator(data, prior_dim)
     capt = size(y)[1]                       # if including idiosyncratic dynamics condition on lags for quasi-differencing
 
     facts = rand(capt, nfact)                 # random starting factor
-    facts[:, 1] = transp(mean(y, dims = 2))
+    facts[:, 1] = transp_dbl(mean(y, dims = 2))
 
     # Begin Monte Carlo Loop
     for dr = 1:(ndraws+burnin)
@@ -268,14 +268,14 @@ function OWTwoFactorEstimator(data, prior_dim)
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts[:, 1] facts[:, nf]]
 
-            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
+            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
 
-            bold[i, 1:nreg] = transp(b1)
+            bold[i, 1:nreg] = transp_dbl(b1)
             phimat0[:, i] = phi1
             SigE[i] = s21
-            bsave[dr, (((i-1)*nreg)+1):(i*nreg)] = transp(b1)
+            bsave[dr, (((i-1)*nreg)+1):(i*nreg)] = transp_dbl(b1)
             ssave[dr, i] = s21
-            psave2[dr, (((i-1)*arterms)+1):(i*arterms)] = transp(phi1)
+            psave2[dr, (((i-1)*arterms)+1):(i*arterms)] = transp_dbl(phi1)
 
             if (i / Size) == floor(i / Size)
                 nf = nf + 1
@@ -287,7 +287,7 @@ function OWTwoFactorEstimator(data, prior_dim)
         j = 1
         for i = 1:nfact
             phi[:, i] = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], sigU[j, 1], capt)
-            psave[dr, ((i-1)*arlag+1):((i-1)*arlag+arlag)] = transp(phi[:, i])
+            psave[dr, ((i-1)*arlag+1):((i-1)*arlag+arlag)] = transp_dbl(phi[:, i])
             j = j + arlag
         end
 
@@ -296,14 +296,14 @@ function OWTwoFactorEstimator(data, prior_dim)
 
         sinvf1 = sigbig(phi[:, 1], arlag, capt)
         f = zeros(capt, 1)
-        H = ((1 / sigU[1]) * (transp(sinvf1) * sinvf1))
+        H = ((1 / sigU[1]) * (transp_dbl(sinvf1) * sinvf1))
         nfC = 2
         for i = 1:nvar
 
-            yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, nfC] * transp(bold[i, 3])
+            yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, nfC] * transp_dbl(bold[i, 3])
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
-            H = H + ((bold[i, 2]^2 / (SigE[i])) * (transp(sinv1) * sinv1))
-            f = f + (bold[i, 2] / SigE[i]) * (transp(sinv1) * sinv1) * yW
+            H = H + ((bold[i, 2]^2 / (SigE[i])) * (transp_dbl(sinv1) * sinv1))
+            f = f + (bold[i, 2] / SigE[i]) * (transp_dbl(sinv1) * sinv1) * yW
 
             if (i / Size) == floor(i / Size)
                 nfC = nfC + 1
@@ -312,7 +312,7 @@ function OWTwoFactorEstimator(data, prior_dim)
 
         Hinv = invpd(H)
         f = Hinv * f
-        #fact1 = f + transp(cholesky(Hinv))*randn(capt,1);
+        #fact1 = f + transp_dbl(cholesky(Hinv))*randn(capt,1);
         fact1 = rand(MvNormal(f, PSDMat(Hinv)))
 
         Xtsave[:, 1, dr] = fact1
@@ -322,23 +322,23 @@ function OWTwoFactorEstimator(data, prior_dim)
         j = 1 + arlag
         for c = 1:(prior_dim.COUNTRY)
 
-            yC = y[:, 1+(c-1)*Size:c*Size] - ones(capt, 1) * transp(bold[(1+(c-1)*Size):(c*Size), 1]) - facts[:, 1] * transp(bold[(1+(c-1)*Size):(c*Size), 2])
+            yC = y[:, 1+(c-1)*Size:c*Size] - ones(capt, 1) * transp_dbl(bold[(1+(c-1)*Size):(c*Size), 1]) - facts[:, 1] * transp_dbl(bold[(1+(c-1)*Size):(c*Size), 2])
 
             phiC = phi[:, 1+c]
             sinvf1 = sigbig(phiC, arlag, capt)
             f = zeros(capt, 1)
-            H = ((1 / sigU[j]) * (transp(sinvf1) * sinvf1))
+            H = ((1 / sigU[j]) * (transp_dbl(sinvf1) * sinvf1))
 
             for i = 1:Size
 
                 sinv1 = sigbig(phimat0[:, (1+(c-1)*Size+i-1)], arterms, capt)
-                H = H + ((bold[1+(c-1)*Size+i-1, 3]^2 / (SigE[1+(c-1)*Size+i-1])) * (transp(sinv1) * sinv1))
-                f = f + (bold[1+(c-1)*Size+i-1, 3] / SigE[1+(c-1)*Size+i-1]) * (transp(sinv1) * sinv1) * (yC[:, i])
+                H = H + ((bold[1+(c-1)*Size+i-1, 3]^2 / (SigE[1+(c-1)*Size+i-1])) * (transp_dbl(sinv1) * sinv1))
+                f = f + (bold[1+(c-1)*Size+i-1, 3] / SigE[1+(c-1)*Size+i-1]) * (transp_dbl(sinv1) * sinv1) * (yC[:, i])
 
             end
             Hinv = invpd(H)
             f = Hinv * f
-            #fact2 = f+transp(cholesky(Hinv))*randn(capt,1);
+            #fact2 = f+transp_dbl(cholesky(Hinv))*randn(capt,1);
             fact2 = rand(MvNormal(f, PSDMat(Hinv)))
 
             Xtsave[:, 1+c, dr] = fact2
@@ -347,6 +347,7 @@ function OWTwoFactorEstimator(data, prior_dim)
             j = j + arlag
         end
 
+        println(dr)
     end
 
     Xtsave  = Xtsave[:, :, (burnin+1):(burnin+ndraws)]
