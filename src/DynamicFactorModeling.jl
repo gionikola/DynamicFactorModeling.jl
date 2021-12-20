@@ -18,13 +18,14 @@ export simulateStateSpaceModel, SSModelParameters,
     dynamicFactorGibbsSampler,
     staticLinearGibbsSampler, staticLinearGibbsSamplerRestrictedVariance,
     autocorrErrorRegGibbsSampler,
+    priorsSET
     otrokWhitemanFactorSampler,
-    OWSingleFactorEstimator, 
+    OWSingleFactorEstimator,
     sayhi
 
 ######################
 # Include all package scripts 
-include("dgp.jl")
+include("simulations/dgp.jl")
 include("kim_nelson/kn_estimator.jl")
 include("otrok_whiteman/ow_globalfactor_estimator.jl")
 include("test_scripts.jl")
