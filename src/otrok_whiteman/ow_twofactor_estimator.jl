@@ -10,6 +10,38 @@
 ######################
 ######################
 ######################
+"""
+    priorsSET2(K, Plags, Llags, KL, COUNTRY)
+
+Description:
+Model priors for the Otrok-Whiteman estimator. 
+
+Inputs:
+- K = Number of factors.
+- Plags = Number of lags in the factor equation. 
+- Llags = Number of AR lags in the observation equation. 
+- KL = Number of factors × number of AR lags in the obs equation. 
+- COUNTRY = Number of countries in a region 
+"""
+@with_kw mutable struct priorsSET2
+    K::Int64
+    Plags::Int64
+    Llags::Int64
+    KL = K*Llags 
+    COUNTRY::Int64 
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
 
     local xst, yst, b1, phi1
