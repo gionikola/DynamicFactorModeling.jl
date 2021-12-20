@@ -123,7 +123,7 @@ function OWTwoFactorEstimator(data, prior_dim)
         # draw factor AR coeffcicients
         j = 1
         for i = 1:nfact
-            phi[:, i] = arfac_LJ(facts[:, i], arlag, r0f_, R0f__, phi[:, i], i, sigU[j, 1], capt)
+            phi[:, i] = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], sigU[j, 1], capt)
             psave[dr, ((i-1)*arlag+1):((i-1)*arlag+arlag)] = transp(phi[:, i])
             j = j + arlag
         end
