@@ -58,7 +58,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         yp = y[1:p, 1]          # the first p observations 
         xp = x[1:p, :]
 
-        e = y - x * b0
+        e = y - x * vec(b0)
         e1 = e[(p+1):n, 1]
         ecap = zeros(n, p)
 
@@ -129,7 +129,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         xst = [xpst; gendiff(x, phi1)]
 
         V = invpd(B0__ + s20^(-1) * xst' * xst)
-        bhat = V * (B0__ * b0 + s20^(-1) * xst' * yst)
+        bhat = V * (B0__ * vec(b0) + s20^(-1) * xst' * yst)
         #b1 = bhat + cholesky(V)' * randn(nreg, 1)          # the draw of beta 
         b1 = rand(MvNormal(vec(bhat), PSDMat(Matrix(V))))
 
@@ -261,6 +261,8 @@ function OWTwoFactorEstimator(data, prior_dim)
     # Begin Monte Carlo Loop
     for dr = 1:(ndraws+burnin)
 
+        println(dr)
+        
         nf = 2
 
         for i = 1:nvar
