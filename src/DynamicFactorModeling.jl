@@ -28,5 +28,6 @@ export simulateStateSpaceModel, SSModelParameters,
     autocorrErrorRegGibbsSampler,
     priorsSET,
     OWSingleFactorEstimator,
+    OWTwoFactorEstimator,
     sayhi
 end
