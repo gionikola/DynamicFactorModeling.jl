@@ -123,12 +123,13 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
 
     HDFM(nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, fcoefs, fvars, varvars) 
 
 Description:
-Creates an object of type `HDFM` that contains all parameters necessary to specify a multi-level linear dynamic factor data-generating process. 
+Creates an object of type `HDFM` that contains all parameters necessary to specify a multi-level linear dynamic factor data-generating process.
+This is a convenient alternative to specifying an HDFM directly in state-space form. 
 
 Inputs: 
 - nlevels = number of levels in the multi-level model structure.
