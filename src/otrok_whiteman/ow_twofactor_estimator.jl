@@ -47,12 +47,16 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
     local xst, yst, b1, phi1
 
     n = capt
-    signmax1 = 1
-    signbeta1 = 1
-    signmax2 = 1
-    signbeta2 = 0
+    signmax1 = 1.0
+    signbeta1 = 1.0
+    signmax2 = 1.0
+    signbeta2 = 0.0
 
-    while signbeta1 + signbeta2 >= 1
+    testind = 0 
+
+    while signbeta1 + signbeta2 >= 1.0 && testind < 1000
+
+        testind = testind + 1
 
         # generation of phi1 
         yp = y[1:p, 1]          # the first p observations 
@@ -135,7 +139,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
         signmax1 = signmax1 + (1 * signbeta1)
-        signbeta2 = (b1[3, 1] <= 0.0) * ( ((xvar-1)/Size) == floor((xvar-1)/Size))
+        signbeta2 = (b1[3, 1] <= 0.0) * ( ((xvar-1)/Size) == trunc(Int, floor((xvar-1)/Size)))
         signmax2 = signmax2 + (1 * signbeta2) 
 
         if signmax1 >= 100
@@ -152,7 +156,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
     # generation of s2 
     nn = n + v0_
-    d = d0_ + transp_dbl(yst - xst * b1) * (yst - xst * b1)
+    d = d0_ + (transp_dbl(yst - xst * b1) * (yst - xst * b1))[1,1]
     c = rnchisq(nn)
     t2 = c ./ d
     s21 = 1 ./ t2
@@ -181,12 +185,12 @@ function OWTwoFactorEstimator(data, prior_dim)
     ndraws = 1000               # # of Monte Carlo draws 
     burnin = 50                 # # of initial draws to discard; total draws is ndraws + burnin 
 
-    nfact = prior_dim.K           # number of factors to estimate 
-    arlag = prior_dim.Plags       # autoregressive lags in the dynamic factors 
-    arterms = prior_dim.Llags + 1
-    Size = 3
-    nreg = 3
-    m = nfact * arlag
+    nfact = prior_dim.K             # number of factors to estimate 
+    arlag = prior_dim.Plags         # autoregressive lags in the dynamic factors 
+    arterms = prior_dim.Llags + 1   # number of AR lags to include in each observable equation
+    Size = 2                        # number of variables each 2nd-level factor loads on                          
+    nreg = 3                        # number of regressors in each observable equation (constant + world + regional)
+    m = nfact * arlag               # dimension of state vector
 
     # Load data 
     ytemp = y
@@ -262,7 +266,7 @@ function OWTwoFactorEstimator(data, prior_dim)
     for dr = 1:(ndraws+burnin)
 
         println(dr)
-        
+
         nf = 2
 
         for i = 1:nvar
@@ -302,7 +306,7 @@ function OWTwoFactorEstimator(data, prior_dim)
         nfC = 2
         for i = 1:nvar
 
-            yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, nfC] * transp_dbl(bold[i, 3])
+            yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, nfC] * bold[i, 3]'
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
             H = H + ((bold[i, 2]^2 / (SigE[i])) * (transp_dbl(sinv1) * sinv1))
             f = f + (bold[i, 2] / SigE[i]) * (transp_dbl(sinv1) * sinv1) * yW
@@ -315,7 +319,7 @@ function OWTwoFactorEstimator(data, prior_dim)
         Hinv = invpd(H)
         f = Hinv * f
         #fact1 = f + transp_dbl(cholesky(Hinv))*randn(capt,1);
-        fact1 = rand(MvNormal(f, PSDMat(Hinv)))
+        fact1 = rand(MvNormal(vec(f), PSDMat(Hinv)))
 
         Xtsave[:, 1, dr] = fact1
         facts[:, 1] = fact1
@@ -341,7 +345,7 @@ function OWTwoFactorEstimator(data, prior_dim)
             Hinv = invpd(H)
             f = Hinv * f
             #fact2 = f+transp_dbl(cholesky(Hinv))*randn(capt,1);
-            fact2 = rand(MvNormal(f, PSDMat(Hinv)))
+            fact2 = rand(MvNormal(vec(f), PSDMat(Hinv)))
 
             Xtsave[:, 1+c, dr] = fact2
             facts[:, 1+c] = fact2
@@ -352,17 +356,17 @@ function OWTwoFactorEstimator(data, prior_dim)
         println(dr)
     end
 
-    Xtsave  = Xtsave[:, :, (burnin+1):(burnin+ndraws)]
-    bsave   = bsave[(burnin+1):(burnin+ndraws), :]
-    ssave   = ssave[(burnin+1):(burnin+ndraws), :]
-    psave   = psave[(burnin+1):(burnin+ndraws), :]
-    psave2  = psave2[(burnin+1):(burnin+ndraws), :]
+    Xtsave = Xtsave[:, :, (burnin+1):(burnin+ndraws)]
+    bsave = bsave[(burnin+1):(burnin+ndraws), :]
+    ssave = ssave[(burnin+1):(burnin+ndraws), :]
+    psave = psave[(burnin+1):(burnin+ndraws), :]
+    psave2 = psave2[(burnin+1):(burnin+ndraws), :]
 
-    F   = mean(Xtsave, dims = 3)
-    B   = mean(bsave, dims = 1)
-    S   = mean(ssave, dims = 1)
-    P   = mean(psave, dims = 1)
-    P2  = mean(psave2, dims = 1)
+    F = mean(Xtsave, dims = 3)
+    B = mean(bsave, dims = 1)
+    S = mean(ssave, dims = 1)
+    P = mean(psave, dims = 1)
+    P2 = mean(psave2, dims = 1)
 
     return F, B, S, P, P2
 end 
