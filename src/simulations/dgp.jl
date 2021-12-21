@@ -168,3 +168,84 @@ end;
 ######################
 ######################
 ######################
+@doc """
+
+    convertHDFMtoSS(hdfm)
+
+Description:
+Convert an HDFM to state-space form. 
+
+Inputs:
+- hdfm = `HDFM` object with all parameters necessary to specify a multi-level linear dynamic factor data-generating process. 
+"""
+function convertHDFMtoSS(hdfm::HDFM)
+
+    ######################################
+    ## Import all HDFM parameters 
+    nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, fcoefs, fvars, varvars = unpack(hdfm)
+
+    ######################################
+    ## Specify observation equation coefficient matrix 
+
+    # Store number of total lag terms in the state vector 
+    ntotlags = sum(varlags)                     # variable error lags
+    for i = 1:length(flags)
+        ntotlags = nlags + size(flags[i])[2]    # factor lags 
+    end
+
+    # Create empty observation eq. coefficient matrix 
+    H = zeros(nvar, 1 + ntotlags)               # intercept + total lags 
+
+    # Fill out observation eq. coefficient matrix 
+    for i = 1:nvar
+        H[i, 1] = varcoefs[i, 1]
+        for j = 1:nlevels
+            for k = 1:nfactors[j]
+                if k == fassign[i, j]
+                    H[i, 1+j+(k-1)] = varcoefs[i, 1+k]
+                end
+            end
+        end
+    end
+    H[:, (1+nlevels+sum(nfactors)+1):(1+nlevels+sum(nfactors)+nvar)] = 1.0 .* Matrix(I(nvar))
+
+    ######################################
+    ## Specify observation equation error covariance matrix
+    R = zeros(nvar, nvar)
+
+    ######################################
+    ## Specify state equation companion matrix
+    ## and intercept vector 
+
+    # Create empty state equation companion matrix and intercept vector 
+    slength = size(H)[2]                 # length of state vector
+    F = zeros(slength, slength)
+    μ = zeros(slength)
+
+    ######################################
+    ## Specify state equation error covariance matrix
+
+    # Create empty state equation error covariance matrix 
+    Q = zeros(slength, slength)
+
+    ######################################
+    ## Specify all predetermined variable-related parameters 
+    A = zeros(nvar, nvar)
+    Z = zeros(nvar, nvar)
+
+    ######################################
+    return H, A, F, μ, R, Q, Z
+end 
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
