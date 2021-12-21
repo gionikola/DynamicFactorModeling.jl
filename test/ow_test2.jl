@@ -1,3 +1,5 @@
+#using DynamicFactorModeling 
+
 # Number of observations 
 num_obs = 100
 # Obs equation parameters 
@@ -71,8 +73,8 @@ data_y, data_z, data_β = simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
 
 # Store priors 
 T = 100                #   Number of periods in the data
-N_country = 1          #   Number of series per country
-N_regions = 2          #   Number of regions
+N_country = 2          #   Number of series per country
+N_regions = 1          #   Number of regions
 size_reg = 2           #   Number of countries in a region
 P = 2                  #   Number of lags in the factor equation
 L = 1                  #   Number of AR lags in the observable equation (set P-1 for PCA and KF and P for OW)
@@ -81,8 +83,7 @@ N = N_regions * size_reg * N_country    # total number of series
 K = 1 + size_reg                       #Only the world + country factors
 
 # Set priors 
-priors_dim = DynamicFactorModeling.priorsSET2(K, P, L, K * L, 1)
+priors_dim = priorsSET2(K, P, L, K * L, 2)
 
 # Estimate model
 F, B, S, P, P2 = OWTwoFactorEstimator(data_y, priors_dim)
-
