@@ -3,6 +3,7 @@ module DynamicFactorModeling
 ######################
 # Import packages 
 using LinearAlgebra
+using Statistics
 using Random
 using Distributions
 using PDMats
