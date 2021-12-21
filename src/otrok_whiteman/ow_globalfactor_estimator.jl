@@ -345,25 +345,37 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
+        #=
         sigma1 = Hermitian(sigmat(vec(phi1), p))                        # numerator of acceptance prob 
         sigroot = cholesky(sigma1)
         p1 = inv(sigroot)'
         ypst = p1 * yp
         d = det(p1' * p1)
         psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
-
+        =#
+        sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
+        d = Complex(det(sigma1))
+        #psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
+        psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+    
+        #=
         sigma1 = Hermitian(sigmat(vec(phi0), p))                       # denominator of acceptance prob 
         sigroot = cholesky(sigma1)
         p1 = inv(sigroot)'
         ypst = p1 * yp
         d = det(p1' * p1)
         psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
-
+        =#
+        sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
+        d = Complex(det(sigma1))
+        #psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
+        psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+    
         if psi0 == 0
             accept = 1
         else
             u = rand(1)
-            accept = u[1] <= psi1 / psi0
+            accept = u[1] <= real(psi1) / real(psi0)
         end
         phi1 = phi1 * accept + phi0 * (1 - accept)
     end
