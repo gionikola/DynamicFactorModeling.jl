@@ -22,14 +22,11 @@ include("test_scripts.jl")
 
 ######################
 # Export package objects 
-export simulateStateSpaceModel, SSModelParameters,
-    kalmanFilter, kalmanSmoother,
-    dynamicFactorGibbsSampler,
-    staticLinearGibbsSampler, staticLinearGibbsSamplerRestrictedVariance,
-    autocorrErrorRegGibbsSampler,
-    priorsSET,
-    OWSingleFactorEstimator,
-    priorsSET2,
-    OWTwoFactorEstimator,
-    sayhi
+export SSModel, HDFM, convertHDFMtoSS, 
+        simulateSSModel,
+        kalmanFilter, kalmanSmoother,
+        dynamicFactorGibbsSampler, staticLinearGibbsSampler, staticLinearGibbsSamplerRestrictedVariance, autocorrErrorRegGibbsSampler,
+        priorsSET, OWSingleFactorEstimator,
+        priorsSET2, OWTwoFactorEstimator,
+sayhi
 end
