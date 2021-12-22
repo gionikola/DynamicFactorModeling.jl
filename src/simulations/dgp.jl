@@ -1,3 +1,29 @@
+"""
+    SSModel(H, A, F, μ, R, Q, Z)
+
+Description:
+An type object containing all parameters necessary to specify a data-generating process in state-space form. 
+
+Inputs:
+- H = measurement equation state vector coefficient matrix.
+- A = measurement equation predetermined vector coefficient matrix. 
+- F = state equation companion matrix.
+- μ = state equation intercept vector.
+- R = measurement equation error covariance matrix. 
+- Q = state equation innovation covariance matrix.
+- Z = pretermined vector covariance matrix.
+
+"""
+@with_kw mutable struct SSModel
+    H::Array{Int64,2}   # Measurement equation state vector coefficient matrix 
+    A::Array{Int64,2}   # Measurement equation predetermined vector coefficient matrix 
+    F::Array{Int64,2}   # State equation companion matrix 
+    μ::Array{Int64,1}   # State equation intercept vector 
+    R::Array{Int64,2}   # Measurement equation error covariance matrix 
+    Q::Array{Int64,2}   # State equation innovation covariance matrix 
+    Z::Array{Int64,2}   # Pretermined vector covariance matrix 
+end;
+
 ######################
 ######################
 ######################
@@ -171,15 +197,15 @@ end;
 ######################
 @doc """
 
-    convertHDFMtoSS(hdfm)
+    createSSforHDFM(hdfm)
 
 Description:
-Convert an HDFM to state-space form. 
+Create state-space form coefficient and variance matrices for an HDFM object.
 
 Inputs:
 - hdfm = `HDFM` object with all parameters necessary to specify a multi-level linear dynamic factor data-generating process. 
 """
-function convertHDFMtoSS(hdfm::HDFM)
+function createSSforHDFM(hdfm::HDFM)
 
     ######################################
     ## Import all HDFM parameters 
@@ -230,7 +256,7 @@ function convertHDFMtoSS(hdfm::HDFM)
     factind = 0
     for i = 1:nlevels
         factind = factind + 1
-        for j = 0:(nfactors[i]-1) 
+        for j = 0:(nfactors[i]-1)
             factind = factind + 1
             for k = 1:flags[i]
                 F[factind, i+j+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j+1, k] # factor autoregressive lag coefficients
@@ -274,7 +300,41 @@ function convertHDFMtoSS(hdfm::HDFM)
 
     ######################################
     return H, A, F, μ, R, Q, Z
+end
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+@doc """
+    convertHDFMtoSS(hdfm) 
+
+Description:
+Converts an `HDFM` object to an `SSModel` object. 
+
+Inputs:
+- hdfm = HDFM object containing all HDFM DGP parameters. 
+
+Outputs:
+- ssmodel = SSModel object containing all state-space model parameters.
+"""
+function convertHDFMtoSS(hdfm::HDFM)
+
+    H, A, F, μ, R, Q, Z = createSSforHDFM(hdfm::HDFM)
+
+    ssmodel = SSModel(H, A, F, μ, R, Q, Z)
+
+    return ssmodel
 end 
+
 ######################
 ######################
 ######################
