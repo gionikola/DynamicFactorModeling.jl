@@ -119,12 +119,12 @@ function createSSforHDFM(hdfm::HDFM)
         for j = 1:nlevels
             for k = 1:nfactors[j]
                 if k == fassign[i, j]
-                    H[i, 1+j+(k-1)] = varcoefs[i, k]
+                    H[i, 1 + sum(nfactors[1:(j-1)]) + k] = varcoefs[i, 1 + j]
                 end
             end
         end
     end
-    H[:, (1+nlevels+sum(nfactors)+1):(1+nlevels+sum(nfactors)+nvar)] = 1.0 .* Matrix(I(nvar))
+    H[:, (1+sum(nfactors)+1):(1+sum(nfactors)+nvar)] = 1.0 .* Matrix(I(nvar))
 
     ######################################
     ## Specify observation equation error covariance matrix
@@ -143,13 +143,18 @@ function createSSforHDFM(hdfm::HDFM)
     ntotfactors = sum(nfactors)
 
     # Fill out transition eq. companion matrix 
-    factind = 0
     for i = 1:nlevels
-        factind = factind + 1
-        for j = 0:(nfactors[i]-1)
-            factind = factind + 1
+        for j = 1:nfactors[i]
+            
+            rowind = 0
+            if i > 1
+                rowind = sum(nfactors[1:(i-1)]) + j
+            else 
+                rowind = j
+            end 
+
             for k = 1:flags[i]
-                F[factind, 1+i+j+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j+1, k] # factor autoregressive lag coefficients
+                F[rowind, 1+rowind+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j, k] # factor autoregressive lag coefficients
             end
         end
     end
@@ -160,7 +165,9 @@ function createSSforHDFM(hdfm::HDFM)
     end
     for i = (ntotfactors+nvar+1):(slength)
         for j = 1:(slength-ntotfactors-nvar)
-            F[i, j] = 1.0
+            if i == ntotfactors + nvar + j
+                F[i, j] = 1.0
+            end 
         end
     end
 
@@ -171,16 +178,21 @@ function createSSforHDFM(hdfm::HDFM)
     Q = zeros(slength, slength)
 
     # Fill out state equation error covariance matrix 
-    factind = 0
     for i = 1:nlevels
-        factind = factind + 1
-        for j = 0:(nfactors[i]-1)
-            factind = factind + 1
-            Q[1+factind, 1+factind] = (fvars[i])[j+1]
+        for j = 1:nfactors[i]
+        
+            rowind = 0
+            if i > 1
+                rowind = sum(nfactors[1:(i-1)]) + j
+            else
+                rowind = j
+            end
+        
+            Q[1+rowind, 1+rowind] = (fvars[i])[j]
         end
     end
     for i = 1:nvar
-        Q[1+nlevels+i, 1+nlevels+i] = varvars[i]
+        Q[1+ntotfactors+i, 1+ntotfactors+i] = varvars[i]
     end
 
     ######################################
