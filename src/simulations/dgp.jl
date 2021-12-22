@@ -111,20 +111,19 @@ function createSSforHDFM(hdfm::HDFM)
     ntotlags = sum(varlags) + dot(nfactors,flags)           # variable error lags
 
     # Create empty observation eq. coefficient matrix 
-    H = zeros(nvar, 1 + ntotlags)               # intercept + total lags 
+    H = zeros(nvar, ntotlags)               # intercept + total lags 
 
     # Fill out observation eq. coefficient matrix 
     for i = 1:nvar
-        H[i, 1] = varcoefs[i, 1]
         for j = 1:nlevels
             for k = 1:nfactors[j]
                 if k == fassign[i, j]
-                    H[i, 1 + sum(nfactors[1:(j-1)]) + k] = varcoefs[i, 1 + j]
+                    H[i, sum(nfactors[1:(j-1)]) + k] = varcoefs[i, 1 + j]
                 end
             end
         end
     end
-    H[:, (1+sum(nfactors)+1):(1+sum(nfactors)+nvar)] = 1.0 .* Matrix(I(nvar))
+    H[:, (sum(nfactors)+1):(sum(nfactors)+nvar)] = 1.0 .* Matrix(I(nvar))
 
     ######################################
     ## Specify observation equation error covariance matrix
@@ -154,13 +153,13 @@ function createSSforHDFM(hdfm::HDFM)
             end 
 
             for k = 1:flags[i]
-                F[rowind, 1+rowind+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j, k] # factor autoregressive lag coefficients
+                F[rowind, rowind+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j, k] # factor autoregressive lag coefficients
             end
         end
     end
     for i = 1:nvar
         for j = 1:varlags[i]
-            F[ntotfactors+i, 1+ntotfactors+(nvar)*(j-1)+i] = varlagcoefs[i, j] # obs. eq. error lag coefficients 
+            F[ntotfactors+i, ntotfactors+(nvar)*(j-1)+i] = varlagcoefs[i, j] # obs. eq. error lag coefficients 
         end
     end
     for i = (ntotfactors+nvar+1):(slength)
@@ -188,17 +187,19 @@ function createSSforHDFM(hdfm::HDFM)
                 rowind = j
             end
         
-            Q[1+rowind, 1+rowind] = (fvars[i])[j]
+            Q[rowind, rowind] = (fvars[i])[j]
         end
     end
     for i = 1:nvar
-        Q[1+ntotfactors+i, 1+ntotfactors+i] = varvars[i]
+        Q[ntotfactors+i, ntotfactors+i] = varvars[i]
     end
 
     ######################################
     ## Specify all predetermined variable-related parameters 
     A = zeros(nvar, nvar)
     Z = zeros(nvar, nvar)
+
+    ## 
 
     ######################################
     return H, A, F, μ, R, Q, Z
