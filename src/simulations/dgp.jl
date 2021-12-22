@@ -2,7 +2,15 @@
     SSModel(H, A, F, μ, R, Q, Z)
 
 Description:
-An type object containing all parameters necessary to specify a data-generating process in state-space form. 
+A type object containing all parameters necessary to specify a data-generating process in state-space form. 
+Measurement Equation:   
+    y_{t} = H β_{t} + A z_{t} + e_{t} 
+Transition Equation:    
+    β_{t} = μ + F β_{t-1} + v_{t}
+    e_{t} ~ i.i.d.N(0,R)
+    v_{t} ~ i.i.d.N(0,Q)
+    z_{t} ~ i.i.d.N(0,Z)
+    E(e_t v_s') = 0
 
 Inputs:
 - H = measurement equation state vector coefficient matrix.
@@ -14,13 +22,13 @@ Inputs:
 - Z = pretermined vector covariance matrix.
 """
 @with_kw mutable struct SSModel
-    H::Array{Int64,2}   # Measurement equation state vector coefficient matrix 
-    A::Array{Int64,2}   # Measurement equation predetermined vector coefficient matrix 
-    F::Array{Int64,2}   # State equation companion matrix 
-    μ::Array{Int64,1}   # State equation intercept vector 
-    R::Array{Int64,2}   # Measurement equation error covariance matrix 
-    Q::Array{Int64,2}   # State equation innovation covariance matrix 
-    Z::Array{Int64,2}   # Pretermined vector covariance matrix 
+    H::Array{Float64,2}   # Measurement equation state vector coefficient matrix 
+    A::Array{Float64,2}   # Measurement equation predetermined vector coefficient matrix 
+    F::Array{Float64,2}   # State equation companion matrix 
+    μ::Array{Float64,1}   # State equation intercept vector 
+    R::Array{Float64,2}   # Measurement equation error covariance matrix 
+    Q::Array{Float64,2}   # State equation innovation covariance matrix 
+    Z::Array{Float64,2}   # Pretermined vector covariance matrix 
 end;
 ######################
 ######################
@@ -61,11 +69,11 @@ Inputs:
     fassign::Array{Int64,2}         # integer matrix of size `nvar` × `nlevels` 
     flags::Array{Int64,1}           # number of autoregressive lags for each factor level (vector of length `nlevels`)
     varlags::Array{Int64,1}         # number of obs. variable error autoregressive lags (vector of length `nvar`)
-    varcoefs::Array{Int64,2}        # vector of observation equation coefficients for each variables (length 1+`nlevels`)
-    varlagcoefs::Array{Int64,2}     # vector of error lag coefficients for each variable (matrix length `nvar`, width max(varlags))
+    varcoefs::Array{Float64,2}      # vector of observation equation coefficients for each variables (length 1+`nlevels`)
+    varlagcoefs::Array{Float64,2}   # vector of error lag coefficients for each variable (matrix length `nvar`, width max(varlags))
     fcoefs::Array{Any,1}            # list of `nlevels` number of matrices, where each row contains vectors of autoregressive lag coefficients of corresponding factors
     fvars::Array{Any,1}             # list of `nlevels` number of vectors, where each entry contains the disturbance variance of the corresponding factors
-    varvars::Array{Int64,1}         # vector of `nvar` number of entries, where each entry contains innovation variances of corresponding variables
+    varvars::Array{Float64,1}         # vector of `nvar` number of entries, where each entry contains innovation variances of corresponding variables
 end;
 ######################
 ######################
@@ -234,12 +242,12 @@ end;
 ######################
 @doc """
 
-    simulateStateSpaceModel(num_obs, ssmodel::SSModel)
+    simulateSSModel(num_obs, ssmodel::SSModel)
 
 Description: 
 Generate data from a DGP in state space form.
 Measurement Equation:   
-    y_{t} = H_{t} β_{t} + A z_{t} + e_{t} 
+    y_{t} = H β_{t} + A z_{t} + e_{t} 
 Transition Equation:    
     β_{t} = μ + F β_{t-1} + v_{t}
     e_{t} ~ i.i.d.N(0,R)
