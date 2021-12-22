@@ -1,4 +1,4 @@
-"""
+@doc """
     SSModel(H, A, F, μ, R, Q, Z)
 
 Description:
@@ -209,7 +209,7 @@ function createSSforHDFM(hdfm::HDFM)
 
     ######################################
     ## Import all HDFM parameters 
-    nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, varlagcoefs, fcoefs, fvars, varvars = unpack(hdfm)
+    @unpack nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, varlagcoefs, fcoefs, fvars, varvars = hdfm
 
     ######################################
     ## Specify observation equation coefficient matrix 
