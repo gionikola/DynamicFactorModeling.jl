@@ -15,7 +15,13 @@ R = [0.0][:, :]
 Q = [1.0 0.0; 0.0 0.0]
 Z = [0.0][:, :]
 
-data_y, data_z, data_β = simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
+
+# Gather all SS parameters 
+ssmodel = SSModel(H, A, F, μ, R, Q, Z)
+
+# Simulate common components model in state space form 
+data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
+
 plot(data_y)
 
 data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
@@ -102,8 +108,11 @@ Q[2, 2] = σ2_1
 Q[3, 3] = σ2_2
 Z = zeros(4, 4)
 
+# Gather all SS parameters 
+ssmodel = SSModel(H, A, F, μ, R, Q, Z)
+
 # Simulate common components model in state space form 
-data_y, data_z, data_β = simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
+data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
 
 # Plot data 
 plot(data_y)
@@ -280,8 +289,11 @@ Q[2, 2] = σ2_1
 Q[3, 3] = σ2_2
 Z = zeros(4, 4)
 
+# Gather all SS parameters 
+ssmodel = SSModel(H, A, F, μ, R, Q, Z)
+
 # Simulate common components model in state space form 
-data_y, data_z, data_β = simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
+data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
 
 factor_estimate = HDFMStateSpaceGibbsSamplerTest(data_y, data_z, H, A, F, μ, R, Q, Z)
 

@@ -11,45 +11,8 @@
 ######################
 ######################
 @doc """
-
-    SSModelParameters(H, A, F, μ, R, Q, Z)
-
-Description:     
-State space model parameters. 
-
-- H     = measurement eq. factor coef. matrix 
-- A     = measurement eq. predetermined var. coef. matrix 
-- F     = transition eq. companion matrix 
-- μ     = transition eq. intercept 
-- R     = measurement eq. error covariance matrix 
-- Q     = transition eq. error covariance matrix 
-- Z     = predetermined var. covariance matrix 
-"""
-@with_kw mutable struct SSModelParameters
-    H
-    A
-    F
-    μ
-    R
-    Q
-    Z
-end;
-
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
     
-    kalmanFilter(data, H, A, F, μ, R, Q, Z)
+    kalmanFilter(data, ssmodel)
 
 Description: 
 Apply Kalman filter to observed data. 
@@ -72,7 +35,9 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
+function kalmanFilter(data_y, data_z, ssmodel)
+
+    @unpack H, A, F, μ, R, Q, Z = ssmodel
 
     # Save number of observations 
     num_obs = size(data_y)[1]
@@ -140,7 +105,7 @@ end
 ######################
 @doc """
     
-    kalmanSmoother(data, H, A, F, μ, R, Q, Z)
+    kalmanSmoother(data, ssmodel)
 
 Description: 
 Apply Kalman smoother to observed data. 
@@ -163,7 +128,9 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
+function kalmanSmoother(data_y, data_z, ssmodel)
+
+    @unpack H, A, F, μ, R, Q, Z = ssmodel
 
     # Save number of observations 
     num_obs = size(data_y)[1]
@@ -176,7 +143,7 @@ function kalmanSmoother(data_y, data_z, H, A, F, μ, R, Q, Z)
     PtT = Any[]
 
     # Run Kalman filter 
-    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, ssmodel)
 
     # Initialize β_{t+1|T} (β_{T|T})
     βtflagT = data_filtered_β[end]
@@ -247,7 +214,7 @@ end
 ######################
 @doc """
     
-    dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
+    dynamicFactorGibbsSampler(data_y, data_z, ssmodel)
 
 Description: 
 Draw a sample series of dynamic factor from conditional distribution in Ch 8, Kim & Nelson (1999).
@@ -270,10 +237,12 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
+function dynamicFactorGibbsSampler(data_y, data_z, ssmodel)
+
+    @unpack H, A, F, μ, R, Q, Z = ssmodel
 
     # Run Kalman filter 
-    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, H, A, F, μ, R, Q, Z)
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, ssmodel)
 
     # Format non-positive definite P_{t|t}
     # matrices as PSDMat for sampler 
@@ -646,37 +615,3 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     # Return parameters 
     return β, σ2, ϕ
 end
-
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-    
-    HDFMStateSpaceGibbsSampler(data_y, data_z, param_init)
-
-Description: 
-Estimate hierarchical dynamic factor model by applying Gibbs sampler to state space model.
-Refer to Kim and Nelson (1999) for discussion of the procedure. 
-
-Inputs: 
-- data_y        = observed data
-- data_z        = predetermined variable data 
-- param_init    = initial model hyperparameters 
-
-Output:
-- factor_distr  = sample representing dynamic factor marginal density 
-- param_distr   = sample representing model hyperparameter marginal density 
-
-"""
-function HDFMStateSpaceGibbsSampler(data_y, data_z, param_init::SSModelParameters)
-
-end; 

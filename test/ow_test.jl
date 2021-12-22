@@ -31,8 +31,11 @@ Q[2, 2] = σ2_1
 Q[3, 3] = σ2_2
 Z = zeros(4, 4)
 
+# Gather all SS parameters 
+ssmodel = SSModel(H, A, F, μ, R, Q, Z)
+
 # Simulate common components model in state space form 
-data_y, data_z, data_β = simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
+data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
 
 priors = priorsSET(K, P, L)             # Set model priors 
 

@@ -251,7 +251,7 @@ Inputs:
 - num_obs   = number of observations
 - ssmodel   = `SSModel` object containing all parameters necessary to specify a data-generating process in state-space form.  
 """
-function simulateStateSpaceModel(num_obs, ssmodel::SSModel)
+function simulateSSModel(num_obs, ssmodel::SSModel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 

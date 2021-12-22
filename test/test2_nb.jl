@@ -5,86 +5,92 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 513511d0-5ea5-11ec-21a5-2d46a9009031
-begin 
-	using Plots 
-	using ShiftedArrays 
-	using Statistics 
-	using DynamicFactorModeling
-end 
+begin
+    using Plots
+    using ShiftedArrays
+    using Statistics
+    using DynamicFactorModeling
+end
 
 # ╔═╡ ac785057-cdbf-46b8-a615-9d91f6a18d32
 begin
-	# Number of observations 
-	num_obs = 100
-	# Obs equation parameters 
-	γ1 = 1.0
-	γ2 = 1.0
-	γ3 = 1.0
-	γ4 = 1.0
-	α1 = 1.0
-	α2 = 1.0
-	α3 = 1.0
-	α4 = 1.0
-	H = zeros(4, 10)
-	H[1, 1] = γ1
-	H[2, 1] = γ2
-	H[3, 1] = γ3
-	H[4, 1] = γ4
-	H[1, 2] = α1
-	H[2, 2] = α2
-	H[3, 3] = α3
-	H[4, 3] = α4
-	H[1, 4] = 1.0
-	H[2, 5] = 1.0
-	H[3, 6] = 1.0
-	H[4, 7] = 1.0
-	A = zeros(4, 10)
-	Z = zeros(10, 10)
-	# State equation parameters 
-	ϕ1 = 0.5
-	ϕ2 = 0.1
-	ϕ1_12 = 0.5
-	ϕ2_12 = 0.1
-	ϕ1_34 = 0.5
-	ϕ2_34 = 0.1
-	ψ1 = 0.1
-	ψ2 = 0.1
-	ψ3 = 0.1
-	ψ4 = 0.1
-	F = zeros(10, 10)
-	F[1, 1] = ϕ1
-	F[1, 8] = ϕ2
-	F[2, 2] = ϕ1_12
-	F[2, 9] = ϕ2_12
-	F[3, 3] = ϕ1_34
-	F[3, 10] = ϕ2_34
-	F[4, 4] = ψ1
-	F[5, 5] = ψ2
-	F[6, 6] = ψ3
-	F[7, 7] = ψ4
-	F[8, 1] = 1.0
-	F[9, 2] = 1.0
-	F[10, 3] = 1.0
-	μ = zeros(10)
-	R = zeros(4, 4)
-	Q = zeros(10, 10)
-	σ2_12 = 1.0
-	σ2_34 = 1.0
-	σ2_1 = 0.01
-	σ2_2 = 0.01
-	σ2_3 = 0.01
-	σ2_4 = 0.01
-	Q[1, 1] = 1.0
-	Q[2, 2] = σ2_12
-	Q[3, 3] = σ2_34
-	Q[4, 4] = σ2_1
-	Q[5, 5] = σ2_2
-	Q[6, 6] = σ2_3
-	Q[7, 7] = σ2_4
-end 
+    # Number of observations 
+    num_obs = 100
+    # Obs equation parameters 
+    γ1 = 1.0
+    γ2 = 1.0
+    γ3 = 1.0
+    γ4 = 1.0
+    α1 = 1.0
+    α2 = 1.0
+    α3 = 1.0
+    α4 = 1.0
+    H = zeros(4, 10)
+    H[1, 1] = γ1
+    H[2, 1] = γ2
+    H[3, 1] = γ3
+    H[4, 1] = γ4
+    H[1, 2] = α1
+    H[2, 2] = α2
+    H[3, 3] = α3
+    H[4, 3] = α4
+    H[1, 4] = 1.0
+    H[2, 5] = 1.0
+    H[3, 6] = 1.0
+    H[4, 7] = 1.0
+    A = zeros(4, 10)
+    Z = zeros(10, 10)
+    # State equation parameters 
+    ϕ1 = 0.5
+    ϕ2 = 0.1
+    ϕ1_12 = 0.5
+    ϕ2_12 = 0.1
+    ϕ1_34 = 0.5
+    ϕ2_34 = 0.1
+    ψ1 = 0.1
+    ψ2 = 0.1
+    ψ3 = 0.1
+    ψ4 = 0.1
+    F = zeros(10, 10)
+    F[1, 1] = ϕ1
+    F[1, 8] = ϕ2
+    F[2, 2] = ϕ1_12
+    F[2, 9] = ϕ2_12
+    F[3, 3] = ϕ1_34
+    F[3, 10] = ϕ2_34
+    F[4, 4] = ψ1
+    F[5, 5] = ψ2
+    F[6, 6] = ψ3
+    F[7, 7] = ψ4
+    F[8, 1] = 1.0
+    F[9, 2] = 1.0
+    F[10, 3] = 1.0
+    μ = zeros(10)
+    R = zeros(4, 4)
+    Q = zeros(10, 10)
+    σ2_12 = 1.0
+    σ2_34 = 1.0
+    σ2_1 = 0.01
+    σ2_2 = 0.01
+    σ2_3 = 0.01
+    σ2_4 = 0.01
+    Q[1, 1] = 1.0
+    Q[2, 2] = σ2_12
+    Q[3, 3] = σ2_34
+    Q[4, 4] = σ2_1
+    Q[5, 5] = σ2_2
+    Q[6, 6] = σ2_3
+    Q[7, 7] = σ2_4
+end
 
 # ╔═╡ 28819c21-3fac-4fbc-a06a-411e0e7ac19c
-data_y, data_z, data_β = simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
+begin
+    # Gather all SS parameters 
+    ssmodel = SSModel(H, A, F, μ, R, Q, Z)
+
+    # Simulate common components model in state space form 
+    data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
+end
 
 # ╔═╡ 28ed4079-1a77-4541-87f6-cb11242cb2d2
 plot(data_β[:, 1])
@@ -184,15 +190,15 @@ function HDFMSampler(data_y, data_z)
         factor_reg34 = factor[:, 3]
 
         # Estimate obs eq. and autoreg hyperparameters
-		#while γ1 < 0 || α1 < 0
-        	Y = reshape(data_y[:, 1], length(data_y[:, 1]), 1)
-        	X = [factor_global factor_reg12]
-        	par1, σ2_1, ψ1 = autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
-        	γ1 = par1[1][1]
-        	α1 = par1[1][2]
-        	σ2_1 = σ2_1[1]
-        	ψ1 = ψ1[1][1]
-		#end 
+        #while γ1 < 0 || α1 < 0
+        Y = reshape(data_y[:, 1], length(data_y[:, 1]), 1)
+        X = [factor_global factor_reg12]
+        par1, σ2_1, ψ1 = autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
+        γ1 = par1[1][1]
+        α1 = par1[1][2]
+        σ2_1 = σ2_1[1]
+        ψ1 = ψ1[1][1]
+        #end 
         # --- 
         Y = reshape(data_y[:, 2], length(data_y[:, 2]), 1)
         X = [factor_global factor_reg12]
@@ -202,15 +208,15 @@ function HDFMSampler(data_y, data_z)
         σ2_2 = σ2_2[1]
         ψ2 = ψ2[1][1]
         # --- 
-		#while α3 < 0
-        	Y = reshape(data_y[:, 3], length(data_y[:, 3]), 1)
-        	X = [factor_global factor_reg34]
-        	par3, σ2_3, ψ3 = autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
-        	γ3 = par3[1][1]
-        	α3 = par3[1][2]
-        	σ2_3 = σ2_3[1]
-        	ψ3 = ψ3[1][1]
-		#end 
+        #while α3 < 0
+        Y = reshape(data_y[:, 3], length(data_y[:, 3]), 1)
+        X = [factor_global factor_reg34]
+        par3, σ2_3, ψ3 = autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
+        γ3 = par3[1][1]
+        α3 = par3[1][2]
+        σ2_3 = σ2_3[1]
+        ψ3 = ψ3[1][1]
+        #end 
         # --- 
         Y = reshape(data_y[:, 4], length(data_y[:, 4]), 1)
         X = [factor_global factor_reg34]
@@ -266,7 +272,7 @@ function HDFMSampler(data_y, data_z)
         factor_temp = factor_reg34[3:end, :]
         Y = factor_temp
         #ϕ, σ2_34 = staticLinearGibbsSampler(Y, X)
-		ϕ = staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2_34)
+        ϕ = staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2_34)
         ϕ1_34 = ϕ[1][1]
         ϕ2_34 = ϕ[1][2]
         #σ2_34 = σ2_34[1]
@@ -312,10 +318,10 @@ function HDFMSampler(data_y, data_z)
         Q[5, 5] = σ2_2
         Q[6, 6] = σ2_3
         Q[7, 7] = σ2_4
-    	#ψ1 = 0.1
-    	#ψ2 = 0.1
-    	#ψ3 = 0.1
-    	#ψ4 = 0.1
+        #ψ1 = 0.1
+        #ψ2 = 0.1
+        #ψ3 = 0.1
+        #ψ4 = 0.1
 
         # Add updated parameter estimates to
         # their corresponding sample lists 
@@ -342,9 +348,9 @@ factor_est = mean(factor_list)
 
 # ╔═╡ 0234265f-71cf-4620-a8b1-2d3f38969959
 begin
-	plot(factor_est[:,1])
-	plot!(data_β[:,1])
-end 
+    plot(factor_est[:, 1])
+    plot!(data_β[:, 1])
+end
 
 # ╔═╡ 04d62cdf-eb61-43bd-be46-3f024e5d920d
 mean(H_est)
@@ -363,11 +369,11 @@ H
 
 # ╔═╡ 5e96f532-1813-4a51-a84a-3ef0b0ce33d1
 begin
-	test = zeros(1000)
-	for i in 1:1000
-		test[i] = F_est[i][2,2]
-	end 
-	plot(test[500:1000])
+    test = zeros(1000)
+    for i = 1:1000
+        test[i] = F_est[i][2, 2]
+    end
+    plot(test[500:1000])
 end
 
 # ╔═╡ 67ec0cb5-6f40-46e0-a044-563680c07995

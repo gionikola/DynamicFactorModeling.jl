@@ -84,8 +84,11 @@ Q[5, 5] = σ2_2
 Q[6, 6] = σ2_3
 Q[7, 7] = σ2_4
 
+# Gather all SS parameters 
+ssmodel = SSModel(H, A, F, μ, R, Q, Z)
+
 # Simulate common components model in state space form 
-data_y, data_z, data_β = simulateStateSpaceModel(num_obs, H, A, F, μ, R, Q, Z)
+data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
 
 # Plot data 
 plot(data_β[:, 1:3])
@@ -114,7 +117,7 @@ function HDFMSamplerGivenHyperparameters(data_y, data_z, H, A, F, μ, R, Q, Z)
 
     for i = 1:5000
 
-        println(i) 
+        println(i)
 
         # Estimate factors 
         factor = dynamicFactorGibbsSampler(data_y, data_z, H, A, F, μ, R, Q, Z)
@@ -132,10 +135,10 @@ end
 
 factor_list = HDFMSamplerGivenHyperparameters(data_y, data_z, H, A, F, μ, R, Q, Z)
 
-factor_est  = mean(factor_list) 
+factor_est = mean(factor_list)
 
-plot(factor_est[:,3])
-plot!(data_β[:,3])
+plot(factor_est[:, 3])
+plot!(data_β[:, 3])
 
 ####################
 ####################
