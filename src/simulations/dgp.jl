@@ -150,7 +150,8 @@ Inputs:
     fassign::Array{Int64,2}         # integer matrix of size `nvar` × `nlevels` 
     flags::Array{Int64,1}           # number of autoregressive lags for each factor level (vector of length `nlevels`)
     varlags::Array{Int64,1}         # number of obs. variable error autoregressive lags (vector of length `nvar`)
-    varcoefs::Array{Int64,2}        # vector of coefficients for each variables (length 1+`nlevels`)
+    varcoefs::Array{Int64,2}        # vector of observation equation coefficients for each variables (length 1+`nlevels`)
+    varlagcoefs::Array{Int64,2}     # vector of error lag coefficients for each variable (matrix length `nvar`, width max(varlags))
     fcoefs::Array{Any,1}            # list of `nlevels` number of matrices, where each row contains vectors of autoregressive lag coefficients of corresponding factors
     fvars::Array{Any,1}             # list of `nlevels` number of vectors, where each entry contains the disturbance variance of the corresponding factors
     varvars::Array{Int64,1}         # vector of `nvar` number of entries, where each entry contains innovation variances of corresponding variables
@@ -182,7 +183,7 @@ function convertHDFMtoSS(hdfm::HDFM)
 
     ######################################
     ## Import all HDFM parameters 
-    nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, fcoefs, fvars, varvars = unpack(hdfm)
+    nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, varlagcoefs, fcoefs, fvars, varvars = unpack(hdfm)
 
     ######################################
     ## Specify observation equation coefficient matrix 
@@ -222,11 +223,49 @@ function convertHDFMtoSS(hdfm::HDFM)
     F = zeros(slength, slength)
     μ = zeros(slength)
 
+    # Total number of factors 
+    ntotfactors = sum(nfactors)
+
+    # Fill out transition eq. companion matrix 
+    factind = 0
+    for i = 1:nlevels
+        factind = factind + 1
+        for j = 0:(nfactors[i]-1) 
+            factind = factind + 1
+            for k = 1:flags[i]
+                F[factind, i+j+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j+1, k] # factor autoregressive lag coefficients
+            end
+        end
+    end
+    for i = 1:nvar
+        for j = 1:varlags[i]
+            F[ntotfactors+i, ntotfactors+(ntotfactors+nvar)*(j-1)+i] = varlagcoefs[i, j] # obs. eq. error lag coefficients 
+        end
+    end
+    for i = (ntotfactors+nvar+1):(slength)
+        for j = 1:(slength-ntotfactors-nvar)
+            F[i, j] = 1.0
+        end
+    end
+
     ######################################
     ## Specify state equation error covariance matrix
 
     # Create empty state equation error covariance matrix 
     Q = zeros(slength, slength)
+
+    # Fill out state equation error covariance matrix 
+    factind = 0
+    for i = 1:nlevels
+        factind = factind + 1
+        for j = 0:(nfactors[i]-1)
+            factind = factind + 1
+            Q[factind, factind] = (fvars[i])[j+1]
+        end
+    end
+    for i = 1:nvars
+        Q[nlevels+i, nlevels+i] = varvars[i]
+    end
 
     ######################################
     ## Specify all predetermined variable-related parameters 
