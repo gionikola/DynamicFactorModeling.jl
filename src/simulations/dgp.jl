@@ -1,3 +1,60 @@
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+@doc """
+"""
+function sim_MvNormal(μ,Σ)
+    
+    nvars = size(Σ)[1]
+
+    keep = Any[]
+
+    for i in 1:nvars
+        if Σ[i,i] != 0.0
+            push!(keep, i)
+        end  
+    end 
+
+    Σnew = Σ[keep, keep]
+    μnew = μ[keep]
+
+    obs = rand(MvNormal(μnew,PSDMat(Σnew)))
+    
+    obs_aug = zeros(nvars) 
+
+    j = 1
+    for i in 1:nvars
+        if i in keep
+            obs_aug[i] = obs[j]
+            j = j + 1   
+        else
+            obs_aug[i] = μ[i] 
+        end 
+    end 
+
+    return obs_aug
+end 
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
 @doc """
     SSModel(H, A, F, μ, R, Q, Z)
 
@@ -111,19 +168,20 @@ function createSSforHDFM(hdfm::HDFM)
     ntotlags = sum(varlags) + dot(nfactors,flags)           # variable error lags
 
     # Create empty observation eq. coefficient matrix 
-    H = zeros(nvar, ntotlags)               # intercept + total lags 
+    H = zeros(nvar, 1 + ntotlags)               # intercept + total lags 
 
     # Fill out observation eq. coefficient matrix 
     for i = 1:nvar
+        H[i, 1] = varcoefs[i, 1]
         for j = 1:nlevels
             for k = 1:nfactors[j]
                 if k == fassign[i, j]
-                    H[i, sum(nfactors[1:(j-1)]) + k] = varcoefs[i, 1 + j]
+                    H[i, 1 + sum(nfactors[1:(j-1)]) + k] = varcoefs[i, 1 + j]
                 end
             end
         end
     end
-    H[:, (sum(nfactors)+1):(sum(nfactors)+nvar)] = 1.0 .* Matrix(I(nvar))
+    H[:, (1+sum(nfactors)+1):(1+sum(nfactors)+nvar)] = 1.0 .* Matrix(I(nvar))
 
     ######################################
     ## Specify observation equation error covariance matrix
@@ -142,6 +200,7 @@ function createSSforHDFM(hdfm::HDFM)
     ntotfactors = sum(nfactors)
 
     # Fill out transition eq. companion matrix 
+    μ[1,1] = 1.0
     for i = 1:nlevels
         for j = 1:nfactors[i]
             
@@ -153,13 +212,13 @@ function createSSforHDFM(hdfm::HDFM)
             end 
 
             for k = 1:flags[i]
-                F[rowind, rowind+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j, k] # factor autoregressive lag coefficients
+                F[1+rowind, 1+rowind+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j, k] # factor autoregressive lag coefficients
             end
         end
     end
     for i = 1:nvar
         for j = 1:varlags[i]
-            F[ntotfactors+i, ntotfactors+(nvar)*(j-1)+i] = varlagcoefs[i, j] # obs. eq. error lag coefficients 
+            F[ntotfactors+i, 1+ntotfactors+(nvar)*(j-1)+i] = varlagcoefs[i, j] # obs. eq. error lag coefficients 
         end
     end
     for i = (ntotfactors+nvar+1):(slength)
@@ -187,19 +246,17 @@ function createSSforHDFM(hdfm::HDFM)
                 rowind = j
             end
         
-            Q[rowind, rowind] = (fvars[i])[j]
+            Q[1+rowind, 1+rowind] = (fvars[i])[j]
         end
     end
     for i = 1:nvar
-        Q[ntotfactors+i, ntotfactors+i] = varvars[i]
+        Q[1+ntotfactors+i, 1+ntotfactors+i] = varvars[i]
     end
 
     ######################################
     ## Specify all predetermined variable-related parameters 
     A = zeros(nvar, nvar)
     Z = zeros(nvar, nvar)
-
-    ## 
 
     ######################################
     return H, A, F, μ, R, Q, Z
@@ -293,14 +350,15 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
     data_β = zeros(num_obs, size(Q)[1])
 
     # Initialize β and y 
-    β0 = inv(I - F) * μ .+ rand()
+    β0 = inv(I - F) * μ 
     y0 = H * β0
 
     # Initialize z
     if Z == zeros(size(Z)[1], size(Z)[1])
         z0 = zeros(size(Z)[1])
     else
-        z0 = rand(MvNormal(zeros(size(Z)[1]), Z))
+        #z0 = rand(MvNormal(zeros(size(Z)[1]), Z))
+        z0 = sim_MvNormal(zeros(size(Z)[1]), Z)
     end
 
     # Save first observations of y and z
@@ -317,7 +375,8 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
         if Q == zeros(size(Q)[1], size(Q)[1])
             v = zeros(size(Q)[1])
         else
-            v = rand(MvNormal(zeros(size(Q)[1]), Q))
+            #v = rand(MvNormal(zeros(size(Q)[1]), Q))
+            v = sim_MvNormal(zeros(size(Q)[1]), Q)
         end
         # Record new state observation 
         β = μ + F * β_lag + v
@@ -325,13 +384,15 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
         if Z == zeros(size(Z)[1], size(Z)[1])
             z = zeros(size(Z)[1])
         else
-            z = rand(MvNormal(zeros(size(Z)[1]), Z))
+            #z = rand(MvNormal(zeros(size(Z)[1]), Z))
+            z = sim_MvNormal(zeros(size(Z)[1]), Z)
         end
         # Draw measurement distrubance 
         if R == zeros(size(R)[1], size(R)[1])
             e = zeros(size(R)[1])
         else
-            e = rand(MvNormal(zeros(size(R)[1]), R))
+            #e = rand(MvNormal(zeros(size(R)[1]), R))
+            e = sim_MvNormal(zeros(size(R)[1]), R)
         end
         # Record new measurement observation 
         y = H * β + A * z + e
