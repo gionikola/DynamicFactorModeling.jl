@@ -108,10 +108,7 @@ function createSSforHDFM(hdfm::HDFM)
     ## Specify observation equation coefficient matrix 
 
     # Store number of total lag terms in the state vector 
-    ntotlags = sum(varlags)                     # variable error lags
-    for i = 1:length(flags)
-        ntotlags = nlags + size(flags[i])[2]    # factor lags 
-    end
+    ntotlags = sum(varlags) + dot(nfactors,flags)           # variable error lags
 
     # Create empty observation eq. coefficient matrix 
     H = zeros(nvar, 1 + ntotlags)               # intercept + total lags 
@@ -122,7 +119,7 @@ function createSSforHDFM(hdfm::HDFM)
         for j = 1:nlevels
             for k = 1:nfactors[j]
                 if k == fassign[i, j]
-                    H[i, 1+j+(k-1)] = varcoefs[i, 1+k]
+                    H[i, 1+j+(k-1)] = varcoefs[i, k]
                 end
             end
         end
@@ -152,13 +149,13 @@ function createSSforHDFM(hdfm::HDFM)
         for j = 0:(nfactors[i]-1)
             factind = factind + 1
             for k = 1:flags[i]
-                F[factind, i+j+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j+1, k] # factor autoregressive lag coefficients
+                F[factind, 1+i+j+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j+1, k] # factor autoregressive lag coefficients
             end
         end
     end
     for i = 1:nvar
         for j = 1:varlags[i]
-            F[ntotfactors+i, ntotfactors+(ntotfactors+nvar)*(j-1)+i] = varlagcoefs[i, j] # obs. eq. error lag coefficients 
+            F[ntotfactors+i, 1+ntotfactors+(nvar)*(j-1)+i] = varlagcoefs[i, j] # obs. eq. error lag coefficients 
         end
     end
     for i = (ntotfactors+nvar+1):(slength)
@@ -179,11 +176,11 @@ function createSSforHDFM(hdfm::HDFM)
         factind = factind + 1
         for j = 0:(nfactors[i]-1)
             factind = factind + 1
-            Q[factind, factind] = (fvars[i])[j+1]
+            Q[1+factind, 1+factind] = (fvars[i])[j+1]
         end
     end
-    for i = 1:nvars
-        Q[nlevels+i, nlevels+i] = varvars[i]
+    for i = 1:nvar
+        Q[1+nlevels+i, 1+nlevels+i] = varvars[i]
     end
 
     ######################################
