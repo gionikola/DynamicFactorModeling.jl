@@ -108,9 +108,9 @@ fassign = [1 1
     1 2
     1 2]
 
-flags = [2, 2]
+flags = [3, 3]
 
-varlags = [2, 2, 2, 2]
+varlags = [3, 3, 3, 3]
 
 hdfmpriors = HDFMPriors(nlevels = nlevels,
     nvar = nvar,

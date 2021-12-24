@@ -136,9 +136,10 @@ function OWTwoLevelEstimator(data, prior_hdfm)
 
         println(dr)
 
-        nf = 2
-
         for i = 1:nvar
+
+            # factor number 
+            nf = fassign[i]
         
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts[:, 1] facts[:, nf]]
@@ -151,10 +152,6 @@ function OWTwoLevelEstimator(data, prior_hdfm)
             bsave[dr, (((i-1)*nreg)+1):(i*nreg)] = transp_dbl(b1)
             ssave[dr, i] = s21
             psave2[dr, (((i-1)*arterms)+1):(i*arterms)] = transp_dbl(phi1)
-        
-            if (i / fnvars[fassign[i, 2]]) == floor(i / fnvars[fassign[i, 2]])
-                nf = nf + 1
-            end
         
         end # end of loop for drawing the coefficients for each observable equation
 
@@ -172,17 +169,15 @@ function OWTwoLevelEstimator(data, prior_hdfm)
         sinvf1 = sigbig(phi[:, 1], arlag, capt)
         f = zeros(capt, 1)
         H = ((1 / sigU[1]) * (transp_dbl(sinvf1) * sinvf1))
-        nfC = 2
+
         for i = 1:nvar
 
+            nfC = fassign[i] 
             yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, nfC] * bold[i, 3]'
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
             H = H + ((bold[i, 2]^2 / (SigE[i])) * (transp_dbl(sinv1) * sinv1))
             f = f + (bold[i, 2] / SigE[i]) * (transp_dbl(sinv1) * sinv1) * yW
 
-            if (i / fnvars[fassign[i, 2]]) == floor(i / fnvars[fassign[i, 2]])
-                nfC = nfC + 1
-            end
         end
 
         Hinv = invpd(H)
