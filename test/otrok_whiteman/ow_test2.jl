@@ -119,4 +119,15 @@ hdfmpriors = HDFMPriors(nlevels = nlevels,
     flags = flags,
     varlags = varlags)
 
-F, B, S, P, P2 = OWTwoLevelEstimator(data_y, hdfmpriors)
+F2, B2, S2, P2, P22 = OWTwoLevelEstimator(data_y, hdfmpriors)
+
+using Plots
+
+plot(F[:, 1])
+plot!(F2[:, 1])
+
+plot(F[:, 2])
+plot!(F2[:, 2])
+
+plot(F[:, 3])
+plot!(F2[:, 3])
