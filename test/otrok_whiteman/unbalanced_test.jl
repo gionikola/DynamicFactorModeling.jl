@@ -37,7 +37,7 @@ varlagcoefs = [0.5 0.25
     0.5 0.25
     0.5 0.25
     0.5 0.25
-    0.5 0.25 ]
+    0.5 0.25]
 
 fcoefs = Any[]
 fmat = [0.5 0.25][:, :]
@@ -68,7 +68,7 @@ hdfm = HDFM(nlevels = nlevels,
 
 ssmodel = convertHDFMtoSS(hdfm)
 
-num_obs = 200
+num_obs = 100
 data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 
 hdfmpriors = HDFMPriors(nlevels = nlevels,
@@ -78,4 +78,22 @@ hdfmpriors = HDFMPriors(nlevels = nlevels,
     flags = flags,
     varlags = varlags)
 
+
+flags = [3, 3]
+
+varlags = [3, 3, 3, 3, 3, 3, 3, 3, 3]
+
+
 F, B, S, P, P2 = OWTwoLevelEstimator(data_y, hdfmpriors)
+
+
+using Plots
+
+plot(data_β[:, 2])
+plot!(50*F[:, 1])
+
+plot(data_β[:, 3])
+plot!(50*F[:, 2])
+
+plot(data_β[:, 4])
+plot!(50*F[:, 3])
