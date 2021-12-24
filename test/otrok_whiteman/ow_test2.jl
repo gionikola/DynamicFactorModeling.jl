@@ -90,3 +90,33 @@ priors_dim = priorsSET2(K, P, L, K * L, 2)
 
 # Estimate model
 F, B, S, P, P2 = OWTwoFactorEstimator(data_y, priors_dim)
+
+###################################
+####################################
+####################################
+###################################
+####################################
+
+nlevels = 2
+
+nvar = 4
+
+nfactors = [1, 2]
+
+fassign = [1 1
+    1 1
+    1 2
+    1 2]
+
+flags = [2, 2]
+
+varlags = [2, 2, 2, 2]
+
+hdfmpriors = HDFMPriors(nlevels = nlevels,
+    nvar = nvar,
+    nfactors = nfactors,
+    fassign = fassign,
+    flags = flags,
+    varlags = varlags)
+
+F, B, S, P, P2 = OWTwoLevelEstimator(data_y, hdfmpriors)

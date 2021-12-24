@@ -1,3 +1,4 @@
+include("ow_tools.jl")
 ######################
 ######################
 ######################
@@ -32,6 +33,8 @@ end;
 ######################
 ######################
 ######################
+"""
+"""
 function OWTwoLevelEstimator(data, prior_hdfm)
 
     @unpack nlevels, nvar, nfactors, fassign, flags, varlags = prior_hdfm
