@@ -309,35 +309,19 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     phi1 = rand(MvNormal(phihat, PSDMat(V)))
 
     coef = [-reverse(phi1, dims = 1); 1]                # check stationarity 
-    root = roots(Polynomial(coef))                      # Find lag polynomial roots 
+    root = roots(Polynomial(reverse(coef)))                      # Find lag polynomial roots 
 
     rootmod = abs.(root)
-    accept = min(rootmod...) >= 1.001                     # all the roots bigger than 1 
-
+    accept = min(rootmod...) >= 1.0001                     # all the roots bigger than 1 
+    
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
-        #=
-        sigma1 = Hermitian(sigmat(vec(phi1), p))                        # numerator of acceptance prob 
-        sigroot = cholesky(sigma1)
-        p1 = inv(sigroot)'
-        ypst = p1 * yp
-        d = det(p1' * p1)
-        psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
-        =#
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
         d = Complex(det(sigma1))
         #psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
         psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-    
-        #=
-        sigma1 = Hermitian(sigmat(vec(phi0), p))                       # denominator of acceptance prob 
-        sigroot = cholesky(sigma1)
-        p1 = inv(sigroot)'
-        ypst = p1 * yp
-        d = det(p1' * p1)
-        psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
-        =#
+        
         sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
         d = Complex(det(sigma1))
         #psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
@@ -549,41 +533,21 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
 
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
-        root = roots(Polynomial(coef))
+        root = roots(Polynomial(reverse(coef)))
         rootmod = abs.(root)
         accept = min(rootmod...) >= 1.0001             # all the roots bigger than 1 
 
         if accept == 0
             phi1 = phi0
         else
-            #=
-            ##### THE FOLLOWING CODE HAS POSITIVE-DEFINITENESS ISSUES 
-            ##### IN SIGMA1 
-            sigma1 =  Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
-            sigroot = cholesky(sigma1)
-            p1 = inv(sigroot)'
-            ypst = p1 * yp
-            xpst = p1 * xp
-            d = det(p1' * p1)
-            psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-            =#
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
             d = Complex(det(sigma1))
-            psi1 = (d^(-0.5)) * exp( (-0.5/s20) * (transp_dbl(yp - xp * b0) * invpd(sigma1) * (yp - xp * b0))[1] )
-        
-            #=
-            sigma1 = Hermitian(sigmat(phi0, p))
-            sigroot = cholesky(sigma1)
-            p1 = inv(sigroot)'
-            ypst = p1 * yp
-            xpst = p1 * xp
-            d = det(p1' * p1)
-            psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-            =#
+            psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
             d = Complex(det(sigma1))
-            psi0 = (d^(1 / 2)) * exp( (-0.5/s20) * (transp_dbl(yp - xp * b0) * invpd(sigma1) * (yp - xp * b0))[1] )
-        
+            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+
             if psi0 == 0
                 accept = 1
             else
@@ -678,40 +642,20 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
 
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
-        root = roots(Polynomial(coef))
+        root = roots(Polynomial(reverse(coef)))
         rootmod = abs.(root)
-        accept = min(rootmod...) >= 1.001             # all the roots bigger than 1 
+        accept = min(rootmod...) >= 1.0001             # all the roots bigger than 1 
 
         if accept == 0
             phi1 = phi0
         else
-            #=
-            ##### THE FOLLOWING CODE HAS POSITIVE-DEFINITENESS ISSUES 
-            ##### IN SIGMA1 
-            sigma1 =  Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
-            sigroot = cholesky(sigma1)
-            p1 = inv(sigroot)'
-            ypst = p1 * yp
-            xpst = p1 * xp
-            d = det(p1' * p1)
-            psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-            =#
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
             d = Complex(det(sigma1))
-            psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
+            psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
 
-            #=
-            sigma1 = Hermitian(sigmat(phi0, p))
-            sigroot = cholesky(sigma1)
-            p1 = inv(sigroot)'
-            ypst = p1 * yp
-            xpst = p1 * xp
-            d = det(p1' * p1)
-            psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0)' * (ypst - xpst * b0) / s20)
-            =#
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
             d = Complex(det(sigma1))
-            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
+            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
 
             if psi0 == 0
                 accept = 1
