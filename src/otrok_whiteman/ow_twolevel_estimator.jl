@@ -61,6 +61,17 @@ function OWTwoLevelEstimator(data, prior_hdfm)
         end 
     end 
 
+    # Variables assigned to each 2nd-level factor 
+    varassign = Any[]
+    for i in 1:(nfact-1) # iterate over level-2 factors 
+        push!(varassign, Any[])
+        for j in 1:nvar # iterate over variables 
+            if fassign[j,2] == i
+                push!(varassign[i], j) 
+            end 
+        end 
+    end 
+
     # Load data 
     ytemp = y
 
@@ -192,9 +203,9 @@ function OWTwoLevelEstimator(data, prior_hdfm)
         j = 1 + arlag
         for c = 1:(nfact-1)
         
-            Size = fnvars[fassign[c, 2]]
-
-            yC = y[:, 1+(c-1)*Size:c*Size] - ones(capt, 1) * transp_dbl(bold[(1+(c-1)*Size):(c*Size), 1]) - facts[:, 1] * transp_dbl(bold[(1+(c-1)*Size):(c*Size), 2])
+            Size = fnvars[c]
+        
+            yC = y[:, varassign[c]] - ones(capt, 1) * transp_dbl(bold[varassign[c], 1]) - facts[:, 1] * transp_dbl(bold[varassign[c], 2])
         
             phiC = phi[:, 1+c]
             sinvf1 = sigbig(phiC, arlag, capt)
@@ -202,11 +213,11 @@ function OWTwoLevelEstimator(data, prior_hdfm)
             H = ((1 / sigU[j]) * (transp_dbl(sinvf1) * sinvf1))
         
             for i = 1:Size
-        
-                sinv1 = sigbig(phimat0[:, (1+(c-1)*Size+i-1)], arterms, capt)
-                H = H + ((bold[1+(c-1)*Size+i-1, 3]^2 / (SigE[1+(c-1)*Size+i-1])) * (transp_dbl(sinv1) * sinv1))
-                f = f + (bold[1+(c-1)*Size+i-1, 3] / SigE[1+(c-1)*Size+i-1]) * (transp_dbl(sinv1) * sinv1) * (yC[:, i])
-        
+            
+                sinv1 = sigbig(phimat0[:, varassign[c][i]], arterms, capt)
+                H = H + ((bold[varassign[c][i], 3]^2 / (SigE[varassign[c][i]])) * (transp_dbl(sinv1) * sinv1))
+                f = f + (bold[varassign[c][i], 3] / SigE[varassign[c][i]]) * (transp_dbl(sinv1) * sinv1) * (yC[:, i])
+            
             end
             Hinv = invpd(H)
             f = Hinv * f
