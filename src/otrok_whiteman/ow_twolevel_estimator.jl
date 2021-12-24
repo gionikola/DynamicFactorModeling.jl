@@ -12,24 +12,14 @@ include("ow_tools.jl")
 ######################
 ######################
 """
-    priorsSET2(K, Plags, Llags, KL, COUNTRY)
-
-Description:
-Model priors for the Otrok-Whiteman estimator. 
-
-Inputs:
-- K = Number of factors.
-- Plags = Number of lags in the factor equation. 
-- Llags = Number of AR lags in the observation equation. 
-- KL = Number of factors × number of AR lags in the obs equation. 
-- COUNTRY = Number of countries in a region 
 """
-@with_kw mutable struct priorsSET2
-    K::Int64
-    Plags::Int64
-    Llags::Int64
-    KL = K*Llags 
-    COUNTRY::Int64 
+@with_kw mutable struct HDFMPriors
+    nlevels::Int64                  # number of levels in the multi-level model structure 
+    nvar::Int64                     # number of variables in the dataset 
+    nfactors::Array{Int64,1}        # number of factors for each level (vector of length `nlevels`)
+    fassign::Array{Int64,2}         # integer matrix of size `nvar` × `nlevels` 
+    flags::Array{Int64,1}           # number of autoregressive lags for each factor level (vector of length `nlevels`)
+    varlags::Array{Int64,1}         # number of obs. variable error autoregressive lags (vector of length `nvar`)
 end;
 ######################
 ######################
@@ -43,20 +33,33 @@ end;
 ######################
 ######################
 ######################
-function OWTwoFactorEstimator(data, prior_dim)
+"""
+"""
+function OWTwoLevelEstimator(data, prior_hdfm)
+
+    @unpack nlevels, nvar, nfactors, fassign, flags, varlags = prior_hdfm
 
     y = data                    # save data in new matrix 
-    capt, nvar = size(y)        # nvar = # of variables; capt = # of time periods in complete sample 
+    capt, nvars = size(y)          # nvar = # of variables; capt = # of time periods in complete sample 
 
     ndraws = 1000               # # of Monte Carlo draws 
     burnin = 50                 # # of initial draws to discard; total draws is ndraws + burnin 
 
-    nfact = prior_dim.K             # number of factors to estimate 
-    arlag = prior_dim.Plags         # autoregressive lags in the dynamic factors 
-    arterms = prior_dim.Llags + 1   # number of AR lags to include in each observable equation
-    Size = 2                        # number of variables each 2nd-level factor loads on                          
-    nreg = 3                        # number of regressors in each observable equation (constant + world + regional)
-    m = nfact * arlag               # dimension of state vector
+    nfact = sum(nfactors)       # # of factors 
+    arlag = max(flags...)          # autoregressive lags in the dynamic factors 
+    arterms = max(varlags...)      # number of AR lags to include in each observable equation
+    nreg = 1 + nlevels          # # of regressors in each obs. eq. (intercept + factors)
+    m = dot(nfactors, flags)    # dim of reduced state vec (without intercept & error lags)
+
+    # Count number of variables each 2nd-level factor loads on
+    fnvars = zeros(Int, nfact - 1)
+    for i in 1:(nfact - 1)
+        for j in 1:nvars
+            if fassign[j,2] == i 
+                fnvars[i] = fnvars[i] + 1
+            end  
+        end 
+    end 
 
     # Load data 
     ytemp = y
@@ -64,7 +67,7 @@ function OWTwoFactorEstimator(data, prior_dim)
     y = ytemp - repeat(mean(ytemp, dims = 1), capt, 1)
 
     # Set up some matrices for storage
-    Xtsave = zeros(size(y)[1], nfact, (ndraws + burnin))        # just keep draw of factor, not all states (others are trivial)
+    Xtsave = zeros(capt, nfact, (ndraws + burnin))        # just keep draw of factor, not all states (others are trivial)
     bsave = zeros(ndraws + burnin, nreg * nvar)                   # observable equation regression coefficients
     ssave = zeros(ndraws + burnin, nvar)                        # innovation variances
     psave = zeros(ndraws + burnin, nfact * arlag)                 # factor autoregressive polynomials
@@ -136,23 +139,23 @@ function OWTwoFactorEstimator(data, prior_dim)
         nf = 2
 
         for i = 1:nvar
-
+        
             # call arobs to draw observable coefficients
             xft = [ones(capt, 1) facts[:, 1] facts[:, nf]]
-
-            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, Size)
-
+        
+            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, fnvars[fassign[i, 2]])
+        
             bold[i, 1:nreg] = transp_dbl(b1)
             phimat0[:, i] = phi1
             SigE[i] = s21
             bsave[dr, (((i-1)*nreg)+1):(i*nreg)] = transp_dbl(b1)
             ssave[dr, i] = s21
             psave2[dr, (((i-1)*arterms)+1):(i*arterms)] = transp_dbl(phi1)
-
-            if (i / Size) == floor(i / Size)
+        
+            if (i / fnvars[fassign[i, 2]]) == floor(i / fnvars[fassign[i, 2]])
                 nf = nf + 1
             end
-
+        
         end # end of loop for drawing the coefficients for each observable equation
 
         # draw factor AR coeffcicients
@@ -177,7 +180,7 @@ function OWTwoFactorEstimator(data, prior_dim)
             H = H + ((bold[i, 2]^2 / (SigE[i])) * (transp_dbl(sinv1) * sinv1))
             f = f + (bold[i, 2] / SigE[i]) * (transp_dbl(sinv1) * sinv1) * yW
 
-            if (i / Size) == floor(i / Size)
+            if (i / fnvars[fassign[i, 2]]) == floor(i / fnvars[fassign[i, 2]])
                 nfC = nfC + 1
             end
         end
@@ -192,48 +195,59 @@ function OWTwoFactorEstimator(data, prior_dim)
 
         # take drawing of Country factors
         j = 1 + arlag
-        for c = 1:(prior_dim.COUNTRY)
+        for c = 1:(nfact-1)
+        
+            Size = fnvars[fassign[c, 2]]
 
             yC = y[:, 1+(c-1)*Size:c*Size] - ones(capt, 1) * transp_dbl(bold[(1+(c-1)*Size):(c*Size), 1]) - facts[:, 1] * transp_dbl(bold[(1+(c-1)*Size):(c*Size), 2])
-
+        
             phiC = phi[:, 1+c]
             sinvf1 = sigbig(phiC, arlag, capt)
             f = zeros(capt, 1)
             H = ((1 / sigU[j]) * (transp_dbl(sinvf1) * sinvf1))
-
+        
             for i = 1:Size
-
+        
                 sinv1 = sigbig(phimat0[:, (1+(c-1)*Size+i-1)], arterms, capt)
                 H = H + ((bold[1+(c-1)*Size+i-1, 3]^2 / (SigE[1+(c-1)*Size+i-1])) * (transp_dbl(sinv1) * sinv1))
                 f = f + (bold[1+(c-1)*Size+i-1, 3] / SigE[1+(c-1)*Size+i-1]) * (transp_dbl(sinv1) * sinv1) * (yC[:, i])
-
+        
             end
             Hinv = invpd(H)
             f = Hinv * f
             #fact2 = f+transp_dbl(cholesky(Hinv))*randn(capt,1);
             fact2 = rand(MvNormal(vec(f), PSDMat(Hinv)))
-
+        
             Xtsave[:, 1+c, dr] = fact2
             facts[:, 1+c] = fact2
-
+        
             j = j + arlag
         end
 
         println(dr)
     end
 
+    ##############################################
+    ##############################################
+    ## Save Monte Carlo samples 
     Xtsave = Xtsave[:, :, (burnin+1):(burnin+ndraws)]
     bsave = bsave[(burnin+1):(burnin+ndraws), :]
     ssave = ssave[(burnin+1):(burnin+ndraws), :]
     psave = psave[(burnin+1):(burnin+ndraws), :]
     psave2 = psave2[(burnin+1):(burnin+ndraws), :]
 
+    ##############################################
+    ##############################################
+    ## Save Monte Carlo means 
     F = mean(Xtsave, dims = 3)
     B = mean(bsave, dims = 1)
     S = mean(ssave, dims = 1)
     P = mean(psave, dims = 1)
     P2 = mean(psave2, dims = 1)
 
+    ##############################################
+    ##############################################
+    ## Return all parameter containers 
     return F, B, S, P, P2
 end 
 ######################
