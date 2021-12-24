@@ -14,8 +14,8 @@ using DataFrames
 
 
 # Import data 
-data = readdlm("test/otrok_whiteman/data.csv", ',')
-regstatematch = readdlm("test/otrok_whiteman/regstatematch.csv", ',')
+data = readdlm("test/otrok_whiteman/real_data/data.csv", ',')
+regstatematch = readdlm("test/otrok_whiteman/real_data/regstatematch.csv", ',')
 
 # Data as matrix 
 datamat = Matrix(data[2:end, :])     # remove first row containing col names 
