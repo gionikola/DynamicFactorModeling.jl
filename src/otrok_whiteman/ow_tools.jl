@@ -318,12 +318,14 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         phi1 = phi0
     else
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
-        d = Complex(det(sigma1))
+        #d = Complex(det(sigma1))
+        d = det(sigma1)
         #psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
         psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-        
+    
         sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
-        d = Complex(det(sigma1))
+        #d = Complex(det(sigma1))
+        d = det(sigma1)
         #psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
         psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
     
@@ -541,13 +543,15 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             phi1 = phi0
         else
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
-            d = Complex(det(sigma1))
+            #d = Complex(det(sigma1))
+            d = det(sigma1)
             psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
-
+        
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
-            d = Complex(det(sigma1))
+            #d = Complex(det(sigma1))
+            d = det(sigma1)
             psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
-
+        
             if psi0 == 0
                 accept = 1
             else
@@ -617,7 +621,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
     testind = 0
 
-    while signbeta1 + signbeta2 >= 1.0 && testind < 1000
+    while signbeta1 + signbeta2 >= 1.0 #&& testind < 10000
 
         testind = testind + 1
 
@@ -650,11 +654,13 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             phi1 = phi0
         else
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
-            d = Complex(det(sigma1))
+            #d = Complex(det(sigma1))
+            d = det(sigma1)
             psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
 
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
-            d = Complex(det(sigma1))
+            #d = Complex(det(sigma1))
+            d = det(sigma1)
             psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
 
             if psi0 == 0
