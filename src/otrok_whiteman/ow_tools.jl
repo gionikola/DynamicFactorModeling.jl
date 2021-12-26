@@ -316,14 +316,33 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
+        
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
         d = det(sigma1)
-        psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-
+        psi1 = (d^(1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+    
         sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
         d = det(sigma1)
-        psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-
+        psi0 = (d^(1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+        
+        #=
+        sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
+        sigma1 = Hermitian(sigma1)
+        sigroot = cholesky(sigma1)
+        p1 = transp_dbl(inv(sigroot))
+        ypst = p1 * yp
+        d = det(p1' * p1)
+        psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
+    
+        sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
+        sigma1 = Hermitian(sigma1) 
+        sigroot = cholesky(sigma1)
+        p1 = transp_dbl(inv(sigroot))
+        ypst = p1 * yp
+        d = det(p1' * p1)
+        psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
+        =# 
+        
         if psi0 == 0
             accept = 1
         else
@@ -408,7 +427,7 @@ function invpd(X)
 
     X_inv = similar(X)
 
-    if isposdef(X)
+    if isposdef(X) == true 
         X_inv = inv(X)
     else
         n, m = size(X)
@@ -600,15 +619,20 @@ end
 ######################
 ######################
 ######################
-function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
+function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size, varassign)
 
+    # Make sure relevant objects are accessible
+    # outside of the upcoming for-loops 
     local xst, yst, b1, phi1
 
+    # Save number of observations in the sample 
     n = capt
-    signmax1 = 1.0
-    signbeta1 = 1.0
-    signmax2 = 1.0
-    signbeta2 = 0.0
+
+    # Initialize parameter signs 
+    signmax1 = 1.0      # 
+    signbeta1 = 1.0     # 
+    signmax2 = 1.0      # 
+    signbeta2 = 0.0     # 
 
     testind = 0
 
@@ -643,19 +667,40 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         if accept == 0
             phi1 = phi0
         else
+            
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
             d = det(sigma1)
-            psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
-
+            psi1 = (d^(1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+        
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
             d = det(sigma1)
-            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            psi0 = (d^(1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            
+            #=
+            sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
+            sigma1 = Hermitian(sigma1)
+            sigroot = cholesky(sigma1)
+            p1 = transp_dbl(inv(sigroot))
+            ypst = p1 * yp
+            xpst = p1 * xp
+            d = det(p1' * p1)
+            psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0')' * (ypst - xpst * b0') / s20)
+        
+            sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
+            sigma1 = Hermitian(sigma1) 
+            sigroot = cholesky(sigma1)
+            p1 = transp_dbl(inv(sigroot))
+            ypst = p1 * yp
+            xpst = p1 * xp
+            d = det(p1' * p1)
+            psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0')' * (ypst - xpst * b0') / s20)
+            =#
 
             if psi0 == 0
                 accept = 1
             else
                 u = rand(1)[1]
-                accept = u <= psi1 / psi0
+                accept = u <= psi1[1,1] / psi0[1,1]
             end
             phi1 = phi1 * accept + phi0 * (1 - accept)
         end
@@ -676,7 +721,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
         signmax1 = signmax1 + (1 * signbeta1)
-        signbeta2 = (b1[3, 1] <= 0.0) * (((xvar - 1) / Size) == trunc(Int, floor((xvar - 1) / Size)))
+        signbeta2 = (b1[3, 1] <= 0.0) * (varassign[nfc] == 1)
         signmax2 = signmax2 + (1 * signbeta2)
 
         if signmax1 >= 100
