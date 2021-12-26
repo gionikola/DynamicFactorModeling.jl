@@ -197,7 +197,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
         ############################################
         ## Draw global (level-1) factor 
         ############################################
-
+    
         # Initialize all important objects 
         sinvf1 = sigbig(phi[:, 1], arlag, capt)             # (T×T) S^{-1} quasi-differencing matrix for global factor 
         f = zeros(capt, 1)                                  # Empty vector for global factor to fill out 
@@ -205,32 +205,33 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     
         # Fill out important objects 
         for i = 1:nvar  # Iterate over all observable variable 
-
+    
             # Save level-2 factor index assigned to obs. variable i 
             nfC = fassign[i]
-            
+    
             # Partial out variation in variable i due to intercept + level-2 factor 
             yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, nfC] * bold[i, 3]'
-            
+    
             # S_i^{-1} for i > 2 
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
-            
+    
             # Add next term in equation for H (pg. 1004, Otrok-Whiteman 1998)
             H = H + ((bold[i, 2]^2 / (SigE[i])) * (transp_dbl(sinv1) * sinv1))
-            
+    
             # Add next term of within-parenthesis sum in equation for f (pg. 1004, Otrok-Whiteman 1998)
             f = f + (bold[i, 2] / SigE[i]) * (transp_dbl(sinv1) * sinv1) * yW
-
+    
         end
         Hinv = invpd(H)     # Invert H to save H^{-1} 
         f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
-        
+    
         # Obtain new draw of the global factor 
-        fact1 = rand(MvNormal(vec(f), PSDMat(Hinv)))
+        #fact1 = rand(MvNormal(vec(f), PSDMat(Hinv)))
+        fact1 = sim_MvNormal(vec(f), PSDMat(Hinv))
     
         # Save draw in output object 
         Xtsave[:, 1, dr] = fact1
-
+    
         # Update factor data matrix to contain
         # new global factor draw 
         facts[:, 1] = fact1
@@ -241,7 +242,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
         for c = 1:(nfact-1) # Iterate over level-2 factors 
         
             j = 1 + c * arlag
-
+        
             # Store number of obs. variables 
             # to which level-2 factor number c 
             # gets assigned 
@@ -273,7 +274,8 @@ function OWTwoLevelEstimator(data, prior_hdfm)
             f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
         
             # Obtain new draw of level-2 factor c
-            fact2 = rand(MvNormal(vec(f), PSDMat(Hinv)))
+            #fact2 = rand(MvNormal(vec(f), PSDMat(Hinv)))
+            fact2 = sim_MvNormal(vec(f), PSDMat(Hinv))
         
             # Save draw in output object 
             Xtsave[:, 1+c, dr] = fact2
