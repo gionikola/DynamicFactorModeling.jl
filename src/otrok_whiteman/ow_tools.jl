@@ -305,26 +305,26 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     V = invpd(R0__ + sig2^(-1) * ecap' * ecap)
     phihat = V * (R0__ * r0_ + sig2^(-1) * ecap' * e1)
 
-    #phi1 = phihat + cholesky(V)' * randn(p, 1)        # candidate draw 
-    phi1 = rand(MvNormal(phihat, PSDMat(V)))
+    #phi1 = rand(MvNormal(phihat, PSDMat(V)))
+    phi1 = sim_MvNormal(phihat, PSDMat(V))
 
     coef = [-reverse(phi1, dims = 1); 1]                # check stationarity 
     root = roots(Polynomial(reverse(coef)))                      # Find lag polynomial roots 
 
     rootmod = abs.(root)
     accept = min(rootmod...) >= 1.0001                     # all the roots bigger than 1 
-    
+
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
         d = det(sigma1)
         psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-    
+
         sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
         d = det(sigma1)
         psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-    
+
         if psi0 == 0
             accept = 1
         else
@@ -527,8 +527,8 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         V = invpd(R0__ .+ inv(s20) * (transp_dbl(ecap) * ecap))
         phihat = V * (R0__ * r0_ + inv(s20) * (transp_dbl(ecap) * e1))
 
-        #phi1 = phihat + transp_dbl(cholesky(V)) * randn(p, 1)       # candidate draw 
-        phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
+        #phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
+        phi1 = rand(MvNormal(vec(phihat), PSDMat(V)))
 
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
         root = roots(Polynomial(reverse(coef)))
@@ -541,11 +541,11 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
             d = det(sigma1)
             psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
-        
+
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
             d = det(sigma1)
             psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
-        
+
             if psi0 == 0
                 accept = 1
             else
@@ -636,8 +636,8 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         V = invpd(R0__ .+ inv(s20) * (transp_dbl(ecap) * ecap))
         phihat = V * (R0__ * r0_ + inv(s20) * (transp_dbl(ecap) * e1))
 
-        #phi1 = phihat + transp_dbl(cholesky(V)) * randn(p, 1)       # candidate draw 
-        phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
+        #phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
+        phi1 = sim_MvNormal(vec(phihat), PSDMat(Matrix(V)))
 
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
         root = roots(Polynomial(reverse(coef)))
@@ -675,8 +675,9 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
         V = invpd(B0__ + s20^(-1) * xst' * xst)
         bhat = V * (B0__ * vec(b0) + s20^(-1) * xst' * yst)
-        #b1 = bhat + cholesky(V)' * randn(nreg, 1)          # the draw of beta 
-        b1 = rand(MvNormal(vec(bhat), PSDMat(Matrix(V))))
+
+        #b1 = rand(MvNormal(vec(bhat), PSDMat(Matrix(V))))
+        b1 = sim_MvNormal(vec(bhat), PSDMat(Matrix(V)))
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
         signmax1 = signmax1 + (1 * signbeta1)
