@@ -342,7 +342,7 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         d = det(p1' * p1)
         psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
         =# 
-        
+
         if psi0 == 0
             accept = 1
         else
@@ -566,7 +566,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             if psi0 == 0
                 accept = 1
             else
-                u = rand(1)[1]
+                u = rand(Uniform(0,1))
                 accept = u <= psi1 / psi0
             end
             phi1 = phi1 * accept + phi0 * (1 - accept)
@@ -699,7 +699,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             if psi0 == 0
                 accept = 1
             else
-                u = rand(1)[1]
+                u = rand(Uniform(0,1))
                 accept = u <= psi1[1,1] / psi0[1,1]
             end
             phi1 = phi1 * accept + phi0 * (1 - accept)
