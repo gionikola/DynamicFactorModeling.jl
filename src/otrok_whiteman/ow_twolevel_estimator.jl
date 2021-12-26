@@ -165,7 +165,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     
             # Save the index of the factor assigned 
             # to observable variable i 
-            nf = fassign[i]
+            nf = fassign[i, 2]
     
             # Create matrix containing all regressors 
             # corresponding to variable i including:
@@ -175,7 +175,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
             # Update variable i observation equation 
             # hyperparameters, and update corresponding 
             # factor orientation (if appropriate)
-            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, fnvars[fassign[i, 2]])
+            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, fnvars[fassign[i, 2]], varassign)
             bold[i, :] = b1                                     # Update obs. regression coefficients
             phimat0[:, i] = phi1                                # Update idiosyncratic error AR coefficients 
             SigE[i] = s21                                       # Update innovation variance parameter 
