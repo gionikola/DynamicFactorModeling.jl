@@ -305,7 +305,6 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     V = invpd(R0__ + sig2^(-1) * ecap' * ecap)
     phihat = V * (R0__ * r0_ + sig2^(-1) * ecap' * e1)
 
-    #phi1 = rand(MvNormal(phihat, PSDMat(V)))
     phi1 = sim_MvNormal(phihat, PSDMat(V))
 
     coef = [-reverse(phi1, dims = 1); 1]                # check stationarity 
@@ -527,7 +526,6 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         V = invpd(R0__ .+ inv(s20) * (transp_dbl(ecap) * ecap))
         phihat = V * (R0__ * r0_ + inv(s20) * (transp_dbl(ecap) * e1))
 
-        #phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
         phi1 = sim_MvNormal(vec(phihat), PSDMat(V))
 
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
@@ -566,8 +564,6 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
 
         V = invpd(B0__ + s20^(-1) * xst' * xst)
         bhat = V * (B0__ * b0 + s20^(-1) * xst' * yst)
-        #b1 = bhat + cholesky(V)' * randn(nreg, 1)          # the draw of beta 
-        #b1 = rand(MvNormal(vec(bhat), PSDMat(Matrix(V))))
         b1 = sim_MvNormal(vec(bhat), PSDMat(Matrix(V)))
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
@@ -637,7 +633,6 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         V = invpd(R0__ .+ inv(s20) * (transp_dbl(ecap) * ecap))
         phihat = V * (R0__ * r0_ + inv(s20) * (transp_dbl(ecap) * e1))
 
-        #phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
         phi1 = sim_MvNormal(vec(phihat), PSDMat(Matrix(V)))
 
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
@@ -677,7 +672,6 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         V = invpd(B0__ + s20^(-1) * xst' * xst)
         bhat = V * (B0__ * vec(b0) + s20^(-1) * xst' * yst)
 
-        #b1 = rand(MvNormal(vec(bhat), PSDMat(Matrix(V))))
         b1 = sim_MvNormal(vec(bhat), PSDMat(Matrix(V)))
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)

@@ -226,7 +226,6 @@ function OWTwoLevelEstimator(data, prior_hdfm)
         f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
     
         # Obtain new draw of the global factor 
-        #fact1 = rand(MvNormal(vec(f), PSDMat(Hinv)))
         fact1 = sim_MvNormal(vec(f), PSDMat(Hinv))
     
         # Save draw in output object 
@@ -274,7 +273,6 @@ function OWTwoLevelEstimator(data, prior_hdfm)
             f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
         
             # Obtain new draw of level-2 factor c
-            #fact2 = rand(MvNormal(vec(f), PSDMat(Hinv)))
             fact2 = sim_MvNormal(vec(f), PSDMat(Hinv))
         
             # Save draw in output object 
