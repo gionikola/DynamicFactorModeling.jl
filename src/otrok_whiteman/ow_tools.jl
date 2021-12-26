@@ -319,11 +319,11 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
         d = det(sigma1)
-        psi1 = (d^(1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+        psi1 = (d^(-1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
     
         sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
         d = det(sigma1)
-        psi0 = (d^(1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+        psi0 = (d^(-1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
         
         #=
         sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
@@ -668,18 +668,20 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             phi1 = phi0
         else
             
+            #=
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
             d = det(sigma1)
-            psi1 = (d^(1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            psi1 = (d^(-1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
         
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
             d = det(sigma1)
-            psi0 = (d^(1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            psi0 = (d^(-1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            =#
+
             
-            #=
             sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
             sigma1 = Hermitian(sigma1)
-            sigroot = cholesky(sigma1)
+            sigroot = cholesky(sigma1, Val(true)).L
             p1 = transp_dbl(inv(sigroot))
             ypst = p1 * yp
             xpst = p1 * xp
@@ -688,13 +690,13 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         
             sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
             sigma1 = Hermitian(sigma1) 
-            sigroot = cholesky(sigma1)
+            sigroot = cholesky(sigma1, Val(true)).L
             p1 = transp_dbl(inv(sigroot))
             ypst = p1 * yp
             xpst = p1 * xp
             d = det(p1' * p1)
             psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0')' * (ypst - xpst * b0') / s20)
-            =#
+            
 
             if psi0 == 0
                 accept = 1
@@ -704,7 +706,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             end
             phi1 = phi1 * accept + phi0 * (1 - accept)
         end
-
+        
         # generation of beta 
         sigma = Hermitian(sigmat(phi1, p))              # sigma = sigroot' * sigroot 
         sigroot = cholesky(sigma)                       # signber2v = p1' * p1 
