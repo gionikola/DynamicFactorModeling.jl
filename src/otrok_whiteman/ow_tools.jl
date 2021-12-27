@@ -681,7 +681,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             
             sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
             sigma1 = Hermitian(sigma1)
-            sigroot = cholesky(sigma1, Val(true)).L
+            sigroot = cholesky(sigma1, Val(true)).U
             p1 = transp_dbl(inv(sigroot))
             ypst = p1 * yp
             xpst = p1 * xp
@@ -690,7 +690,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         
             sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
             sigma1 = Hermitian(sigma1) 
-            sigroot = cholesky(sigma1, Val(true)).L
+            sigroot = cholesky(sigma1, Val(true)).U
             p1 = transp_dbl(inv(sigroot))
             ypst = p1 * yp
             xpst = p1 * xp
@@ -709,7 +709,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         
         # generation of beta 
         sigma = Hermitian(sigmat(phi1, p))              # sigma = sigroot' * sigroot 
-        sigroot = cholesky(sigma)                       # signber2v = p1' * p1 
+        sigroot = cholesky(sigma).U                       # signber2v = p1' * p1 
         p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
         xpst = p1 * xp
