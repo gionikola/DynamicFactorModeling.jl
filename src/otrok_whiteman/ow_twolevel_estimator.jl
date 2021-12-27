@@ -53,8 +53,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     arlag = max(flags...)       # autoregressive lags in the dynamic factors 
     arterms = max(varlags...)   # number of AR lags to include in each observable equation
     nreg = 1 + nlevels          # # of regressors in each obs. eq. (intercept + factors)
-    m = dot(nfactors, flags)    # dim of reduced state vec (without intercept & error lags)
-
+   
     # Count number of variables each 2nd-level factor loads on
     # using a vector called `fnvars`
     # where the i-th entry represents the i-th 2nd-level factors 
@@ -170,7 +169,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
             # Create matrix containing all regressors 
             # corresponding to variable i including:
             # (1) an intercept, (2) global factor, (3) level-2 factor 
-            xft = [ones(capt, 1) facts[:, 1] facts[:, nf]]
+            xft = [ones(capt, 1) facts[:, 1] facts[:, 1 + nf]]
     
             # Update variable i observation equation 
             # hyperparameters, and update corresponding 
