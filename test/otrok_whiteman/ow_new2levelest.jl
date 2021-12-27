@@ -10,14 +10,13 @@ function OWTwoLevelEstimator2(data, facts, prior_hdfm)
 
     # Specify simulation length 
     ndraws = 1000               # # of Monte Carlo draws 
-    burnin = 50                 # # of initial draws to discard; total draws is ndraws + burnin 
+    burnin = 1000                 # # of initial draws to discard; total draws is ndraws + burnin 
 
     # Store factor and parameter counts 
     nfact = sum(nfactors)       # # of factors 
     arlag = max(flags...)       # autoregressive lags in the dynamic factors 
     arterms = max(varlags...)   # number of AR lags to include in each observable equation
     nreg = 1 + nlevels          # # of regressors in each obs. eq. (intercept + factors)
-    m = dot(nfactors, flags)    # dim of reduced state vec (without intercept & error lags)
 
     # Count number of variables each 2nd-level factor loads on
     # using a vector called `fnvars`
@@ -134,7 +133,7 @@ function OWTwoLevelEstimator2(data, facts, prior_hdfm)
             # Create matrix containing all regressors 
             # corresponding to variable i including:
             # (1) an intercept, (2) global factor, (3) level-2 factor 
-            xft = [ones(capt, 1) facts[:, 1] facts[:, nf]]
+            xft = [ones(capt, 1) facts[:, 1] facts[:, 1 + nf]]
     
             # Update variable i observation equation 
             # hyperparameters, and update corresponding 
