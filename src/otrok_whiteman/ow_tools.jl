@@ -723,7 +723,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
         signmax1 = signmax1 + (1 * signbeta1)
-        signbeta2 = (b1[3, 1] <= 0.0) * (varassign[nfc] == 1)
+        signbeta2 = (b1[3, 1] <= 0.0) * (varassign[nfc][1] == xvar)
         signmax2 = signmax2 + (1 * signbeta2)
 
         if signmax1 >= 100
@@ -732,8 +732,8 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             signmax1 = 1
         end
         if signmax2 >= 100
-            facts[:, nfc] = (-1) * facts[:, nfc]
-            x[:, 3] = facts[:, nfc]
+            facts[:, 1 + nfc] = (-1) * facts[:, 1 + nfc]
+            x[:, 3] = facts[:, 1 + nfc]
             signmax2 = 1
         end
     end
