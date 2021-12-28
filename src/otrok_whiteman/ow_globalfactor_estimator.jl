@@ -66,7 +66,7 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     nfact = priorsIN.K           # number of factors to estimate
     arlag = priorsIN.Plags       # autoregressive lags in the dynamic factors 
-    arterms = priorsIN.Llags + 1   # number of AR lags to include in each observable equation
+    arterms = priorsIN.Llags   # number of AR lags to include in each observable equation
     Size = nvar                 # number of variables each factor loads on
     nreg = 1 + priorsIN.K       # number of regressors in each observable equation, constant plus K factors       
     m = nfact * arlag        # dimension of state vector
@@ -90,22 +90,10 @@ function OWSingleFactorEstimator(data, priorsIN)
     B0__ = 0.01 * I(nreg)           # prior precision of factor loading
     B0__[1, 1] = 1.0
 
-    b0_A = zeros(arlag, 1)              # prior mean of lagged world factor
-    B0__A = 0.001 * I(arlag)            # prior precision of lagged world factor in other factors
-
     r0_ = zeros(arterms, 1)         # prior mean of phi (idiosyncratic AR polynomial)
     phipri = 0.25
     R0__ = phipri * I(arterms)          # prior precision of phi
 
-    r0_v = zeros(arlag, 1)              # prior mean of VAR coefficients (in F)
-    phipri = 0.25
-    R0__V = phipri * I(arlag)           # prior precision
-
-    r0_v2 = zeros(arlag * 2, 1)         # prior mean of VAR coefficients (in F)
-    phipri = 0.25
-    R0__v2 = phipri * I(arlag * 2)        # prior precision
-
-    #v0_ = ones(1, 1) * ceil(capt * 0.05)    # inverted gamma parameters of for innovation variances
     v0_ = ceil(capt * 0.05)    # inverted gamma parameters of for innovation variances
     d0_ = ones(1, 1) * 0.25^2               # v0 is an integer
 
@@ -173,8 +161,7 @@ function OWSingleFactorEstimator(data, priorsIN)
 
         Hinv = invpd(H)
         f = Hinv * f
-        #fact1 = f + cholesky(Hinv)' * randn(capt, 1)
-        fact1 = rand(MvNormal(vec(f), PSDMat(Hinv)))
+        fact1 = sim_MvNormal(vec(f), Hinv)
 
         for i = 1:nfact
             Xtsave[:, (((dr-1)*nfact)+i)] = vec(fact1)
@@ -188,30 +175,16 @@ function OWSingleFactorEstimator(data, priorsIN)
     Xtsave = Xtsave[:, (burnin*nfact)+1:(burnin+ndraws)*nfact]
     bsave = bsave[burnin+1:burnin+ndraws, :]
     ssave = ssave[burnin+1:burnin+ndraws, :]
-    #psave = psave[burnin+1:burnin+ndraws, :]
-    #psave2 = psave2[burnin+1:burnin+ndraws, :]
-
-    #=
-    results.Xt = Xtsave
-    results.B = bsave
-    results.S = ssave
-    results.P = psave
-    results.P2 = psave2
-    =#
-
-    #=
-    meanz.F = mean(Xtsave, dims = 2)
-    meanz.B = mean(bsave, dims = 1)
-    meanz.S = mean(ssave, dims = 1)
-    meanz.P = mean(psave, dims = 1)
-    meanz.P2 = mean(psave2, dims = 1)
-    =#
+    psave = psave[burnin+1:burnin+ndraws, :]
+    psave2 = psave2[burnin+1:burnin+ndraws, :]
 
     F = mean(Xtsave, dims = 2)
     B = mean(bsave, dims = 1)
     S = mean(ssave, dims = 1)
+    P = mean(psave, dims = 1)
+    P2 = mean(psave2, dims = 1)
 
-    return F, B, S
+    return F, B, S, P, P2
 end
 ;
 ######################
