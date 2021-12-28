@@ -557,11 +557,11 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         else
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
             d = det(sigma1)
-            psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            psi1 = (d^(0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
 
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
             d = det(sigma1)
-            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
 
             if psi0 == 0
                 accept = 1
@@ -636,7 +636,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
     testind = 0
 
-    while signbeta1 + signbeta2 >= 1.0 #&& testind < 10000
+    while signbeta1 + signbeta2 >= 1.0 && testind < 10000
 
         testind = testind + 1
 
