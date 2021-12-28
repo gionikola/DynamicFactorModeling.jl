@@ -27,7 +27,7 @@ function sim_MvNormal(μ,Σ)
     Σnew = Σ[keep, keep]
     μnew = μ[keep]
 
-    obs = rand(MvNormal(μnew,PSDMat(Σnew)))
+    obs = sim_MvNormal(μnew, Σnew)
     
     obs_aug = zeros(nvars) 
 
@@ -333,16 +333,6 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
     # Convert cov matrices to PSDMat 
     # to allow for simulation using MvNormal()
     # (MvNormal() needs a positive definite cov matrix)
-
-    if isposdef(R) == false
-        R = PSDMat(R)
-    end
-    if isposdef(Q) == false
-        Q = PSDMat(Q)
-    end
-    if isposdef(Z) == false
-        Z = PSDMat(Z)
-    end
 
     # Create empty data storage matrices 
     data_y = zeros(num_obs, size(H)[1])
