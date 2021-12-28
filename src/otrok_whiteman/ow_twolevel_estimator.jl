@@ -209,7 +209,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
             nfC = fassign[i]
     
             # Partial out variation in variable i due to intercept + level-2 factor 
-            yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, nfC] * bold[i, 3]'
+            yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, 1 + nfC] * bold[i, 3]'
     
             # S_i^{-1} for i > 2 
             sinv1 = sigbig(phimat0[:, i], arterms, capt)
