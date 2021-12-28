@@ -152,8 +152,8 @@ Outputs:
 function sigbig(phi, p, capt)
 
     rotate = trunc.(Int, seqa(0, 1, capt - p))
-    Siinv_upper =  Hermitian(sigmat(phi, p))
-    Siinv_upper = [inv(cholesky(Siinv_upper).U)' zeros(p, capt - p)]
+    Siinv_upper = Hermitian(sigmat(phi, p))
+    Siinv_upper = [inv(cholesky(Siinv_upper, Val(true)).U)' zeros(p, capt - p)]
     Siinv_lower = [kron((-reverse(phi, dims = 1)'), ones(capt - p, 1)) ones(capt - p, 1) zeros(capt - p, capt - p - 1)]
 
     for s = 1:(capt-p)
@@ -316,7 +316,7 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
-        
+    
         #=
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
         d = det(sigma1)
@@ -329,21 +329,21 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         ##=
         sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
         sigma1 = Hermitian(sigma1)
-        sigroot = cholesky(sigma1)
+        sigroot = cholesky(sigma1, Val(true)).U
         p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
         d = det(p1' * p1)
         psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
     
         sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
-        sigma1 = Hermitian(sigma1) 
-        sigroot = cholesky(sigma1)
+        sigma1 = Hermitian(sigma1)
+        sigroot = cholesky(sigma1, Val(true)).U
         p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
         d = det(p1' * p1)
         psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
         ##=# 
-
+    
         if psi0 == 0
             accept = 1
         else
@@ -567,7 +567,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
             if psi0 == 0
                 accept = 1
             else
-                u = rand(Uniform(0,1))
+                u = rand(Uniform(0, 1))
                 accept = u <= psi1 / psi0
             end
             phi1 = phi1 * accept + phi0 * (1 - accept)
@@ -575,7 +575,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
 
         # generation of beta 
         sigma = Hermitian(sigmat(phi1, p))             # sigma = sigroot' * sigroot 
-        sigroot = cholesky(sigma)                 # signber2v = p1' * p1 
+        sigroot = cholesky(sigma, Val(true)).U                 # signber2v = p1' * p1 
         p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
         xpst = p1 * xp
@@ -710,7 +710,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         
         # generation of beta 
         sigma = Hermitian(sigmat(phi1, p))              # sigma = sigroot' * sigroot 
-        sigroot = cholesky(sigma).U                       # signber2v = p1' * p1 
+        sigroot = cholesky(sigma, Val(true)).U                       # signber2v = p1' * p1 
         p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
         xpst = p1 * xp
