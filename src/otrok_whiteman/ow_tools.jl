@@ -308,15 +308,16 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     phi1 = sim_MvNormal(phihat, V)
 
     coef = [-reverse(phi1, dims = 1); 1]                # check stationarity 
-    root = roots(Polynomial(reverse(coef)))                      # Find lag polynomial roots 
+    root = roots(Polynomial(reverse(vec(coef), dims = 1)))                      # Find lag polynomial roots 
 
     rootmod = abs.(root)
-    accept = min(rootmod...) >= 1.0001                     # all the roots bigger than 1 
+    accept = min(rootmod...) >= 1.01                     # all the roots bigger than 1 
 
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
         
+        #=
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
         d = det(sigma1)
         psi1 = (d^(-1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
@@ -324,8 +325,8 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
         d = det(sigma1)
         psi0 = (d^(-1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-        
-        #=
+        =#
+        ##=
         sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
         sigma1 = Hermitian(sigma1)
         sigroot = cholesky(sigma1)
@@ -341,7 +342,7 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         ypst = p1 * yp
         d = det(p1' * p1)
         psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
-        =# 
+        ##=# 
 
         if psi0 == 0
             accept = 1
@@ -550,7 +551,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
         root = roots(Polynomial(reverse(coef)))
         rootmod = abs.(root)
-        accept = min(rootmod...) >= 1.0001             # all the roots bigger than 1 
+        accept = min(rootmod...) >= 1.01             # all the roots bigger than 1 
 
         if accept == 0
             phi1 = phi0
@@ -662,7 +663,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
         root = roots(Polynomial(reverse(coef)))
         rootmod = abs.(root)
-        accept = min(rootmod...) >= 1.0001             # all the roots bigger than 1 
+        accept = min(rootmod...) >= 1.01             # all the roots bigger than 1 
 
         if accept == 0
             phi1 = phi0
