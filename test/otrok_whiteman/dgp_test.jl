@@ -101,7 +101,7 @@ fassign = [1 1
     1 2
     1 2]
 
-flags = [1, 2]
+flags = [3, 3]
 
 varlags = [2, 2, 2, 2, 2, 2, 2, 2]
 
@@ -124,19 +124,19 @@ varlagcoefs = [0.5 0.25
     0.5 0.25]
 
 fcoefs = Any[]
-fmat = [0.5][:, :]
+fmat = [0.5 0.25][:, :]
 push!(fcoefs, fmat)
 fmat = [0.5 0.25
     0.5 0.25]
 push!(fcoefs, fmat)
 
 fvars = Any[]
-fmat = [0.1]
+fmat = [1.0]
 push!(fvars, fmat)
-fmat = [1.5, 1.5]
+fmat = [1.0, 1.0]
 push!(fvars, fmat)
 
-varvars = 5 .* rand(8) .^ 2;
+varvars = 0.0001 * ones(nvar);
 
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
@@ -162,7 +162,8 @@ hdfmpriors = HDFMPriors(nlevels = nlevels,
     flags = flags,
     varlags = varlags)
 
-F, B, S, P, P2 = OWTwoLevelEstimator2(data_y, data_β[:,2:4], hdfmpriors)
+#F, B, S, P, P2 = OWTwoLevelEstimator2(data_y, data_β[:,2:4], hdfmpriors)
+F, B, S, P, P2 = OWTwoLevelEstimator(data_y, hdfmpriors)
 
 ##################################################
 ##################################################

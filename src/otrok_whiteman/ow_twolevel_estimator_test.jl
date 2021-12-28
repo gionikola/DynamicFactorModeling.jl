@@ -1,4 +1,3 @@
-
 function OWTwoLevelEstimator2(data, facts, prior_hdfm)
 
     # Unpack two-level HDFM parameters 
