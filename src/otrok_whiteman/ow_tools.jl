@@ -152,8 +152,8 @@ Outputs:
 function sigbig(phi, p, capt)
 
     rotate = trunc.(Int, seqa(0, 1, capt - p))
-    Siinv_upper =  Hermitian(sigmat(phi, p))
-    Siinv_upper = [inv(cholesky(Siinv_upper))' zeros(p, capt - p)]
+    Siinv_upper = Hermitian(sigmat(phi, p))
+    Siinv_upper = [inv(cholesky(Siinv_upper, Val(true)).U)' zeros(p, capt - p)]
     Siinv_lower = [kron((-reverse(phi, dims = 1)'), ones(capt - p, 1)) ones(capt - p, 1) zeros(capt - p, capt - p - 1)]
 
     for s = 1:(capt-p)
@@ -305,33 +305,50 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     V = invpd(R0__ + sig2^(-1) * ecap' * ecap)
     phihat = V * (R0__ * r0_ + sig2^(-1) * ecap' * e1)
 
-    #phi1 = phihat + cholesky(V)' * randn(p, 1)        # candidate draw 
-    phi1 = rand(MvNormal(phihat, PSDMat(V)))
+    phi1 = sim_MvNormal(phihat, V)
 
     coef = [-reverse(phi1, dims = 1); 1]                # check stationarity 
-    root = roots(Polynomial(reverse(coef)))                      # Find lag polynomial roots 
+    root = roots(Polynomial(reverse(vec(coef), dims = 1)))                      # Find lag polynomial roots 
 
     rootmod = abs.(root)
-    accept = min(rootmod...) >= 1.0001                     # all the roots bigger than 1 
-    
+    accept = min(rootmod...) >= 1.01                     # all the roots bigger than 1 
+
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
+    
+        #=
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
-        d = Complex(det(sigma1))
-        #psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
-        psi1 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-        
+        d = det(sigma1)
+        psi1 = (d^(-1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+    
         sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
-        d = Complex(det(sigma1))
-        #psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
-        psi0 = (d^(-0.5)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+        d = det(sigma1)
+        psi0 = (d^(-1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
+        =#
+        ##=
+        sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
+        sigma1 = Hermitian(sigma1)
+        sigroot = cholesky(sigma1, Val(true)).U
+        p1 = transp_dbl(inv(sigroot))
+        ypst = p1 * yp
+        d = det(p1' * p1)
+        psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
+    
+        sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
+        sigma1 = Hermitian(sigma1)
+        sigroot = cholesky(sigma1, Val(true)).U
+        p1 = transp_dbl(inv(sigroot))
+        ypst = p1 * yp
+        d = det(p1' * p1)
+        psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
+        ##=# 
     
         if psi0 == 0
             accept = 1
         else
             u = rand(1)
-            accept = u[1] <= real(psi1) / real(psi0)
+            accept = u[1] <= psi1 / psi0
         end
         phi1 = phi1 * accept + phi0 * (1 - accept)
     end
@@ -411,7 +428,7 @@ function invpd(X)
 
     X_inv = similar(X)
 
-    if isposdef(X)
+    if isposdef(X) == true 
         X_inv = inv(X)
     else
         n, m = size(X)
@@ -529,37 +546,36 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
         V = invpd(R0__ .+ inv(s20) * (transp_dbl(ecap) * ecap))
         phihat = V * (R0__ * r0_ + inv(s20) * (transp_dbl(ecap) * e1))
 
-        #phi1 = phihat + transp_dbl(cholesky(V)) * randn(p, 1)       # candidate draw 
-        phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
+        phi1 = sim_MvNormal(vec(phihat), V)
 
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
         root = roots(Polynomial(reverse(coef)))
         rootmod = abs.(root)
-        accept = min(rootmod...) >= 1.0001             # all the roots bigger than 1 
+        accept = min(rootmod...) >= 1.01             # all the roots bigger than 1 
 
         if accept == 0
             phi1 = phi0
         else
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
-            d = Complex(det(sigma1))
-            psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            d = det(sigma1)
+            psi1 = (d^(0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
 
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
-            d = Complex(det(sigma1))
-            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            d = det(sigma1)
+            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0)*invpd(sigma1)*(yp-xp*b0))[1])
 
             if psi0 == 0
                 accept = 1
             else
-                u = rand(1)[1]
-                accept = u <= real(psi1) / real(psi0)
+                u = rand(Uniform(0, 1))
+                accept = u <= psi1 / psi0
             end
-            phi1 = real(phi1) * accept + real(phi0) * (1 - accept)
+            phi1 = phi1 * accept + phi0 * (1 - accept)
         end
 
         # generation of beta 
         sigma = Hermitian(sigmat(phi1, p))             # sigma = sigroot' * sigroot 
-        sigroot = cholesky(sigma)                 # signber2v = p1' * p1 
+        sigroot = cholesky(sigma, Val(true)).U                 # signber2v = p1' * p1 
         p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
         xpst = p1 * xp
@@ -568,8 +584,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
 
         V = invpd(B0__ + s20^(-1) * xst' * xst)
         bhat = V * (B0__ * b0 + s20^(-1) * xst' * yst)
-        #b1 = bhat + cholesky(V)' * randn(nreg, 1)          # the draw of beta 
-        b1 = rand(MvNormal(vec(bhat), PSDMat(Matrix(V))))
+        b1 = sim_MvNormal(vec(bhat), Matrix(V))
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
         signmax1 = signmax1 + (1 * signbeta1)
@@ -605,19 +620,24 @@ end
 ######################
 ######################
 ######################
-function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
+function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size, varassign)
 
+    # Make sure relevant objects are accessible
+    # outside of the upcoming for-loops 
     local xst, yst, b1, phi1
 
+    # Save number of observations in the sample 
     n = capt
-    signmax1 = 1.0
-    signbeta1 = 1.0
-    signmax2 = 1.0
-    signbeta2 = 0.0
+
+    # Initialize parameter signs 
+    signmax1 = 1.0      # 
+    signbeta1 = 1.0     # 
+    signmax2 = 1.0      # 
+    signbeta2 = 0.0     # 
 
     testind = 0
 
-    while signbeta1 + signbeta2 >= 1.0 && testind < 1000
+    while signbeta1 + signbeta2 >= 1.0 && testind < 10000
 
         testind = testind + 1
 
@@ -638,37 +658,59 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         V = invpd(R0__ .+ inv(s20) * (transp_dbl(ecap) * ecap))
         phihat = V * (R0__ * r0_ + inv(s20) * (transp_dbl(ecap) * e1))
 
-        #phi1 = phihat + transp_dbl(cholesky(V)) * randn(p, 1)       # candidate draw 
-        phi1 = rand(MvNormal(vec(phihat), PSDMat(Matrix(V))))
+        phi1 = sim_MvNormal(vec(phihat), Matrix(V))
 
         coef = [-reverse(vec(phi1), dims = 1); 1]                      # check stationarity 
         root = roots(Polynomial(reverse(coef)))
         rootmod = abs.(root)
-        accept = min(rootmod...) >= 1.0001             # all the roots bigger than 1 
+        accept = min(rootmod...) >= 1.01             # all the roots bigger than 1 
 
         if accept == 0
             phi1 = phi0
         else
+            
+            #=
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
-            d = Complex(det(sigma1))
-            psi1 = (d^(-0.5)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
-
+            d = det(sigma1)
+            psi1 = (d^(-1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+        
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
-            d = Complex(det(sigma1))
-            psi0 = (d^(1 / 2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            d = det(sigma1)
+            psi0 = (d^(-1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
+            =#
+
+            
+            sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
+            sigma1 = Hermitian(sigma1)
+            sigroot = cholesky(sigma1, Val(true)).U
+            p1 = transp_dbl(inv(sigroot))
+            ypst = p1 * yp
+            xpst = p1 * xp
+            d = det(p1' * p1)
+            psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0')' * (ypst - xpst * b0') / s20)
+        
+            sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
+            sigma1 = Hermitian(sigma1) 
+            sigroot = cholesky(sigma1, Val(true)).U
+            p1 = transp_dbl(inv(sigroot))
+            ypst = p1 * yp
+            xpst = p1 * xp
+            d = det(p1' * p1)
+            psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0')' * (ypst - xpst * b0') / s20)
+            
 
             if psi0 == 0
                 accept = 1
             else
-                u = rand(1)[1]
-                accept = u <= real(psi1) / real(psi0)
+                u = rand(Uniform(0,1))
+                accept = u <= psi1[1,1] / psi0[1,1]
             end
-            phi1 = real(phi1) * accept + real(phi0) * (1 - accept)
+            phi1 = phi1 * accept + phi0 * (1 - accept)
         end
-
+        
         # generation of beta 
         sigma = Hermitian(sigmat(phi1, p))              # sigma = sigroot' * sigroot 
-        sigroot = cholesky(sigma)                       # signber2v = p1' * p1 
+        sigroot = cholesky(sigma, Val(true)).U                       # signber2v = p1' * p1 
         p1 = transp_dbl(inv(sigroot))
         ypst = p1 * yp
         xpst = p1 * xp
@@ -677,12 +719,12 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
         V = invpd(B0__ + s20^(-1) * xst' * xst)
         bhat = V * (B0__ * vec(b0) + s20^(-1) * xst' * yst)
-        #b1 = bhat + cholesky(V)' * randn(nreg, 1)          # the draw of beta 
-        b1 = rand(MvNormal(vec(bhat), PSDMat(Matrix(V))))
+
+        b1 = sim_MvNormal(vec(bhat), Matrix(V))
 
         signbeta1 = (b1[2, 1] <= 0.0) * (xvar == 1)
         signmax1 = signmax1 + (1 * signbeta1)
-        signbeta2 = (b1[3, 1] <= 0.0) * (((xvar - 1) / Size) == trunc(Int, floor((xvar - 1) / Size)))
+        signbeta2 = (b1[3, 1] <= 0.0) * (varassign[nfc][1] == xvar)
         signmax2 = signmax2 + (1 * signbeta2)
 
         if signmax1 >= 100
@@ -691,8 +733,8 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             signmax1 = 1
         end
         if signmax2 >= 100
-            facts[:, nfc] = (-1) * facts[:, nfc]
-            x[:, 3] = facts[:, nfc]
+            facts[:, 1 + nfc] = (-1) * facts[:, 1 + nfc]
+            x[:, 3] = facts[:, 1 + nfc]
             signmax2 = 1
         end
     end

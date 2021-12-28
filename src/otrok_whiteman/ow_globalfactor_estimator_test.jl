@@ -1,60 +1,4 @@
-include("ow_tools.jl")
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-    priorsSET(K, Plags, Llags)
-
-Description:
-Model priors for the Otrok-Whiteman estimator. 
-
-Inputs:
-- K = Number of factors.
-- Plags = Number of lags in the factor equation. 
-- Llags = Number of AR lags in the observation equation. 
-"""
-@with_kw mutable struct priorsSET
-    K::Int64
-    Plags::Int64
-    Llags::Int64
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-    OWSingleFactorEstimator(data, priorsIN)
-
-Description:
-Estimate a single-factor DFM. 
-
-Inputs:
-- data = set of observed variables with a hypothesized common trend.
-- priorsIN = model priors. 
-
-Outputs:
-- B = single-factor DFM coefficient hyperparameter estimates. 
-- F = single-factor DFM factor estimate. 
-- S = single-factor DFM error variance estimates. 
-"""
-function OWSingleFactorEstimator(data, priorsIN)
+function OWSingleFactorEstimator2(data, facts, priorsIN)
 
     # nvar = number of variables including the variable with missing date
     # capt = length of data of complete dataset
@@ -114,13 +58,15 @@ function OWSingleFactorEstimator(data, priorsIN)
     ############################################
 
     # Initialize and set up factor model
-    SigE = ones(nvar, 1) * 0.0001
+    SigE = ones(nvar, 1) * 10000 #* 0.0001
     phi = zeros(arlag, nfact)
     bold = zeros(nvar, nreg)         # starting value for regression coefficients
     phimat0 = zeros(arterms, nvar)      # observable equation AR coefficients
 
+    #=
     facts = randn(capt, nfact)     # random starting factor
     facts[:, 1] = mean(y, dims = 2) |> transp_dbl
+    =#
 
     ## Begin Monte Carlo Loop
     for dr = 1:ndraws+burnin
@@ -147,6 +93,7 @@ function OWSingleFactorEstimator(data, priorsIN)
         phi = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], sigU[1, 1], capt)
         psave[dr, (i-1)*arlag+1:(i-1)*arlag+arlag] = phi
 
+        #=
         #draw factor
         #take drawing of World factor 
         sinvf1 = sigbig(phi, arlag, capt)
@@ -167,6 +114,7 @@ function OWSingleFactorEstimator(data, priorsIN)
             Xtsave[:, (((dr-1)*nfact)+i)] = vec(fact1)
             facts[:, 1] = fact1
         end
+        =#
 
         println(dr)
     end
@@ -186,16 +134,3 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     return F, B, S, P, P2
 end
-;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################

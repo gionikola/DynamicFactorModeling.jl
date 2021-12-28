@@ -49,7 +49,7 @@ push!(fcoefs, fmat)
 fvars = Any[]
 fmat = [2.0]
 push!(fvars, fmat)
-fmat = [1.5, 1.5]
+fmat = [0.00001, 0.000001]
 push!(fvars, fmat)
 
 varvars = 5 .* rand(9) .^ 2;
@@ -71,6 +71,11 @@ ssmodel = convertHDFMtoSS(hdfm)
 num_obs = 100
 data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 
+
+#flags = [3, 3]
+
+#varlags = [3, 3, 3, 3, 3, 3, 3, 3, 3]
+
 hdfmpriors = HDFMPriors(nlevels = nlevels,
     nvar = nvar,
     nfactors = nfactors,
@@ -78,22 +83,16 @@ hdfmpriors = HDFMPriors(nlevels = nlevels,
     flags = flags,
     varlags = varlags)
 
-
-flags = [3, 3]
-
-varlags = [3, 3, 3, 3, 3, 3, 3, 3, 3]
-
-
 F, B, S, P, P2 = OWTwoLevelEstimator(data_y, hdfmpriors)
 
 
 using Plots
 
 plot(data_β[:, 2])
-plot!(50*F[:, 1])
+plot!(F[:, 1])
 
 plot(data_β[:, 3])
-plot!(50*F[:, 2])
+plot!(F[:, 2])
 
 plot(data_β[:, 4])
-plot!(50*F[:, 3])
+plot!(F[:, 3])

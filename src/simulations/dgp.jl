@@ -12,7 +12,28 @@
 ######################
 @doc """
 """
-function sim_MvNormal(μ,Σ)
+function sim_MvNormal(μ, Σ)
+
+    obs_aug = μ + cholesky(Hermitian(Σ), Val(true), check = false).U' * randn(length(μ), 1)
+
+    return obs_aug
+end
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+@doc """
+"""
+function sim_MvNormal_alt(μ,Σ)
     
     nvars = size(Σ)[1]
 
@@ -27,7 +48,7 @@ function sim_MvNormal(μ,Σ)
     Σnew = Σ[keep, keep]
     μnew = μ[keep]
 
-    obs = rand(MvNormal(μnew,PSDMat(Σnew)))
+    obs = sim_MvNormal(μnew, Σnew)
     
     obs_aug = zeros(nvars) 
 
@@ -334,16 +355,6 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
     # to allow for simulation using MvNormal()
     # (MvNormal() needs a positive definite cov matrix)
 
-    if isposdef(R) == false
-        R = PSDMat(R)
-    end
-    if isposdef(Q) == false
-        Q = PSDMat(Q)
-    end
-    if isposdef(Z) == false
-        Z = PSDMat(Z)
-    end
-
     # Create empty data storage matrices 
     data_y = zeros(num_obs, size(H)[1])
     data_z = zeros(num_obs, size(Z)[1])
@@ -358,7 +369,7 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
         z0 = zeros(size(Z)[1])
     else
         #z0 = rand(MvNormal(zeros(size(Z)[1]), Z))
-        z0 = sim_MvNormal(zeros(size(Z)[1]), Z)
+        z0 = sim_MvNormal_alt(zeros(size(Z)[1]), Z)
     end
 
     # Save first observations of y and z
@@ -376,7 +387,7 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
             v = zeros(size(Q)[1])
         else
             #v = rand(MvNormal(zeros(size(Q)[1]), Q))
-            v = sim_MvNormal(zeros(size(Q)[1]), Q)
+            v = sim_MvNormal_alt(zeros(size(Q)[1]), Q)
         end
         # Record new state observation 
         β = μ + F * β_lag + v
@@ -385,14 +396,14 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
             z = zeros(size(Z)[1])
         else
             #z = rand(MvNormal(zeros(size(Z)[1]), Z))
-            z = sim_MvNormal(zeros(size(Z)[1]), Z)
+            z = sim_MvNormal_alt(zeros(size(Z)[1]), Z)
         end
         # Draw measurement distrubance 
         if R == zeros(size(R)[1], size(R)[1])
             e = zeros(size(R)[1])
         else
             #e = rand(MvNormal(zeros(size(R)[1]), R))
-            e = sim_MvNormal(zeros(size(R)[1]), R)
+            e = sim_MvNormal_alt(zeros(size(R)[1]), R)
         end
         # Record new measurement observation 
         y = H * β + A * z + e

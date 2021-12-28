@@ -3,11 +3,8 @@
 ###############
 
 T = 100                                 # Number of periods in the data 
-#N_country = 3                           # Number of series per country 
-#N_regions = 1                           # Number of regions 
-#size_reg = 7                            # Number of countries in a region 
 P = 2                                   # Number of lags in the factor equation 
-L = 2                                   # Number of AR lags in the observation equation 
+L = 3                                   # Number of AR lags in the observation equation 
 N = 2                                   # Total number of series 
 K = 1                                   # Total number of factors (only the global factor)
 
@@ -43,6 +40,5 @@ priors = priorsSET(K, P, L)             # Set model priors
 ###############
 ###############
 
-#meanz, results = OWSingleFactorEstimator(transp_dbl(data_y), priors)
-#meanz, results = OWSingleFactorEstimator(data_y, priors)
-F, B, S = OWSingleFactorEstimator(data_y, priors)
+F, B, S, P, P2 = OWSingleFactorEstimator(data_y, priors)
+#F, B, S, P, P2 = OWSingleFactorEstimator2(data_y, data_β[:,1], priors)
