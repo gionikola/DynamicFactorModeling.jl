@@ -12,7 +12,28 @@
 ######################
 @doc """
 """
-function sim_MvNormal(μ,Σ)
+function sim_MvNormal(μ, Σ)
+
+    obs_aug = μ + cholesky(Hermitian(Σ), Val(true), check = false).U' * randn(length(μ), 1)
+
+    return obs_aug
+end
+
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+@doc """
+"""
+function sim_MvNormal_alt(μ,Σ)
     
     nvars = size(Σ)[1]
 
@@ -27,7 +48,7 @@ function sim_MvNormal(μ,Σ)
     Σnew = Σ[keep, keep]
     μnew = μ[keep]
 
-    obs = sim_MvNormal(μnew, Σnew)
+    obs = rand(MvNormal(μnew, PSDMat(Σnew)))
     
     obs_aug = zeros(nvars) 
 
