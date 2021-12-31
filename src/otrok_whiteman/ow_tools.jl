@@ -436,6 +436,7 @@ function invpd(X)
         xchk = U * Diagonal(dd) * V'
         dd = dd .+ 1000 * 2.2204e-16
         di = ones(n, 1) ./ dd
+        di = vec(di)
         X_inv = U * Diagonal(di) * V
     end
 
