@@ -83,16 +83,15 @@ hdfmpriors = HDFMPriors(nlevels = nlevels,
     flags = flags,
     varlags = varlags)
 
-F, B, S, P, P2 = OWTwoLevelEstimator(data_y, hdfmpriors)
+results = OWTwoLevelEstimator(data_y, hdfmpriors)
 
+stds = Any[]
 
-using Plots
+for i in 1:size(results.F)[1] 
+    push!(stds, std(results.F[i,1,:]))
+end 
 
-plot(data_β[:, 2])
-plot!(F[:, 1])
-
-plot(data_β[:, 3])
-plot!(F[:, 2])
-
-plot(data_β[:, 4])
-plot!(F[:, 3])
+plot(data_β[:,2])
+plot!(results.means.F[:,1])
+plot!(results.means.F[:,1] - stds)
+plot!(results.means.F[:,1] + stds)

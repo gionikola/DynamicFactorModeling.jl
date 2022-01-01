@@ -40,5 +40,16 @@ priors = priorsSET(K, P, L)             # Set model priors
 ###############
 ###############
 
-F, B, S, P, P2 = OWSingleFactorEstimator(data_y, priors)
-#F, B, S, P, P2 = OWSingleFactorEstimator2(data_y, data_β[:,1], priors)
+results = OWSingleFactorEstimator(data_y, priors)
+
+stds = Any[]
+
+for i in 1:size(results.F)[1]
+    push!(stds, std(results.F[i, :]))
+end
+
+plot(data_β[:, 1])
+plot!(results.means.F[:, 1])
+plot!(results.means.F[:, 1] - 2 .* stds)
+plot!(results.means.F[:, 1] + 2 .* stds)
+
