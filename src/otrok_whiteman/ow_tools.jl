@@ -307,6 +307,8 @@ Outputs:
 """
 function gendiff(z, phi)
 
+    phi = vec(phi) 
+
     p = size(phi)[1]
     ztrim = z[(p+1):end, :]
     zgdiff = ztrim
@@ -682,7 +684,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
 
     testind = 0
 
-    while signbeta1 + signbeta2 >= 1.0 && testind < 10000
+    while signbeta1 + signbeta2 >= 1.0 ##&& testind < 10000
 
         testind = testind + 1
 
