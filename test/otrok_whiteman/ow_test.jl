@@ -4,7 +4,7 @@
 
 T = 100                                 # Number of periods in the data 
 P = 2                                   # Number of lags in the factor equation 
-L = 3                                   # Number of AR lags in the observation equation 
+L = 1                                   # Number of AR lags in the observation equation 
 N = 2                                   # Total number of series 
 K = 1                                   # Total number of factors (only the global factor)
 
