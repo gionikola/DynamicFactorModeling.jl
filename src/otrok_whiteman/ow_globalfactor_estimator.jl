@@ -186,7 +186,7 @@ function OWSingleFactorEstimator(data, priorsIN)
 
     means = DFMMeans(F, B, S, P, P2) 
 
-    results = OWResults(Wtsave, bsave, ssave, psave, psave2, means)
+    results = OWResults(Xtsave, bsave, ssave, psave, psave2, means)
 
     return results
 end
