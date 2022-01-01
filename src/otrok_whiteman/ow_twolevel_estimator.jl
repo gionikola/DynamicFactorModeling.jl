@@ -150,6 +150,9 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     # Initialize factor series 
     facts = rand(capt, nfact)           # Random starting factor series matrix 
     facts[:, 1] = mean(y, dims = 2)     # Starting global factor = crosssectional mean of obs. series 
+    for i in 1:(nfact - 1)              # Set level-2 factors equal to their respective group means
+        facts[:, 1+i] = mean(y[:,varassign[i]], dims = 2) 
+    end 
 
     # Begin Monte Carlo Loop
     # (start iteratively drawing hyperparameters and factors)
