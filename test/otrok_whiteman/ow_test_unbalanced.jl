@@ -91,7 +91,7 @@ for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i,1,:]))
 end 
 
-plot(data_β[:,2])
-plot!(results.means.F[:,1])
-plot!(results.means.F[:,1] - stds)
-plot!(results.means.F[:,1] + stds)
+plot(data_β[:,4])
+plot!(results.means.F[:,3])
+plot!(results.means.F[:,3] - stds)
+plot!(results.means.F[:,3] + stds)
