@@ -476,6 +476,7 @@ function invpd(X)
     else
         n, m = size(X)
         U, dd, V = svd(X)
+        dd = vec(dd) 
         xchk = U * Diagonal(dd) * V'
         dd = dd .+ 1000 * 2.2204e-16
         di = ones(n, 1) ./ dd
