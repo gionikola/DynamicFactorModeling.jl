@@ -11,6 +11,27 @@
 ######################
 ######################
 """
+"""
+@with_kw mutable struct DFMMeans
+    F::Array{Float64}   # Factor means 
+    B::Array{Float64}   # Obs. equation coefficient means 
+    S::Array{Float64}   # Idiosyncratic disturbance variance means 
+    P::Array{Float64}   # Factor autoregressive coefficient means 
+    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive means 
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
     ident(p)
 
 Description:
@@ -316,12 +337,12 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     if accept == 0                                      # doesn't pass stationarity 
         phi1 = phi0
     else
-    
+
         #=
         sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
         d = det(sigma1)
         psi1 = (d^(-1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
-    
+
         sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
         d = det(sigma1)
         psi0 = (d^(-1/2)) * exp((-0.5 / sig2) * (transp_dbl(yp)*invpd(sigma1)*(yp))[1])
@@ -334,7 +355,7 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         ypst = p1 * yp
         d = det(p1' * p1)
         psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
-    
+
         sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
         sigma1 = Hermitian(sigma1)
         sigroot = cholesky(sigma1, Val(true)).U
@@ -343,7 +364,7 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
         d = det(p1' * p1)
         psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst)' * (ypst) / sig2)
         ##=# 
-    
+
         if psi0 == 0
             accept = 1
         else
@@ -428,7 +449,7 @@ function invpd(X)
 
     X_inv = similar(X)
 
-    if isposdef(X) == true 
+    if isposdef(X) == true
         X_inv = inv(X)
     else
         n, m = size(X)
@@ -669,18 +690,18 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
         if accept == 0
             phi1 = phi0
         else
-            
+
             #=
             sigma1 = Hermitian(sigmat(vec(phi1), p))               # numerator of acceptance prob 
             d = det(sigma1)
             psi1 = (d^(-1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
-        
+
             sigma1 = Hermitian(sigmat(vec(phi0), p))               # numerator of acceptance prob 
             d = det(sigma1)
             psi0 = (d^(-1/2)) * exp((-0.5 / s20) * (transp_dbl(yp - xp * b0')*invpd(sigma1)*(yp-xp*b0'))[1])
             =#
 
-            
+
             sigma1 = sigmat(phi1, p)       # numerator of acceptance prob
             sigma1 = Hermitian(sigma1)
             sigroot = cholesky(sigma1, Val(true)).U
@@ -689,26 +710,26 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             xpst = p1 * xp
             d = det(p1' * p1)
             psi1 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0')' * (ypst - xpst * b0') / s20)
-        
+
             sigma1 = sigmat(phi0, p)       # numerator of acceptance prob
-            sigma1 = Hermitian(sigma1) 
+            sigma1 = Hermitian(sigma1)
             sigroot = cholesky(sigma1, Val(true)).U
             p1 = transp_dbl(inv(sigroot))
             ypst = p1 * yp
             xpst = p1 * xp
             d = det(p1' * p1)
             psi0 = (d^(1 / 2)) * exp(-0.5 * (ypst - xpst * b0')' * (ypst - xpst * b0') / s20)
-            
+
 
             if psi0 == 0
                 accept = 1
             else
-                u = rand(Uniform(0,1))
-                accept = u <= psi1[1,1] / psi0[1,1]
+                u = rand(Uniform(0, 1))
+                accept = u <= psi1[1, 1] / psi0[1, 1]
             end
             phi1 = phi1 * accept + phi0 * (1 - accept)
         end
-        
+
         # generation of beta 
         sigma = Hermitian(sigmat(phi1, p))              # sigma = sigroot' * sigroot 
         sigroot = cholesky(sigma, Val(true)).U                       # signber2v = p1' * p1 
@@ -734,8 +755,8 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
             signmax1 = 1
         end
         if signmax2 >= 100
-            facts[:, 1 + nfc] = (-1) * facts[:, 1 + nfc]
-            x[:, 3] = facts[:, 1 + nfc]
+            facts[:, 1+nfc] = (-1) * facts[:, 1+nfc]
+            x[:, 3] = facts[:, 1+nfc]
             signmax2 = 1
         end
     end
