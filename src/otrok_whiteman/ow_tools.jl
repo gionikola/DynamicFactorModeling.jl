@@ -32,6 +32,28 @@ end;
 ######################
 ######################
 """
+"""
+@with_kw mutable struct OWResults
+    F::Array{Float64}   # Factor sample 
+    B::Array{Float64}   # Obs. equation coefficient sample 
+    S::Array{Float64}   # Idiosyncratic disturbance variance sample 
+    P::Array{Float64}   # Factor autoregressive coefficient sample 
+    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive sample 
+    means::DFMMeans     # Factor and hyperparameter means
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
     ident(p)
 
 Description:
