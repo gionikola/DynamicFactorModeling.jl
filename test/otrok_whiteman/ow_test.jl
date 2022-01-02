@@ -4,7 +4,7 @@
 
 T = 100                                 # Number of periods in the data 
 P = 2                                   # Number of lags in the factor equation 
-L = 3                                   # Number of AR lags in the observation equation 
+L = 1                                   # Number of AR lags in the observation equation 
 N = 2                                   # Total number of series 
 K = 1                                   # Total number of factors (only the global factor)
 
@@ -40,5 +40,16 @@ priors = priorsSET(K, P, L)             # Set model priors
 ###############
 ###############
 
-F, B, S, P, P2 = OWSingleFactorEstimator(data_y, priors)
-#F, B, S, P, P2 = OWSingleFactorEstimator2(data_y, data_β[:,1], priors)
+results = OWSingleFactorEstimator(data_y, priors)
+
+stds = Any[]
+
+for i in 1:size(results.F)[1]
+    push!(stds, std(results.F[i, :]))
+end
+
+plot(data_β[:, 1])
+plot!(results.means.F[:, 1])
+plot!(results.means.F[:, 1] - 2 .* stds)
+plot!(results.means.F[:, 1] + 2 .* stds)
+

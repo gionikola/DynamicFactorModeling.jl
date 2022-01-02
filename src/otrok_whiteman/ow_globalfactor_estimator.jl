@@ -184,7 +184,11 @@ function OWSingleFactorEstimator(data, priorsIN)
     P = mean(psave, dims = 1)
     P2 = mean(psave2, dims = 1)
 
-    return F, B, S, P, P2
+    means = DFMMeans(F, B, S, P, P2) 
+
+    results = OWResults(Xtsave, bsave, ssave, psave, psave2, means)
+
+    return results
 end
 ;
 ######################

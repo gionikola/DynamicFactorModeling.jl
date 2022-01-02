@@ -17,7 +17,6 @@ using Polynomials
 include("simulations/dgp.jl")
 include("kim_nelson/kn_tools.jl")
 include("otrok_whiteman/ow_globalfactor_estimator.jl")
-include("otrok_whiteman/ow_twofactor_estimator.jl")
 include("otrok_whiteman/ow_twolevel_estimator.jl")
 include("test_scripts.jl")
 
