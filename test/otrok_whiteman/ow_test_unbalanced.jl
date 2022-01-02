@@ -19,15 +19,15 @@ flags = [2, 2]
 
 varlags = [2, 2, 2, 2, 2, 2, 2, 2, 2]
 
-varcoefs = [1.0 1.0 1.0
-    2.0 0.5 0.2
-    3.0 0.7 0.4
-    4.0 0.3 0.5
-    5.0 0.5 1.0
-    6.0 0.5 0.7
-    7.0 0.4 0.5
-    8.0 0.5 0.2
-    9.0 0.5 0.2]
+varcoefs = [0.0 1.0 1.0
+    0.0 0.5 0.2
+    0.0 0.7 0.4
+    0.0 0.3 0.5
+    0.0 0.5 1.0
+    0.0 0.5 0.7
+    0.0 0.4 0.5
+    0.0 0.5 0.2
+    0.0 0.5 0.2]
 
 varlagcoefs = [0.5 0.25
     0.5 0.25
@@ -40,10 +40,10 @@ varlagcoefs = [0.5 0.25
     0.5 0.25]
 
 fcoefs = Any[]
-fmat = [0.5 0.25][:, :]
+fmat = [0.85 -0.3][:, :]
 push!(fcoefs, fmat)
-fmat = [0.5 0.25
-    0.5 0.25]
+fmat = [0.5 0.05
+    0.2 -0.1]
 push!(fcoefs, fmat)
 
 fvars = Any[]
@@ -52,7 +52,7 @@ push!(fvars, fmat)
 fmat = [1.0, 1.0]
 push!(fvars, fmat)
 
-varvars = ones(nvar);
+varvars = 0.0*ones(nvar);
 
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
@@ -87,11 +87,12 @@ results = OWTwoLevelEstimator(data_y, hdfmpriors)
 
 stds = Any[]
 
+j = 3
 for i in 1:size(results.F)[1] 
-    push!(stds, std(results.F[i,1,:]))
+    push!(stds, std(results.F[i,j,:]))
 end 
 
-plot(data_β[:,4])
-plot!(results.means.F[:,3])
-plot!(results.means.F[:,3] - stds)
-plot!(results.means.F[:,3] + stds)
+plot(data_β[:,1+j])
+plot!(results.means.F[:,j])
+plot!(results.means.F[:,j] - stds)
+plot!(results.means.F[:,j] + stds)
