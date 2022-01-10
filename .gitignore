@@ -2,3 +2,5 @@
 *.jl.cov
 *.jl.mem
 /Manifest.toml
+test/otrok_whiteman/real_data/data_deseasoned_growth.csv
+test/otrok_whiteman/real_data/data_deseasoned.csv
