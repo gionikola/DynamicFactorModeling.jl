@@ -1,7 +1,7 @@
 
 nlevels = 2
 
-nvar = 9
+nvar = 8
 
 nfactors = [1, 2]
 
@@ -12,12 +12,11 @@ fassign = [1 1
     1 2
     1 2
     1 2
-    1 2
     1 2]
 
 flags = [2, 2]
 
-varlags = [2, 2, 2, 2, 2, 2, 2, 2, 2]
+varlags = [2, 2, 2, 2, 2, 2, 2, 2]
 
 varcoefs = [0.0 1.0 1.0
     0.0 0.5 0.2
@@ -26,11 +25,9 @@ varcoefs = [0.0 1.0 1.0
     0.0 0.5 1.0
     0.0 0.5 0.7
     0.0 0.4 0.5
-    0.0 0.5 0.2
     0.0 0.5 0.2]
 
 varlagcoefs = [0.5 0.25
-    0.5 0.25
     0.5 0.25
     0.5 0.25
     0.5 0.25
@@ -52,7 +49,7 @@ push!(fvars, fmat)
 fmat = [1.0, 1.0]
 push!(fvars, fmat)
 
-varvars = 0.01 * ones(nvar);
+varvars = 0.1 * ones(nvar);
 
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
@@ -92,11 +89,11 @@ quant33 = Any[]
 quant66 = Any[]
 medians = Any[]
 
-j = 3
+j = 1
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
-    push!(quant33, quantile(results.F[i, j, :], 0.10))
-    push!(quant66, quantile(results.F[i, j, :], 0.90))
+    push!(quant33, quantile(results.F[i, j, :], 0.05))
+    push!(quant66, quantile(results.F[i, j, :], 0.95))
     push!(medians, median(results.F[i, j, :]))
 end
 

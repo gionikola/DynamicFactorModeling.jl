@@ -106,7 +106,7 @@ function OW2LevelFactorEstimator(data, prior_hdfm, varcoefs, varlagcoefs, fcoefs
     ##############################################
 
     # Initialize hyperparameters 
-    SigE = 1 ./ varvars           # Idiosyncratic error precision vector 
+    SigE = varvars           # Idiosyncratic error precision vector 
     phi = transp_dbl(fcoefs)             # Factor AR companion matrix 
     bold = varcoefs               # Obs. eq. regression starting coefficient matrix 
     phimat0 = transp_dbl(varlagcoefs)         # Idiosyncratic error AR companion matrix 
@@ -137,7 +137,7 @@ function OW2LevelFactorEstimator(data, prior_hdfm, varcoefs, varlagcoefs, fcoefs
         for i = 1:nvar  # Iterate over all observable variable 
 
             # Save level-2 factor index assigned to obs. variable i 
-            nfC = fassign[i]
+            nfC = fassign[i,2]
 
             # Partial out variation in variable i due to intercept + level-2 factor 
             yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, 1+nfC] * bold[i, 3]'
