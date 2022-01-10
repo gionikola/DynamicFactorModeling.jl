@@ -42,14 +42,23 @@ priors = priorsSET(K, P, L)             # Set model priors
 
 results = OWSingleFactorEstimator(data_y, priors)
 
+medians = Any[]
+quant33 = Any[]
+quant66 = Any[]
 stds = Any[]
 
+j = 1
 for i in 1:size(results.F)[1]
-    push!(stds, std(results.F[i, :]))
+    push!(stds, std(results.F[i, j, :]))
+    push!(quant33, quantile(results.F[i, j, :], 0.33))
+    push!(quant66, quantile(results.F[i, j, :], 0.66))
+    push!(medians, median(results.F[i, j, :]))
 end
 
-plot(data_β[:, 1])
-plot!(results.means.F[:, 1])
-plot!(results.means.F[:, 1] - 2 .* stds)
-plot!(results.means.F[:, 1] + 2 .* stds)
+plot(results.means.F[:, j])
+plot(medians)
+plot!(quant33)
+plot!(quant66)
+plot!(results.means.F[:, j] - stds)
+plot!(results.means.F[:, j] + stds)
 
