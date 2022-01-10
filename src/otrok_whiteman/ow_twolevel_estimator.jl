@@ -45,8 +45,8 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     capt, nvars = size(y)       # nvar = # of variables; capt = # of time periods in complete sample 
 
     # Specify simulation length 
-    ndraws = 1000               # # of Monte Carlo draws 
-    burnin = 50                 # # of initial draws to discard; total draws is ndraws + burnin 
+    ndraws = 4000               # # of Monte Carlo draws 
+    burnin = 1000                 # # of initial draws to discard; total draws is ndraws + burnin 
 
     # Store factor and parameter counts 
     nfact = sum(nfactors)       # # of factors 
@@ -128,6 +128,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     phiprif = 1 ./ prem
     r0f_ = zeros(arlag)                        # prior mean of phi
     R0f__ = diagrv(ident(arlag), phiprif)
+    #R0f__ = phipri * ident(arlag) 
 
     # Normalize innovation variance for the factor vector 
     # since diagonal variance is set to 1
@@ -209,7 +210,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
         for i = 1:nvar  # Iterate over all observable variable 
 
             # Save level-2 factor index assigned to obs. variable i 
-            nfC = fassign[i]
+            nfC = fassign[i,2]
 
             # Partial out variation in variable i due to intercept + level-2 factor 
             yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, 1+nfC] * bold[i, 3]'
