@@ -52,7 +52,7 @@ push!(fvars, fmat)
 fmat = [1.0, 1.0]
 push!(fvars, fmat)
 
-varvars = 0.0*ones(nvar);
+varvars = 0.01*ones(nvar);
 
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
@@ -90,11 +90,11 @@ quant33 = Any[]
 quant66 = Any[]
 medians = Any[]
 
-j = 3
+j = 1
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
-    push!(quant33, quantile(results.F[i, j, :], 0.33))
-    push!(quant66, quantile(results.F[i, j, :], 0.66))
+    push!(quant33, quantile(results.F[i, j, :], 0.10))
+    push!(quant66, quantile(results.F[i, j, :], 0.90))
     push!(medians, median(results.F[i, j, :]))
 end 
 
