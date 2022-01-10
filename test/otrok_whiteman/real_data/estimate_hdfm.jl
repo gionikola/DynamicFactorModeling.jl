@@ -14,7 +14,7 @@ using DataFrames
 
 
 # Import data 
-data = readdlm("test/otrok_whiteman/real_data/data.csv", ',')
+data = readdlm("test/otrok_whiteman/real_data/data_deseasoned.csv", ',')
 regstatematch = readdlm("test/otrok_whiteman/real_data/regstatematch.csv", ',')
 
 # Data as matrix 
@@ -55,8 +55,8 @@ stds = Any[]
 j = 1
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
-    push!(quant33, quantile(results.F[i, j, :], 0.33))
-    push!(quant66, quantile(results.F[i, j, :], 0.66))
+    push!(quant33, quantile(results.F[i, j, :], 0.05))
+    push!(quant66, quantile(results.F[i, j, :], 0.95))
     push!(medians, median(results.F[i, j, :]))
 end
 
@@ -66,3 +66,8 @@ plot!(quant33)
 plot!(quant66)
 plot!(results.means.F[:, j] - stds)
 plot!(results.means.F[:, j] + stds)
+
+j = 2
+plot(results.means.F[:, 1+j])
+plot(results.means.F[:, 1])
+plot!(results.means.F[:, 1+j])
