@@ -1,41 +1,4 @@
-include("ow_tools.jl")
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-"""
-@with_kw mutable struct HDFMPriors
-    nlevels::Int64                  # number of levels in the multi-level model structure 
-    nvar::Int64                     # number of variables in the dataset 
-    nfactors::Array{Int64,1}        # number of factors for each level (vector of length `nlevels`)
-    fassign::Array{Int64,2}         # integer matrix of size `nvar` × `nlevels` 
-    flags::Array{Int64,1}           # number of autoregressive lags for each factor level (vector of length `nlevels`)
-    varlags::Array{Int64,1}         # number of obs. variable error autoregressive lags (vector of length `nvar`)
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-"""
-function OWTwoLevelEstimator(data, prior_hdfm)
+function OW2LevelFactorEstimator(data, prior_hdfm, varcoefs, varlagcoefs, fcoefs, varvars)
 
     # Unpack two-level HDFM parameters 
     @unpack nlevels, nvar, nfactors, fassign, flags, varlags = prior_hdfm
@@ -45,8 +8,8 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     capt, nvars = size(y)       # nvar = # of variables; capt = # of time periods in complete sample 
 
     # Specify simulation length 
-    ndraws = 4000               # # of Monte Carlo draws 
-    burnin = 1000                 # # of initial draws to discard; total draws is ndraws + burnin 
+    ndraws = 1000               # # of Monte Carlo draws 
+    burnin = 50                 # # of initial draws to discard; total draws is ndraws + burnin 
 
     # Store factor and parameter counts 
     nfact = sum(nfactors)       # # of factors 
@@ -143,10 +106,10 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     ##############################################
 
     # Initialize hyperparameters 
-    SigE = ones(nvar, 1) * 0.0001           # Idiosyncratic error precision vector 
-    phi = zeros(arlag, nfact)               # Factor AR companion matrix 
-    bold = zeros(nvar, nreg)                # Obs. eq. regression starting coefficient matrix 
-    phimat0 = zeros(arterms, nvar)          # Idiosyncratic error AR companion matrix 
+    SigE = varvars           # Idiosyncratic error precision vector 
+    phi = transp_dbl(fcoefs)             # Factor AR companion matrix 
+    bold = varcoefs               # Obs. eq. regression starting coefficient matrix 
+    phimat0 = transp_dbl(varlagcoefs)         # Idiosyncratic error AR companion matrix 
 
     # Initialize factor series 
     facts = rand(capt, nfact)           # Random starting factor series matrix 
@@ -160,42 +123,6 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     for dr = 1:(ndraws+burnin)
 
         println(dr)
-
-        ############################################
-        ## Draw observation equation hyperparameters 
-        ############################################
-        for i = 1:nvar # Iterate over all obs. variables 
-
-            # Save the index of the factor assigned 
-            # to observable variable i 
-            nf = fassign[i, 2]
-
-            # Create matrix containing all regressors 
-            # corresponding to variable i including:
-            # (1) an intercept, (2) global factor, (3) level-2 factor 
-            xft = [ones(capt, 1) facts[:, 1] facts[:, 1+nf]]
-
-            # Update variable i observation equation 
-            # hyperparameters, and update corresponding 
-            # factor orientation (if appropriate)
-            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, fnvars[fassign[i, 2]], varassign)
-            bold[i, :] = b1                                     # Update obs. regression coefficients
-            phimat0[:, i] = phi1                                # Update idiosyncratic error AR coefficients 
-            SigE[i] = s21                                       # Update innovation variance parameter 
-            bsave[dr, (((i-1)*nreg)+1):(i*nreg)] = b1           # Save current obs. regression coefficient draw 
-            ssave[dr, i] = s21                                  # Save current innovation variance parameter draw
-            psave2[dr, (((i-1)*arterms)+1):(i*arterms)] = phi1  # Save current idiosyncratic error AR coefficient draw  
-
-        end
-
-        ############################################
-        ## Draw factor autoregression coefficients  
-        ############################################
-        for i = 1:nfact # Iterate over all factors
-            j = 1 + (i - 1) * arlag
-            phi[:, i] = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], sigU[j, 1], capt)
-            psave[dr, ((i-1)*arlag+1):((i-1)*arlag+arlag)] = transp_dbl(phi[:, i])
-        end
 
         ############################################
         ## Draw global (level-1) factor 
@@ -315,15 +242,3 @@ function OWTwoLevelEstimator(data, prior_hdfm)
 
     return results
 end 
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################

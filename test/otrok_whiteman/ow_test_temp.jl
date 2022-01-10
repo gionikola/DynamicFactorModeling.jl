@@ -1,7 +1,7 @@
 
 nlevels = 2
 
-nvar = 9
+nvar = 8
 
 nfactors = [1, 2]
 
@@ -12,12 +12,11 @@ fassign = [1 1
     1 2
     1 2
     1 2
-    1 2
     1 2]
 
 flags = [2, 2]
 
-varlags = [2, 2, 2, 2, 2, 2, 2, 2, 2]
+varlags = [2, 2, 2, 2, 2, 2, 2, 2]
 
 varcoefs = [0.0 1.0 1.0
     0.0 0.5 0.2
@@ -26,11 +25,9 @@ varcoefs = [0.0 1.0 1.0
     0.0 0.5 1.0
     0.0 0.5 0.7
     0.0 0.4 0.5
-    0.0 0.5 0.2
     0.0 0.5 0.2]
 
 varlagcoefs = [0.5 0.25
-    0.5 0.25
     0.5 0.25
     0.5 0.25
     0.5 0.25
@@ -52,7 +49,7 @@ push!(fvars, fmat)
 fmat = [1.0, 1.0]
 push!(fvars, fmat)
 
-varvars = 0.01 * ones(nvar);
+varvars = 0.1 * ones(nvar);
 
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
@@ -83,7 +80,9 @@ hdfmpriors = HDFMPriors(nlevels = nlevels,
     flags = flags,
     varlags = varlags)
 
-results = OWTwoLevelEstimator(data_y, hdfmpriors)
+results = OW2LevelCoefEstimator(data_y, hdfmpriors, data_β[:, 2:4])
+results = OW2LevelFactorEstimator(data_y, hdfmpriors, varcoefs, varlagcoefs, [fcoefs[1]; fcoefs[2]], varvars)
+
 
 stds = Any[]
 quant33 = Any[]
@@ -93,8 +92,8 @@ medians = Any[]
 j = 1
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
-    push!(quant33, quantile(results.F[i, j, :], 0.33))
-    push!(quant66, quantile(results.F[i, j, :], 0.66))
+    push!(quant33, quantile(results.F[i, j, :], 0.05))
+    push!(quant66, quantile(results.F[i, j, :], 0.95))
     push!(medians, median(results.F[i, j, :]))
 end
 
@@ -103,5 +102,3 @@ plot!(results.means.F[:, j])
 plot!(medians)
 plot!(quant33)
 plot!(quant66)
-plot!(results.means.F[:, j] - stds)
-plot!(results.means.F[:, j] + stds)
