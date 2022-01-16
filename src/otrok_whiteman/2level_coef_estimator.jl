@@ -121,27 +121,28 @@ function OW2LevelCoefEstimator(data, prior_hdfm, facts)
         ## Draw observation equation hyperparameters 
         ############################################
         for i = 1:nvar # Iterate over all obs. variables 
-
+        
             # Save the index of the factor assigned 
             # to observable variable i 
             nf = fassign[i, 2]
-
+        
             # Create matrix containing all regressors 
             # corresponding to variable i including:
             # (1) an intercept, (2) global factor, (3) level-2 factor 
             xft = [ones(capt, 1) facts[:, 1] facts[:, 1+nf]]
-
+        
             # Update variable i observation equation 
             # hyperparameters, and update corresponding 
             # factor orientation (if appropriate)
-            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, fnvars[fassign[i, 2]], varassign)
+            #b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, fnvars[fassign[i, 2]], varassign)
+            b1, s21, phi1, facts = ar2(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, vec(bold[i, :]), phimat0[:, i], SigE[i], i, nf, facts, capt, varassign)
             bold[i, :] = b1                                     # Update obs. regression coefficients
             phimat0[:, i] = phi1                                # Update idiosyncratic error AR coefficients 
             SigE[i] = s21                                       # Update innovation variance parameter 
             bsave[dr, (((i-1)*nreg)+1):(i*nreg)] = b1           # Save current obs. regression coefficient draw 
             ssave[dr, i] = s21                                  # Save current innovation variance parameter draw
             psave2[dr, (((i-1)*arterms)+1):(i*arterms)] = phi1  # Save current idiosyncratic error AR coefficient draw  
-
+        
         end
 
         ############################################

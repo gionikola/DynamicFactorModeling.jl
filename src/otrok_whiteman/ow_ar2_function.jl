@@ -1,6 +1,6 @@
 @doc """
 
-    ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold, σ2old, varind, lev2ind, factors, numobs, numfactassign, varassign)
+    ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold, σ2old, varind, lev2ind, factors, numobs, varassign)
 
 Description:
 Estimate observed variable hyperparameters conditional on the factors. 
@@ -109,6 +109,9 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
     # (must be positive) 
     β3sign = false
 
+    # Initialize β
+    βnew = βold 
+
     while β2sign == false || β3sign == false
 
         # Draw new β
@@ -137,6 +140,7 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
 
     # Check for stationary of new ϕ draw 
     coef = [-reverse(ϕnew); 1]
+    coef = vec(coef) 
     root = roots(Polynomial(reverse(coef)))
     rootmod = abs.(root)
     accept = min(rootmod...) >= 1.001
@@ -146,11 +150,11 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
         ϕnew = ϕold
     else
         # Define Ψ(ϕold) (pg. 1002)
-        Ψold = det(sigmat(ϕold))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (y - x * βnew)' * inv(sigmat(ϕold)) * (y - x * βnew))
-
+        Ψold = det(sigmat(ϕold, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (y - x * βnew)' * inv(sigmat(ϕold, p)) * (y - x * βnew))
+    
         # Define Ψ(ϕnew) (pg. 1002)
-        Ψnew = det(sigmat(ϕnew))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (y - x * βnew)' * inv(sigmat(ϕnew)) * (y - x * βnew))
-
+        Ψnew = det(sigmat(ϕnew, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (y - x * βnew)' * inv(sigmat(ϕnew, p)) * (y - x * βnew))
+    
         # Determine acceptance probability 
         if Ψold == 0
             accept = 1
@@ -158,7 +162,7 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
             u = rand()
             accept = (rand() <= Ψnew / Ψold)
         end
-
+    
         # Pick new ϕ
         ϕnew = ϕnew * accept + ϕold * (1 - accept)
     end
@@ -173,6 +177,6 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
     #############################################
     #############################################
     ## Return new hyperparameter draws 
-    return βnew, ϕnew, σ2new, factors
+    return βnew, σ2new, ϕnew, factors
 end 
 
