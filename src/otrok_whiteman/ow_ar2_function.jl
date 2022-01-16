@@ -150,10 +150,10 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
         ϕnew = ϕold
     else
         # Define Ψ(ϕold) (pg. 1002)
-        Ψold = det(sigmat(ϕold, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (y - x * βnew)' * inv(sigmat(ϕold, p)) * (y - x * βnew))
+        Ψold = det(sigmat(ϕold, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (ỹ - x̃ * βnew)' * inv(sigmat(ϕold, p)) * (ỹ - x̃ * βnew))
     
         # Define Ψ(ϕnew) (pg. 1002)
-        Ψnew = det(sigmat(ϕnew, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (y - x * βnew)' * inv(sigmat(ϕnew, p)) * (y - x * βnew))
+        Ψnew = det(sigmat(ϕnew, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (ỹ - x̃ * βnew)' * inv(sigmat(ϕnew, p)) * (y - x̃ * βnew))
     
         # Determine acceptance probability 
         if Ψold == 0
