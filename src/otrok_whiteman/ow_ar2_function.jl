@@ -23,7 +23,6 @@ Inputs:
 - lev2ind       = level-2 factor index. 
 - factors       = factor draw. 
 - numobs        = total number of time periods / observations in the sample. 
-- numfactassign = number of variables each factor loads on.
 - varassign     = list containing vector of observed series indeces assigned to each level-2 factor.
 
 Outputs:
@@ -33,7 +32,7 @@ Outputs:
 - factors   = factor estimates. 
 """
 
-function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold, σ2old, varind, lev2ind, factors, numobs, numfactassign, varassign)
+function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold, σ2old, varind, lev2ind, factors, numobs, varassign)
 
     # Guarantee that y is a vector 
     y = vec(y)
@@ -176,3 +175,4 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
     ## Return new hyperparameter draws 
     return βnew, ϕnew, σ2new, factors
 end 
+
