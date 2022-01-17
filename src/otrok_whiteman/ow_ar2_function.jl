@@ -266,7 +266,7 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
         Ψold = det(sigmat(ϕold, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (ỹ - x̃ * βnew)' * inv(sigmat(ϕold, p)) * (ỹ - x̃ * βnew))
     
         # Define Ψ(ϕnew) (pg. 1002)
-        Ψnew = det(sigmat(ϕnew, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (ỹ - x̃ * βnew)' * inv(sigmat(ϕnew, p)) * (y - x̃ * βnew))
+        Ψnew = det(sigmat(ϕnew, p))^(-1 / 2) * exp(-(1 / (2 * σ2old)) * (ỹ - x̃ * βnew)' * inv(sigmat(ϕnew, p)) * (ỹ - x̃ * βnew))
     
         # Determine acceptance probability 
         if Ψold == 0
