@@ -93,35 +93,37 @@ function KNSingleFactorEstimator(data, SamplerParams)
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
-
+    
         println(dr)
-
+    
         # Create HDFM parameter containers 
-        varcoefs = zeros(nvar, 2)
-        varlagcoefs = zeros(nvar, errorlags)
-        fcoefs = zeros(1 + factorlags)
-        fvars = ones(1)
+        varcoefs = zeros(nvar, 2)[:, :]
+        varlagcoefs = zeros(nvar, errorlags)[:, :]
+        fcoefs = Any[]
+        push!(fcoefs, zeros(1 + factorlags))
+        fvars = Any[]
+        push!(fvars, ones(1))
         varvars = zeros(nvar)
-
+    
         ##################################
         ##################################
         # Draw β, σ2, ϕ
-
+    
         ## Gather all regressors into `X`
         X = [ones(nobs) factor]
-
+    
         ## Initialize β, σ2, ϕ
         β = zeros(2)
         σ2 = 0
         ϕ = zeros(errorlags)
-
+    
         ## Iterate over all data series 
         ## to draw obs. eq. hyperparameters 
         for i = 1:nvar
-
+    
             ## Save i-th series 
             Y = y[:, i]
-
+    
             if i == 1
                 ind = 0
                 while β[2] < 0
@@ -134,23 +136,23 @@ function KNSingleFactorEstimator(data, SamplerParams)
                     end
                 end
             end
-
+    
             ## Fill out HDFM objects 
             varcoefs[i, :] = β'
             varvars[i] = σ2
             varlagcoefs[i, :] = ϕ'
-
+    
             ## Save observation eq. hyperparameter draws 
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = β'
             ssave[dr, i] = σ2
             psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
-
+    
         end
-
+    
         ##################################
         ##################################
         # Draw factor lag coefficients 
-
+    
         ## Create factor regressor matrix 
         X = zeros(nobs, 1 + factorlags)
         X[:, 1] = ones(nobs)
@@ -158,38 +160,37 @@ function KNSingleFactorEstimator(data, SamplerParams)
             X[:, 1+j] = lag(factor, j, default = 0.0)
         end
         X = X[(factorlags+1):nobs, :]
-
+    
         ## Draw ψ
         ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs], X, σ2)
-
+    
         ## Fill out HDFM objects 
         fcoefs = ψ
-
+    
         ## Save new draw of ψ
         psave[dr, :] = ψ'
-
+    
         ##################################
         ##################################
-        # Draw global level-1 factor  
-
-        ## Specify hierarchical DFM 
+        # Specify hierarchical DFM   
+    
+        ## Define basic objects and dimensions  
         nlevels = 1
         nvar = nvar
         nfactors = ones(Int, 1)
         fassign = ones(Int, nvar)[:, :]
         flags = factorlags * ones(Int, 1)
-        varlags = errorlags * ones(Int, 1)
-        hdfm = HDFM(nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, varlagcoefs, fcoefs, fvars, varvars)
-
-        ## Construct state space model
-        ssmodel = convertHDFMtoSS(hdfm)
-
+        varlags = errorlags * ones(Int, nvar)
+    
+        ## Put HDFM into state space form 
+        ssmodel = HDFM(nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, varlagcoefs, fcoefs, fvars, varvars)
+    
         ## Draw global factor 
         factor = KNFactorSampler(y, ssmodel)
-
+    
         ## Save factor 
         Xtsave[:, dr] = factor
-
+    
         println(dr)
     end
 
