@@ -35,7 +35,7 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function kalmanFilter(data_y, data_z, ssmodel)
+function kalmanFilter(data_y, ssmodel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
@@ -55,14 +55,13 @@ function kalmanFilter(data_y, data_z, ssmodel)
     P_pred_laglag = ones(size(Q)[1], size(Q)[1])
 
     for t = 1:num_obs
-        # Save current obs of z & y
-        z = data_z[t, :]
+        # Save current obs of y
         y = data_y[t, :]
 
         # Prediction 
         β_pred_lag = μ + F * β_pred_laglag
         P_pred_lag = F * P_pred_laglag * transpose(F) + Q
-        y_pred_lag = H * β_pred_lag + A * z
+        y_pred_lag = H * β_pred_lag
         η_pred_lag = y - y_pred_lag
         f_pred_lag = H * P_pred_lag * transpose(H) + R
 
@@ -214,7 +213,7 @@ end
 ######################
 @doc """
     
-    dynamicFactorGibbsSampler(data_y, data_z, ssmodel)
+    KNFactorSampler(data_y, data_z, ssmodel)
 
 Description: 
 Draw a sample series of dynamic factor from conditional distribution in Ch 8, Kim & Nelson (1999).
@@ -237,7 +236,7 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function dynamicFactorGibbsSampler(data_y, data_z, ssmodel)
+function KNFactorSampler(data_y, data_z, ssmodel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
