@@ -45,8 +45,8 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     capt, nvars = size(y)       # nvar = # of variables; capt = # of time periods in complete sample 
 
     # Specify simulation length 
-    ndraws = 4000               # # of Monte Carlo draws 
-    burnin = 1000                 # # of initial draws to discard; total draws is ndraws + burnin 
+    ndraws = 1000               # # of Monte Carlo draws 
+    burnin = 50                 # # of initial draws to discard; total draws is ndraws + burnin 
 
     # Store factor and parameter counts 
     nfact = sum(nfactors)       # # of factors 
@@ -179,6 +179,7 @@ function OWTwoLevelEstimator(data, prior_hdfm)
             # hyperparameters, and update corresponding 
             # factor orientation (if appropriate)
             b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, fnvars[fassign[i, 2]], varassign)
+            #b1, s21, phi1, facts = ar2(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, vec(bold[i, :]), phimat0[:, i], SigE[i], i, nf, facts, capt, varassign)
             bold[i, :] = b1                                     # Update obs. regression coefficients
             phimat0[:, i] = phi1                                # Update idiosyncratic error AR coefficients 
             SigE[i] = s21                                       # Update innovation variance parameter 
