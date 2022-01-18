@@ -127,7 +127,7 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function kalmanSmoother(data_y, data_z, ssmodel)
+function kalmanSmoother(data_y, ssmodel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
@@ -142,7 +142,7 @@ function kalmanSmoother(data_y, data_z, ssmodel)
     PtT = Any[]
 
     # Run Kalman filter 
-    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, ssmodel)
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, ssmodel)
 
     # Initialize β_{t+1|T} (β_{T|T})
     βtflagT = data_filtered_β[end]
@@ -185,7 +185,7 @@ function kalmanSmoother(data_y, data_z, ssmodel)
         Ptflag_T = Pt_T
 
         # Generate y_{t|T} (smoothed obs.)
-        ytT = H * βtT + A * data_z[end-i]
+        ytT = H * βtT
 
         # Store smoothed obs.
         data_smoothed_y[end-i] = ytT
