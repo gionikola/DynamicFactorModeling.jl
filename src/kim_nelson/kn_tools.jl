@@ -344,7 +344,7 @@ end
 ######################
 @doc """
     
-    staticLinearGibbsSampler(Y,X)
+    linearRegressionSampler(Y,X)
 
 Description: 
 Estimate β and σ^2 in Y = Xβ + e, e ~ N(0,σ^2 I_T).
@@ -354,62 +354,48 @@ Inputs:
 - Y     = Dependent data matrix
 - X     = Independent data matrix 
 """
-function staticLinearGibbsSampler(Y, X)
-
-    # Create parameter lists 
-    data_β = Any[]
-    data_σ2 = Any[]
+function linearRegressionSampler(Y, X)
 
     # Save number of obs 
     T = size(X)[1]
 
     # Initialize σ2 
-    σ2 = 1.0 
+    σ2 = 1.0
 
-    # Apply iterated updating of β and σ^2 
-    for j = 1:5000
-    
-        # Generate new β^j 
-        ## Prior parameters in N(β0,Σ0)
-        β0 = zeros(size(X)[2])
-        Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
-        ## Posterior parameters in N(β1,Σ1) 
-        β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
-        β1 = vec(β1)
-        Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
-        if isposdef(Σ1) == false
-            Σ1 = PSDMat(Σ1)
-        end
-        ## Generate new β
-        β = rand(MvNormal(β1, Σ1))
-    
-        # Record new β^j
-        push!(data_β, β)
-    
-        # Update σ2^j 
-        ## Prior parameters in IG(ν0/2, δ0/2) 
-        ν0 = 0.002
-        δ0 = 0.002
-        ## Posterior parameters in IG(ν1/2, δ1/2)
-        ν1 = ν0 + T
-        δ1 = δ0 + (transpose(Y - X * β)*(Y-X*β))[1]
-        ## Generate new σ2
-        σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
-    
-        # Record new σ2^j
-        push!(data_σ2, σ2)
-    end
+    ##################################
+    ##################################
+    # Generate new β
 
-    # Drop first 3000 observations for all parameters 
-    data_β = data_β[1000:5000]
-    data_σ2 = data_σ2[1000:5000]
+    ## Prior parameters in N(β0,Σ0)
+    β0 = zeros(size(X)[2])
+    Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
 
-    # Integrate over samples 
-    β = mean(data_β, dims = 1)
-    σ2 = mean(data_σ2, dims = 1)
-    β = vec(β)
-    σ2 = vec(σ2)
+    ## Posterior parameters in N(β1,Σ1) 
+    β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+    β1 = vec(β1)
+    Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+    Σ1 = Hermitian(Σ1)
 
+    ## Generate new β
+    β = sim_MvNormal(β1, Σ1)
+
+    ##################################
+    ##################################
+    # Update σ2
+
+    ## Prior parameters in IG(ν0/2, δ0/2) 
+    ν0 = 0.002
+    δ0 = 0.002
+
+    ## Posterior parameters in IG(ν1/2, δ1/2)
+    ν1 = ν0 + T
+    δ1 = δ0 + norm(Y - X * β)^2
+
+    ## Generate new σ2
+    σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
+
+    ##################################
+    ##################################
     # Return parameters 
     return β, σ2
 end
@@ -457,7 +443,7 @@ function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
         Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
         ## Posterior parameters in N(β1,Σ1) 
         β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
-        β1 = vec(β1) 
+        β1 = vec(β1)
         Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
 
         ## Generate new β
@@ -521,7 +507,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
 
     # Apply iterated updating of β, σ^2, ϕ
     for j = 1:5000
-    
+
         ###############################
         # Generate β^j 
         ## Prior parameters in N(b0,A0)
@@ -558,7 +544,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         β = rand(MvNormal(b1, A1))
         # Record new β^j
         push!(data_β, β)
-    
+
         ###############################
         # Generate ϕ^j 
         ## Prior parameters in N(c0,B0)
@@ -579,10 +565,10 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         B1 = inv(inv(B0) + inv(σ2) * transpose(E_star) * E_star)
         ## Generate new ϕ
         ϕ = rand(MvNormal(c1, B1))
-    
+
         # Record new ϕ^j 
         push!(data_ϕ, ϕ)
-    
+
         ###############################
         # Generate σ2^j 
         ## Prior parameters in IG(ν0/2, δ0/2) 
@@ -594,7 +580,7 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
         δ1 = δ1[1, 1]
         ## Generate new σ2
         σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
-    
+
         # Record new σ2^j
         push!(data_σ2, σ2)
     end
