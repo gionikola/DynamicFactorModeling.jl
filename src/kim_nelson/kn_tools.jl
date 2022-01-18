@@ -213,7 +213,7 @@ end
 ######################
 @doc """
     
-    KNFactorSampler(data_y, data_z, ssmodel)
+    KNFactorSampler(data_y, ssmodel)
 
 Description: 
 Draw a sample series of dynamic factor from conditional distribution in Ch 8, Kim & Nelson (1999).
@@ -236,12 +236,12 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function KNFactorSampler(data_y, data_z, ssmodel)
+function KNFactorSampler(data_y, ssmodel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
     # Run Kalman filter 
-    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, ssmodel)
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, ssmodel)
 
     # Format non-positive definite P_{t|t}
     # matrices as PSDMat for sampler 
