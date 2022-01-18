@@ -414,7 +414,7 @@ end
 ######################
 @doc """
     
-    staticLinearGibbsSamplerRestrictedVariance(Y,X)
+    linearRegressionSamplerRestrictedVariance(Y, X, σ2)
 
 Description: 
 Estimate β and σ^2 in Y = Xβ + e, e ~ N(0,σ^2 I_T),
@@ -468,7 +468,7 @@ end
 ######################
 @doc """
     
-    autocorrErrorRegGibbsSampler(Y,X)
+    autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
 
 Description: 
 Estimate β, σ^2, and ϕ in Y = Xβ + e, e = Eϕ + ν, ν_t ~ i.i.d.N(0,σ^2).  
