@@ -576,4 +576,59 @@ function autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
     ##################################
     # Return parameters 
     return β, σ2, ϕ
-end
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
+"""
+@with_kw mutable struct DFMMeans
+    F::Array{Float64}   # Factor means 
+    B::Array{Float64}   # Obs. equation coefficient means 
+    S::Array{Float64}   # Idiosyncratic disturbance variance means 
+    P::Array{Float64}   # Factor autoregressive coefficient means 
+    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive means 
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
+"""
+@with_kw mutable struct DFMResults
+    F::Array{Float64}   # Factor sample 
+    B::Array{Float64}   # Obs. equation coefficient sample 
+    S::Array{Float64}   # Idiosyncratic disturbance variance sample 
+    P::Array{Float64}   # Factor autoregressive coefficient sample 
+    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive sample 
+    means::DFMMeans     # Factor and hyperparameter means
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
