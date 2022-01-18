@@ -79,7 +79,7 @@ function KNSingleFactorEstimator(data, SamplerParams)
     nreg = 2
 
     # De-mean data series 
-    y = y - repeat(mean(ytemp, dims = 1), nobs, 1)
+    y = y - repeat(mean(y, dims = 1), nobs, 1)
 
     # Set up some matricies for storage (optional)
     Xtsave = zeros(nobs, totdraws)                  # just keep draw of factor, not all states (others are trivial)
@@ -113,7 +113,7 @@ function KNSingleFactorEstimator(data, SamplerParams)
         ## Initialize β, σ2, ϕ
         β = zeros(2)
         σ2 = 0
-        ϕ = zeros(1 + errorlags)
+        ϕ = zeros(errorlags)
 
         ## Iterate over all data series 
         ## to draw obs. eq. hyperparameters 
@@ -143,7 +143,7 @@ function KNSingleFactorEstimator(data, SamplerParams)
             ## Save observation eq. hyperparameter draws 
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = β'
             ssave[dr, i] = σ2
-            psave2[dr, ((i-1)*arterms)+1:i*arterms] = ϕ'
+            psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
 
         end
 
@@ -160,13 +160,13 @@ function KNSingleFactorEstimator(data, SamplerParams)
         X = X[(factorlags+1):nobs, :]
 
         ## Draw ψ
-        ψ = linearRegressionSamplerRestrictedVariance(factor, X, σ2)
+        ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs], X, σ2)
 
         ## Fill out HDFM objects 
         fcoefs = ψ
 
         ## Save new draw of ψ
-        psave[dr, (i-1)*(arlag+1)+1:(i-1)*(arlag+1)+(arlag+1)] = ψ
+        psave[dr, :] = ψ'
 
         ##################################
         ##################################
@@ -175,10 +175,10 @@ function KNSingleFactorEstimator(data, SamplerParams)
         ## Specify hierarchical DFM 
         nlevels = 1
         nvar = nvar
-        nfactors = 1
-        fassign = ones(nvar)
-        flags = factorlags
-        varlags = errorlags
+        nfactors = ones(Int, 1)
+        fassign = ones(Int, nvar)[:, :]
+        flags = factorlags * ones(Int, 1)
+        varlags = errorlags * ones(Int, 1)
         hdfm = HDFM(nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, varlagcoefs, fcoefs, fvars, varvars)
 
         ## Construct state space model
