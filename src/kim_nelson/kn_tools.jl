@@ -426,40 +426,30 @@ Inputs:
 - X     = Independent data matrix 
 - σ2    = Restricted error variance 
 """
-function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
-
-    # Create parameter lists 
-    data_β = Any[]
+function linearRegressionSamplerRestrictedVariance(Y, X, σ2)
 
     # Save number of obs 
     T = size(X)[1]
 
-    # Apply iterated updating of β and σ^2 
-    for j = 1:5000
+    ##################################
+    ##################################
+    # Generate new β
 
-        # Generate new β^j 
-        ## Prior parameters in N(β0,Σ0)
-        β0 = zeros(size(X)[2])
-        Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
-        ## Posterior parameters in N(β1,Σ1) 
-        β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
-        β1 = vec(β1)
-        Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+    ## Prior parameters in N(β0,Σ0)
+    β0 = zeros(size(X)[2])
+    Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
+    
+    ## Posterior parameters in N(β1,Σ1) 
+    β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+    β1 = vec(β1)
+    Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+    Σ1 = Hermitian(Σ1)
 
-        ## Generate new β
-        β = rand(MvNormal(β1, Σ1))
+    ## Generate new β
+    β = sim_MvNormal(β1, Σ1)
 
-        # Record new β^j
-        push!(data_β, β)
-    end
-
-    # Drop first 3000 observations for all parameters 
-    data_β = data_β[1000:5000]
-
-    # Integrate over samples 
-    β = mean(data_β, dims = 1)
-    β = vec(β)
-
+    ##################################
+    ##################################
     # Return parameters 
     return β
 end
