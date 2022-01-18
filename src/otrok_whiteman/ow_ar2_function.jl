@@ -121,10 +121,11 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
     while β2sign == false || β3sign == false
 
         whileind += 1
-        println("Series index: $varind")
+        #=println("Series index: $varind")
         println("While loop index: $whileind")
         println("β2sigmax: $β2signmax")
         println("β3signmax: $β3signmax")
+        =#
 
         # Draw new β
         #βnew = sim_MvNormal(inv(B) * (Bbar * βbar + inv(σ2old) * x̃star' * ỹstar), inv(B))
@@ -268,6 +269,7 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
     #############################################
     ## Draw ϕ
 
+    #=
     # Draw new ϕ candidate 
     ϕnew = sim_MvNormal(ϕhat, inv(V))
 
@@ -301,14 +303,42 @@ function ar2(y, x, p, βbar, Bbarinv, ϕbar, Vbarinv, υbar, δbar, βold, ϕold
         # Pick new ϕ
         ϕnew = ϕnew * accept + ϕold * (1 - accept)
     end
+    =#
+
+    # Generate ϕ^j 
+    ## Prior parameters in N(c0,B0)
+    c0 = zeros(size(ϕold)[1])
+    B0 = Matrix(I, size(c0)[1], size(c0)[1]) .* 1000.0
+    ## Generate e^⋆ 
+    e_star = y - x * βnew
+    ## Generate E^⋆
+    E_star = zeros(numobs, length(ϕold))
+    E_star = E_star[(1+length(ϕold)):end, :]
+    for i = 1:(size(E_star)[2]) # iterate over variables in X
+        e_temp = lag(e_star, i)
+        E_star[:, i] = e_temp[(1+length(ϕold)):end]
+    end
+    e_star = e_star[(1+length(ϕold)):end]
+    ## Posterior parameters in N(c1,B1)
+    c1 = inv(inv(B0) + inv(σ2old) * transpose(E_star) * E_star) * (inv(B0) * c0 + inv(σ2old) * transpose(E_star) * e_star)
+    B1 = inv(inv(B0) + inv(σ2old) * transpose(E_star) * E_star)
+    B1 = Hermitian(B1) 
+    ## Generate new ϕ
+    ϕnew = sim_MvNormal(c1, B1)
 
     #############################################
     #############################################
     ## Draw σ2 
 
     # Draw new σ2 from inverse gamma distribution 
-    #σ2new = rand(InverseGamma((υbar + numobs) / 2, (δbar + (ỹstar - x̃star * βnew)' * (ỹstar - x̃star * βnew)) / 2))
-    σ2new = rand(InverseGamma((υbar + numobs) / 2, (δbar + norm(ỹstar - x̃star * βnew)^2) / 2))
+    #σ2new = rand(InverseGamma((υbar + numobs) / 2, (δbar + norm(ỹstar - x̃star * βnew)^2) / 2))
+    ν0 = 0.002
+    δ0 = 0.002
+    ## Posterior parameters in IG(ν1/2, δ1/2)
+    ν1 = ν0 + numobs
+    δ1 = δ0 + norm(y - x * βnew)^2
+    ## Generate new σ2
+    σ2new = rand(InverseGamma(ν1 / 2, δ1 / 2))
 
     #############################################
     #############################################
