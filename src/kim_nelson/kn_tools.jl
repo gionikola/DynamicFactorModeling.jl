@@ -460,6 +460,7 @@ function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
         β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
         β1 = vec(β1) 
         Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+
         ## Generate new β
         β = rand(MvNormal(β1, Σ1))
 

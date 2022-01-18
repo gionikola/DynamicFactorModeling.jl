@@ -49,10 +49,10 @@ stds = Any[]
 
 j = 1
 for i in 1:size(results.F)[1]
-    push!(stds, std(results.F[i, j, :]))
-    push!(quant33, quantile(results.F[i, j, :], 0.33))
-    push!(quant66, quantile(results.F[i, j, :], 0.66))
-    push!(medians, median(results.F[i, j, :]))
+    push!(stds, std(results.F[i, :]))
+    push!(quant33, quantile(results.F[i, :], 0.33))
+    push!(quant66, quantile(results.F[i, :], 0.66))
+    push!(medians, median(results.F[i, :]))
 end
 
 plot(results.means.F[:, j])
