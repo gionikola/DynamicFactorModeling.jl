@@ -35,7 +35,7 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function kalmanFilter(data_y, data_z, ssmodel)
+function kalmanFilter(data_y, ssmodel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
@@ -55,14 +55,13 @@ function kalmanFilter(data_y, data_z, ssmodel)
     P_pred_laglag = ones(size(Q)[1], size(Q)[1])
 
     for t = 1:num_obs
-        # Save current obs of z & y
-        z = data_z[t, :]
+        # Save current obs of y
         y = data_y[t, :]
 
         # Prediction 
         β_pred_lag = μ + F * β_pred_laglag
         P_pred_lag = F * P_pred_laglag * transpose(F) + Q
-        y_pred_lag = H * β_pred_lag + A * z
+        y_pred_lag = H * β_pred_lag
         η_pred_lag = y - y_pred_lag
         f_pred_lag = H * P_pred_lag * transpose(H) + R
 
@@ -128,7 +127,7 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function kalmanSmoother(data_y, data_z, ssmodel)
+function kalmanSmoother(data_y, ssmodel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
@@ -143,7 +142,7 @@ function kalmanSmoother(data_y, data_z, ssmodel)
     PtT = Any[]
 
     # Run Kalman filter 
-    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, ssmodel)
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, ssmodel)
 
     # Initialize β_{t+1|T} (β_{T|T})
     βtflagT = data_filtered_β[end]
@@ -186,7 +185,7 @@ function kalmanSmoother(data_y, data_z, ssmodel)
         Ptflag_T = Pt_T
 
         # Generate y_{t|T} (smoothed obs.)
-        ytT = H * βtT + A * data_z[end-i]
+        ytT = H * βtT
 
         # Store smoothed obs.
         data_smoothed_y[end-i] = ytT
@@ -214,7 +213,7 @@ end
 ######################
 @doc """
     
-    dynamicFactorGibbsSampler(data_y, data_z, ssmodel)
+    KNFactorSampler(data_y, ssmodel)
 
 Description: 
 Draw a sample series of dynamic factor from conditional distribution in Ch 8, Kim & Nelson (1999).
@@ -237,12 +236,12 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function dynamicFactorGibbsSampler(data_y, data_z, ssmodel)
+function KNFactorSampler(data_y, ssmodel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
     # Run Kalman filter 
-    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, data_z, ssmodel)
+    data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, ssmodel)
 
     # Format non-positive definite P_{t|t}
     # matrices as PSDMat for sampler 
@@ -345,7 +344,7 @@ end
 ######################
 @doc """
     
-    staticLinearGibbsSampler(Y,X)
+    linearRegressionSampler(Y,X)
 
 Description: 
 Estimate β and σ^2 in Y = Xβ + e, e ~ N(0,σ^2 I_T).
@@ -355,62 +354,48 @@ Inputs:
 - Y     = Dependent data matrix
 - X     = Independent data matrix 
 """
-function staticLinearGibbsSampler(Y, X)
-
-    # Create parameter lists 
-    data_β = Any[]
-    data_σ2 = Any[]
+function linearRegressionSampler(Y, X)
 
     # Save number of obs 
     T = size(X)[1]
 
     # Initialize σ2 
-    σ2 = 1.0 
+    σ2 = 1.0
 
-    # Apply iterated updating of β and σ^2 
-    for j = 1:5000
-    
-        # Generate new β^j 
-        ## Prior parameters in N(β0,Σ0)
-        β0 = zeros(size(X)[2])
-        Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
-        ## Posterior parameters in N(β1,Σ1) 
-        β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
-        β1 = vec(β1)
-        Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
-        if isposdef(Σ1) == false
-            Σ1 = PSDMat(Σ1)
-        end
-        ## Generate new β
-        β = rand(MvNormal(β1, Σ1))
-    
-        # Record new β^j
-        push!(data_β, β)
-    
-        # Update σ2^j 
-        ## Prior parameters in IG(ν0/2, δ0/2) 
-        ν0 = 0.002
-        δ0 = 0.002
-        ## Posterior parameters in IG(ν1/2, δ1/2)
-        ν1 = ν0 + T
-        δ1 = δ0 + (transpose(Y - X * β)*(Y-X*β))[1]
-        ## Generate new σ2
-        σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
-    
-        # Record new σ2^j
-        push!(data_σ2, σ2)
-    end
+    ##################################
+    ##################################
+    # Generate new β
 
-    # Drop first 3000 observations for all parameters 
-    data_β = data_β[1000:5000]
-    data_σ2 = data_σ2[1000:5000]
+    ## Prior parameters in N(β0,Σ0)
+    β0 = zeros(size(X)[2])
+    Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
 
-    # Integrate over samples 
-    β = mean(data_β, dims = 1)
-    σ2 = mean(data_σ2, dims = 1)
-    β = vec(β)
-    σ2 = vec(σ2)
+    ## Posterior parameters in N(β1,Σ1) 
+    β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+    β1 = vec(β1)
+    Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+    Σ1 = Hermitian(Σ1)
 
+    ## Generate new β
+    β = sim_MvNormal(β1, Σ1)
+
+    ##################################
+    ##################################
+    # Update σ2
+
+    ## Prior parameters in IG(ν0/2, δ0/2) 
+    ν0 = 0.002
+    δ0 = 0.002
+
+    ## Posterior parameters in IG(ν1/2, δ1/2)
+    ν1 = ν0 + T
+    δ1 = δ0 + norm(Y - X * β)^2
+
+    ## Generate new σ2
+    σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
+
+    ##################################
+    ##################################
     # Return parameters 
     return β, σ2
 end
@@ -429,7 +414,7 @@ end
 ######################
 @doc """
     
-    staticLinearGibbsSamplerRestrictedVariance(Y,X)
+    linearRegressionSamplerRestrictedVariance(Y, X, σ2)
 
 Description: 
 Estimate β and σ^2 in Y = Xβ + e, e ~ N(0,σ^2 I_T),
@@ -441,40 +426,30 @@ Inputs:
 - X     = Independent data matrix 
 - σ2    = Restricted error variance 
 """
-function staticLinearGibbsSamplerRestrictedVariance(Y, X, σ2)
-
-    # Create parameter lists 
-    data_β = Any[]
+function linearRegressionSamplerRestrictedVariance(Y, X, σ2)
 
     # Save number of obs 
     T = size(X)[1]
 
-    # Apply iterated updating of β and σ^2 
-    for j = 1:5000
+    ##################################
+    ##################################
+    # Generate new β
 
-        # Generate new β^j 
-        ## Prior parameters in N(β0,Σ0)
-        β0 = zeros(size(X)[2])
-        Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
-        ## Posterior parameters in N(β1,Σ1) 
-        β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
-        β1 = vec(β1) 
-        Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+    ## Prior parameters in N(β0,Σ0)
+    β0 = zeros(size(X)[2])
+    Σ0 = Matrix(I, size(β0)[1], size(β0)[1]) .* 1000.0
 
-        ## Generate new β
-        β = rand(MvNormal(β1, Σ1))
+    ## Posterior parameters in N(β1,Σ1) 
+    β1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X) * (inv(Σ0) * β0 + inv(σ2) * transpose(X) * Y)
+    β1 = vec(β1)
+    Σ1 = inv(inv(Σ0) + inv(σ2) * transpose(X) * X)
+    Σ1 = Hermitian(Σ1)
 
-        # Record new β^j
-        push!(data_β, β)
-    end
+    ## Generate new β
+    β = sim_MvNormal(β1, Σ1)
 
-    # Drop first 3000 observations for all parameters 
-    data_β = data_β[1000:5000]
-
-    # Integrate over samples 
-    β = mean(data_β, dims = 1)
-    β = vec(β)
-
+    ##################################
+    ##################################
     # Return parameters 
     return β
 end
@@ -493,7 +468,7 @@ end
 ######################
 @doc """
     
-    autocorrErrorRegGibbsSampler(Y,X)
+    autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
 
 Description: 
 Estimate β, σ^2, and ϕ in Y = Xβ + e, e = Eϕ + ν, ν_t ~ i.i.d.N(0,σ^2).  
@@ -506,12 +481,7 @@ Inputs:
 - error_lag_num = Number of lags in the disturbance DGP 
 """
 
-function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
-
-    # Create parameter lists 
-    data_β = Any[]
-    data_σ2 = Any[]
-    data_ϕ = Any[]
+function autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
 
     # Save number of obs 
     T = size(X)[1]
@@ -520,99 +490,145 @@ function autocorrErrorRegGibbsSampler(Y, X, error_lag_num)
     ϕ = 0.0 .* ones(error_lag_num)
     σ2 = 1
 
-    # Apply iterated updating of β, σ^2, ϕ
-    for j = 1:5000
-    
-        ###############################
-        # Generate β^j 
-        ## Prior parameters in N(b0,A0)
-        b0 = zeros(size(X)[2])
-        A0 = Matrix(I, size(b0)[1], size(b0)[1]) .* 1000.0
-        ## Generate X^⋆ 
-        X_star = similar(X[(1+length(ϕ)):end, :])
-        for i = 1:size(X)[2] # iterate over variables in X
-            x_temp = X[:, i]
-            for p = 1:length(ϕ) # iterate over lag params in ϕ
-                x_temp[(1+length(ϕ)):end, :] = x_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(x_temp, p)[(1+length(ϕ)):end, :]
-            end
-            x_temp = x_temp[(1+length(ϕ)):end, :]
-            X_star[:, i] = x_temp
+    ##################################
+    ##################################
+    # Generate β
+
+    ## Prior parameters in N(b0,A0)
+    b0 = zeros(size(X)[2])
+    A0 = Matrix(I, size(b0)[1], size(b0)[1]) .* 1000.0
+
+    ## Generate X^⋆ 
+    X_star = similar(X[(1+length(ϕ)):end, :])
+    for i = 1:size(X)[2] # iterate over variables in X
+        x_temp = X[:, i]
+        for p = 1:length(ϕ) # iterate over lag params in ϕ
+            x_temp[(1+length(ϕ)):end, :] = x_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(x_temp, p)[(1+length(ϕ)):end, :]
         end
-        ## Generate Y^⋆
-        Y_star = similar(Y[(1+length(ϕ)):end, :])
-        y_temp = Y
-        for p = 1:length(ϕ)
-            y_temp = Y
-            y_temp = y_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(y_temp, p)[(1+length(ϕ)):end, :]
-        end
-        #y_temp = y_temp[(1+length(ϕ)):end, :]
-        Y_star = y_temp
-        ## Posterior parameters in N(b1,A1) 
-        b1 = inv(inv(A0) + inv(σ2) * transpose(X_star) * X_star) * (inv(A0) * b0 + inv(σ2) * transpose(X_star) * Y_star)
-        A1 = inv(inv(A0) + inv(σ2) * transpose(X_star) * X_star)
-        ## Vectorize b1 
-        b1 = vec(b1)
-        ## Generate new β
-        if isposdef(A1) == false
-            A1 = PSDMat(A1)
-        end
-        β = rand(MvNormal(b1, A1))
-        # Record new β^j
-        push!(data_β, β)
-    
-        ###############################
-        # Generate ϕ^j 
-        ## Prior parameters in N(c0,B0)
-        c0 = zeros(size(ϕ)[1])
-        B0 = Matrix(I, size(c0)[1], size(c0)[1]) .* 1000.0
-        ## Generate e^⋆ 
-        e_star = Y - X * β
-        ## Generate E^⋆
-        E_star = zeros(T, length(ϕ))
-        E_star = E_star[(1+length(ϕ)):end, :]
-        for i = 1:(size(E_star)[2]) # iterate over variables in X
-            e_temp = lag(e_star, i)
-            E_star[:, i] = e_temp[(1+length(ϕ)):end]
-        end
-        e_star = e_star[(1+length(ϕ)):end]
-        ## Posterior parameters in N(c1,B1)
-        c1 = inv(inv(B0) + inv(σ2) * transpose(E_star) * E_star) * (inv(B0) * c0 + inv(σ2) * transpose(E_star) * e_star)
-        B1 = inv(inv(B0) + inv(σ2) * transpose(E_star) * E_star)
-        ## Generate new ϕ
-        ϕ = rand(MvNormal(c1, B1))
-    
-        # Record new ϕ^j 
-        push!(data_ϕ, ϕ)
-    
-        ###############################
-        # Generate σ2^j 
-        ## Prior parameters in IG(ν0/2, δ0/2) 
-        ν0 = 0.002
-        δ0 = 0.002
-        ## Posterior parameters in IG(ν1/2, δ1/2)
-        ν1 = ν0 + T
-        δ1 = δ0 .+ transpose(Y_star - X_star * β) * (Y_star - X_star * β)
-        δ1 = δ1[1, 1]
-        ## Generate new σ2
-        σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
-    
-        # Record new σ2^j
-        push!(data_σ2, σ2)
+        x_temp = x_temp[(1+length(ϕ)):end, :]
+        X_star[:, i] = x_temp
     end
 
-    # Drop first 3000 observations for all parameters 
-    data_β = data_β[1000:5000]
-    data_σ2 = data_σ2[1000:5000]
-    data_ϕ = data_ϕ[1000:5000]
+    ## Generate Y^⋆
+    Y_star = similar(Y[(1+length(ϕ)):end, :])
+    y_temp = Y
+    for p = 1:length(ϕ)
+        y_temp = Y
+        y_temp = y_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(y_temp, p)[(1+length(ϕ)):end, :]
+    end
+    Y_star = y_temp
 
-    # Integrate over samples 
-    β = mean(data_β, dims = 1)
-    σ2 = mean(data_σ2, dims = 1)
-    ϕ = mean(data_ϕ, dims = 1)
-    β = vec(β)
-    σ2 = vec(σ2)
-    ϕ = vec(ϕ)
+    ## Posterior parameters in N(b1,A1) 
+    b1 = inv(inv(A0) + inv(σ2) * transpose(X_star) * X_star) * (inv(A0) * b0 + inv(σ2) * transpose(X_star) * Y_star)
+    b1 = vec(b1)
+    A1 = inv(inv(A0) + inv(σ2) * transpose(X_star) * X_star)
+    A1 = Hermitian(A1)
 
+    ## Draw new β
+    β = sim_MvNormal(b1, A1)
+
+    ##################################
+    ##################################
+    # Generate ϕ
+
+    ## Prior parameters in N(c0,B0)
+    c0 = zeros(size(ϕ)[1])
+    B0 = Matrix(I, size(c0)[1], size(c0)[1]) .* 1000.0
+
+    ## Generate e^⋆ 
+    e_star = Y - X * β
+
+    ## Generate E^⋆
+    E_star = zeros(T, length(ϕ))
+    E_star = E_star[(1+length(ϕ)):end, :]
+    for i = 1:(size(E_star)[2]) # iterate over variables in X
+        e_temp = lag(e_star, i)
+        E_star[:, i] = e_temp[(1+length(ϕ)):end]
+    end
+    e_star = e_star[(1+length(ϕ)):end]
+
+    ## Posterior parameters in N(c1,B1)
+    c1 = inv(inv(B0) + inv(σ2) * transpose(E_star) * E_star) * (inv(B0) * c0 + inv(σ2) * transpose(E_star) * e_star)
+    c1 = vec(c1)
+    B1 = inv(inv(B0) + inv(σ2) * transpose(E_star) * E_star)
+    B1 = Hermitian(B1)
+
+    ## Generate new ϕ
+    ϕ = sim_MvNormal(c1, B1)
+
+    ##################################
+    ##################################
+    # Generate σ2
+
+    ## Prior parameters in IG(ν0/2, δ0/2) 
+    ν0 = 0.002
+    δ0 = 0.002
+
+    ## Posterior parameters in IG(ν1/2, δ1/2)
+    ν1 = ν0 + T
+    δ1 = δ0 .+ norm(Y_star - X_star * β)^2
+    δ1 = δ1[1, 1]
+
+    ## Generate new σ2
+    σ2 = rand(InverseGamma(ν1 / 2, δ1 / 2))
+
+    ##################################
+    ##################################
     # Return parameters 
     return β, σ2, ϕ
-end
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
+"""
+@with_kw mutable struct DFMMeans
+    F::Array{Float64}   # Factor means 
+    B::Array{Float64}   # Obs. equation coefficient means 
+    S::Array{Float64}   # Idiosyncratic disturbance variance means 
+    P::Array{Float64}   # Factor autoregressive coefficient means 
+    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive means 
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+"""
+"""
+@with_kw mutable struct DFMResults
+    F::Array{Float64}   # Factor sample 
+    B::Array{Float64}   # Obs. equation coefficient sample 
+    S::Array{Float64}   # Idiosyncratic disturbance variance sample 
+    P::Array{Float64}   # Factor autoregressive coefficient sample 
+    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive sample 
+    means::DFMMeans     # Factor and hyperparameter means
+end;
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################
+######################

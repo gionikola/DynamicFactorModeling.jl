@@ -196,7 +196,7 @@ function sigbig(phi, p, capt)
 
     rotate = trunc.(Int, seqa(0, 1, capt - p))
     Siinv_upper = Hermitian(sigmat(phi, p))
-    Siinv_upper = [inv(cholesky(Siinv_upper, Val(true)).U)' zeros(p, capt - p)]
+    Siinv_upper = [inv(cholesky(Siinv_upper, Val(true), check = false).U)' zeros(p, capt - p)]
     Siinv_lower = [kron((-reverse(phi, dims = 1)'), ones(capt - p, 1)) ones(capt - p, 1) zeros(capt - p, capt - p - 1)]
 
     for s = 1:(capt-p)
