@@ -274,19 +274,14 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
         ############################################
         ## Draw level-2 factors 
         ############################################
+
         for c = 1:(nfacts-1) # Iterate over level-2 factors 
-        
-            j = 1 + c * factorlags
         
             # Store number of obs. variables 
             # to which level-2 factor number c 
             # gets assigned 
             Size = fnvars[c]
-        
-            # Partial out variation in variables assigned to level-2 factor c
-            # corresponding to variation in intercept + level-1 factor 
-            yC = y[:, varassign[c]] - ones(nobs, 1) * betas[varassign[c], 1]' - factor[:, 1] * betas[varassign[c], 2]'
-        
+
             # Initialize all important objects 
             phiC = vec(psis[1+c, 2:end])                                      # Store level-2 factor c AR lag coefficients 
             sinvf1 = sigbig(phiC, factorlags, nobs)                      # (T×T) S^{-1} quasi-differencing matrix for level-2 factor c
@@ -294,16 +289,20 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
             H = sinvf1' * sinvf1                                    # First term of (T×T) H matrix, implying b_0 = 0 (H^{-1} is factor covariance matrix) 
         
             for i = 1:Size # Iterate over all obs. variables assigned to level-2 factor c 
-        
+            
                 # S_i^{-1} for i > 2 
                 sinv1 = sigbig(vec(phis[varassign[c][i], :]), errorlags, nobs)
-        
+            
                 # Add next term in equation for H (pg. 1004, Otrok-Whiteman 1998)
-                H = H + ((betas[varassign[c][i], 3]^2 / (sigmas[varassign[c][i]])) * (sinv1' * sinv1))
-        
+                H += ((betas[varassign[c][i], 3]^2 / (sigmas[varassign[c][i]])) * (sinv1' * sinv1))
+            
+                # Partial out variation in variables assigned to level-2 factor c
+                # corresponding to variation in intercept + level-1 factor 
+                yC = y[:, varassign[c][i]] - ones(nobs, 1) * betas[varassign[c][i], 1] - factor[:, 1] * betas[varassign[c][i], 2]
+
                 # Add next term of within-parenthesis sum in equation for f (pg. 1004, Otrok-Whiteman 1998)
-                f = f + (betas[varassign[c][i], 3] / sigmas[varassign[c][i]]) * (sinv1' * sinv1) * (yC[:, i])
-        
+                f += (betas[varassign[c][i], 3] / sigmas[varassign[c][i]]) * (sinv1' * sinv1) * (yC)
+            
             end
             Hinv = inv(H)     # Invert H to save H^{-1} 
             f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
