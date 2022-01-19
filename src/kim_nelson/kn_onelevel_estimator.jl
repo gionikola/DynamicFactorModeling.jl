@@ -162,7 +162,7 @@ function KNSingleFactorEstimator(data, params)
         X = X[(factorlags+1):nobs, :]
     
         ## Draw ψ
-        ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs], X, σ2)
+        ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs], X, 1.0)
     
         ## Fill out HDFM objects 
         fcoefs = ψ
