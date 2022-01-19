@@ -42,7 +42,7 @@ samplerparams = SamplerParams(P, L, 1000, 50)            # Set model priors
 ###############
 ###############
 
-results = KNSingleFactorEstimator(data_y, samplerparams, data_β[:,1])
+results = KNSingleFactorEstimator(data_y, samplerparams)
 
 ###############
 ###############

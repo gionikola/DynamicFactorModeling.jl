@@ -56,7 +56,7 @@ Outputs:
 - F = single-factor DFM factor estimate. 
 - S = single-factor DFM error variance estimates. 
 """
-function KNSingleFactorEstimator(data, params, factor)
+function KNSingleFactorEstimator(data, params)
 
     # Unpack simulation parameters 
     @unpack factorlags, errorlags, ndraws, burnin = params
@@ -86,7 +86,7 @@ function KNSingleFactorEstimator(data, params, factor)
     psave2 = zeros(totdraws, nvar * errorlags)      # factor autoregressive polynomials
 
     # Initialize global factor 
-    #factor = mean(y, dims = 2)
+    factor = mean(y, dims = 2)
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
