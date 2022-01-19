@@ -22,7 +22,7 @@ F[2:(P+N-1), 2:(P+N-1)] = 0.25 * ident(N)
 Q = zeros(P + N, P + N)
 Q[1, 1] = 1.0
 for i in 1:N
-    Q[1+i, 1+i] = 1.0
+    Q[1+i, 1+i] = 2.0
 end
 
 μ = zeros(P + N)
@@ -42,7 +42,7 @@ samplerparams = SamplerParams(P, L, 1000, 50)            # Set model priors
 ###############
 ###############
 
-results = KNSingleFactorEstimator(data_y, samplerparams)
+results = KNSingleFactorEstimator(data_y, samplerparams, data_β[:,1])
 
 ###############
 ###############
@@ -61,7 +61,8 @@ for i in 1:size(results.F)[1]
     push!(medians, median(results.F[i, :]))
 end
 
-plot(results.means.F[:, j])
-plot(medians)
+plot(data_β[:,1])
+plot!(results.means.F[:, j])
+#plot(medians)
 plot!(quant33)
 plot!(quant66)
