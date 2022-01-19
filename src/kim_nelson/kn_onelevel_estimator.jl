@@ -56,10 +56,10 @@ Outputs:
 - F = single-factor DFM factor estimate. 
 - S = single-factor DFM error variance estimates. 
 """
-function KNSingleFactorEstimator(data, SamplerParams)
+function KNSingleFactorEstimator(data, params, factor)
 
     # Unpack simulation parameters 
-    @unpack factorlags, errorlags, ndraws, burnin = SamplerParams
+    @unpack factorlags, errorlags, ndraws, burnin = params
 
     # Save total number of Monte Carlo draws 
     totdraws = ndraws + burnin
@@ -70,9 +70,6 @@ function KNSingleFactorEstimator(data, SamplerParams)
     # nvar = number of variables including the variable with missing date
     # nobs = length of data of complete dataset
     nobs, nvar = size(y)
-
-    # Save number of factors to estimate 
-    nfact = 1
 
     # Number of regressors in each observable equation
     # (constant + global factor)
@@ -89,7 +86,7 @@ function KNSingleFactorEstimator(data, SamplerParams)
     psave2 = zeros(totdraws, nvar * errorlags)      # factor autoregressive polynomials
 
     # Initialize global factor 
-    factor = mean(y, dims = 2)
+    #factor = mean(y, dims = 2)
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
@@ -113,7 +110,7 @@ function KNSingleFactorEstimator(data, SamplerParams)
         X = [ones(nobs) factor]
     
         ## Initialize β, σ2, ϕ
-        β = zeros(2)
+        β = ones(2)
         σ2 = 0
         ϕ = zeros(errorlags)
     
@@ -126,6 +123,7 @@ function KNSingleFactorEstimator(data, SamplerParams)
     
             if i == 1
                 ind = 0
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[2] < 0
                     ind += 1
                     ## Draw observation eq. hyperparameters 
@@ -135,7 +133,9 @@ function KNSingleFactorEstimator(data, SamplerParams)
                         X = [ones(nobs) factor]
                     end
                 end
-            end
+            else
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+            end 
     
             ## Fill out HDFM objects 
             varcoefs[i, :] = β'
@@ -172,30 +172,32 @@ function KNSingleFactorEstimator(data, SamplerParams)
     
         ##################################
         ##################################
-        # Specify hierarchical DFM   
-    
-        ## Define basic objects and dimensions  
-        nlevels = 1
-        nvar = nvar
-        nfactors = ones(Int, 1)
-        fassign = ones(Int, nvar)[:, :]
-        flags = factorlags * ones(Int, 1)
-        varlags = errorlags * ones(Int, nvar)
-    
-        ## Put HDFM into state space form 
-        ssmodel = HDFM(nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, varlagcoefs, fcoefs, fvars, varvars)
-    
-        ## Draw global factor 
-        factor = KNFactorSampler(y, ssmodel)
+        # Draw factor  
+        
+        #draw factor
+        #take drawing of World factor 
+        sinvf1 = sigbig( ψ[2:end], factorlags, nobs)
+        f = zeros(nobs, 1)
+        H = sinvf1' * sinvf1
+
+        for i = 1:nvar
+            sinv1 = sigbig(vec(varlagcoefs[i,:]), errorlags, nobs)
+            H = H + ((varcoefs[i, 2]^2 / varvars[i] ) * sinv1' * sinv1)
+            f = f + (varcoefs[i, 2] / varvars[i]) * sinv1' * sinv1 * (y[:, i])
+        end
+
+        Hinv = inv(H)
+        f = Hinv * f
+        factor = sim_MvNormal(vec(f), Hinv)
     
         ## Save factor 
         Xtsave[:, dr] = factor
-    
+        
         println(dr)
     end
 
     # Save resulting samples 
-    Xtsave = Xtsave[:, (burnin*nfact)+1:(burnin+ndraws)*nfact]
+    Xtsave = Xtsave[:, (burnin)+1:(burnin+ndraws)]
     bsave = bsave[burnin+1:burnin+ndraws, :]
     ssave = ssave[burnin+1:burnin+ndraws, :]
     psave = psave[burnin+1:burnin+ndraws, :]
