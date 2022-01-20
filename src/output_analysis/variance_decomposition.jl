@@ -25,5 +25,3 @@ function vardecomp2level(data, factor, betas, factorassign)
     return vardecomps
 end
 
-vardecomp = vardecomp2level(datamat, results.means.F, reshape(results.means.B, 3, 50)', fassign)
-
