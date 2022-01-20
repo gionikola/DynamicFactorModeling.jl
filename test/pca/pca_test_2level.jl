@@ -103,5 +103,5 @@ end
 plot(data_β[:, 1+j])
 plot!(results.means.F[:, j])
 #plot!(medians)
-plot!(quant33)
-plot!(quant66)
+#plot!(quant33)
+#plot!(quant66)
