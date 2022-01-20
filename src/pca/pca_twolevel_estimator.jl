@@ -134,11 +134,11 @@ function PCA2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
     factor[:, 1] = firstComponentFactor(y)     # Starting global factor = crosssectional mean of obs. series 
     for i in 1:(nfacts-1)              # Set level-2 factors equal to their respective group means
         factor[:, 1+i] = firstComponentFactor(y[:, varassign[i]] - repeat(factor[:,1], 1, length(varassign[i])))
-        if cor(factor[:, 1+i], y[:, varassign[i][1]] -  repeat(factor[:,1], 1, length(varassign[i]))) < 0
+        if cor(factor[:, 1+i], y[:, varassign[i][1]] -  factor[:,1]) < 0
             factor[:, 1+i] = -factor[:, 1+i]
         end 
     end
-    if cor(factor[:,1], y[:,1]) < 0
+    if cor(factor[:,1], y[:,1] - y[:, varassign[1][1]]) < 0
         factor[:,1] = -factor[:,1]
     end 
 
