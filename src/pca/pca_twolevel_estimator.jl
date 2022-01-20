@@ -157,7 +157,7 @@ function PCA2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
         for i = 1:nvar
         
             ## Gather all regressors into `X`
-            X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i,2]]]
+            X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
         
             ## Initialize β, σ2, ϕ
             β = ones(1 + nlevels)
@@ -166,40 +166,41 @@ function PCA2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
         
             ## Save i-th series 
             Y = y[:, i]
-            
-            if i == 1 && i == varassign[factorassign[i,2]][1]
+        
+            ind = 0
+        
+            if i == 1 && i == varassign[factorassign[i, 2]][1]
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                ind = 0
                 while β[2] < 0 || β[3] < 0
                     ind += 1
                     println("Factor 1 index: $ind")
                     if β[2] < 0
                         factor[:, 1] = -factor[:, 1]
-                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i,2]]]
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                     end
                     if β[3] < 0
-                        factor[:, 1+factorassign[i,2]] = -factor[:, 1+factorassign[i,2]]
-                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i,2]]]
+                        factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                     end
                     β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 end
-            elseif i == 1 && i != varassign[factorassign[i,2]][1]
+            elseif i == 1 && i != varassign[factorassign[i, 2]][1]
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[2] < 0
                     ind += 1
                     println("Factor 1 index: $ind")
                     factor[:, 1] = -factor[:, 1]
-                    X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i,2]]]
+                    X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                     ## Draw observation eq. hyperparameters 
                     β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 end
-            elseif i != 1 && i == varassign[factorassign[i,2]][1]
+            elseif i != 1 && i == varassign[factorassign[i, 2]][1]
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[3] < 0
                     ind += 1
                     println("Factor 2 index: $ind")
-                    factor[:, 1+factorassign[i,2]] = -factor[:, 1+factorassign[i,2]]
-                    X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i,2]]]
+                    factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
+                    X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                     ## Draw observation eq. hyperparameters 
                     β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 end
@@ -262,7 +263,7 @@ function PCA2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
             end
             =#
             #β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-            
+        
             ## Fill out HDFM objects 
             betas[i, :] = β'
             sigmas[i] = σ2
