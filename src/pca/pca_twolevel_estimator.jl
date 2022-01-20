@@ -64,7 +64,7 @@ Outputs:
 - F = single-factor DFM factor estimate. 
 - S = single-factor DFM error variance estimates. 
 """
-function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
+function PCA2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
 
     # Unpack simulation parameters 
     @unpack nlevels, nvars, nfactors, factorassign, factorlags, errorlags, ndraws, burnin = params
