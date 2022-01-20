@@ -21,6 +21,7 @@ include("kim_nelson/kn_onelevel_estimator.jl")
 include("kim_nelson/kn_twolevel_estimator.jl")
 include("otrok_whiteman/ow_globalfactor_estimator.jl")
 include("otrok_whiteman/ow_twolevel_estimator.jl")
+include("output_analysis/variance_decomposition.jl")
 include("test_scripts.jl")
 
 ######################
