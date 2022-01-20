@@ -10,8 +10,9 @@ function firstComponentFactor(data)
     components = cov_mat_eigen.vectors
     firstComponent = components[:,end] # eigenvalues ordered from smallest to largest
     factor = data*firstComponent
+    #factor = factor / norm(factor) 
 
-    return factor 
+    return factor
 end  
 ######################
 ######################
@@ -130,77 +131,87 @@ function PCA2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
 
     # Estimate factors 
     factor = zeros(nobs, nfacts)           # Random starting factor series matrix 
-    factor[:, 1] = mean(y, dims = 2)     # Starting global factor = crosssectional mean of obs. series 
+    factor[:, 1] = firstComponentFactor(y)     # Starting global factor = crosssectional mean of obs. series 
     for i in 1:(nfacts-1)              # Set level-2 factors equal to their respective group means
-        factor[:, 1+i] = mean(y[:, varassign[i]], dims = 2)
+        factor[:, 1+i] = firstComponentFactor(y[:, varassign[i]] - repeat(factor[:,1], 1, length(varassign[i])))
+        if cor(factor[:, 1+i], y[:, varassign[i][1]] -  repeat(factor[:,1], 1, length(varassign[i]))) < 0
+            factor[:, 1+i] = -factor[:, 1+i]
+        end 
     end
+    if cor(factor[:,1], y[:,1]) < 0
+        factor[:,1] = -factor[:,1]
+    end 
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
-
+    
         println(dr)
-
+    
         ##################################
         ##################################
         # Draw β, σ2, ϕ
-
-
+    
+    
         ## Iterate over all data series 
         ## to draw obs. eq. hyperparameters 
         for i = 1:nvar
-
+        
             ## Gather all regressors into `X`
-            X = [ones(nobs) factor[:,1] factor[:,1 + factorassign[i]]]
-
+            X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]]]
+        
             ## Initialize β, σ2, ϕ
-            β = ones(1+nlevels)
+            β = ones(1 + nlevels)
             σ2 = 0
             ϕ = zeros(errorlags)
-
+        
             ## Save i-th series 
             Y = y[:, i]
-
-            if i == 1 && i == varassign[1+factorassign[i]]
+            #=
+            if i == 1 && i == varassign[factorassign[i]][1]
                 ind = 0
                 ind2 = 0
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[2] < 0 || β[3] < 0
                     ind += 1
                     ind2 += 1
+                    println("Factor 1 index: $ind")
+                    println("Factor 2 index: $ind2")
                     ## Draw observation eq. hyperparameters 
                     β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                    if ind >= 100
+                    if ind >= 1000
                         ind = 0
                         factor[:, 1] = -factor[:, 1]
-                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]] ]  
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]]]
                     end
-                    if ind2 >= 100
+                    if ind2 >= 1000
                         ind2 = 0
                         factor[:, 1+factorassign[i]] = -factor[:, 1+factorassign[i]]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]]]
                     end
                 end
-            elseif i == 1 && i != varassign[1+factorassign[i]]
+            elseif i == 1 && i != varassign[factorassign[i]][1]
                 ind = 0
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[2] < 0
-                        ind += 1
+                    ind += 1
+                    println("Factor 1 index: $ind")
                     ## Draw observation eq. hyperparameters 
                     β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                    if ind >= 100
+                    if ind >= 1000
                         ind = 0
                         factor[:, 1] = -factor[:, 1]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]]]
                     end
                 end
-            elseif i != 1 && i == varassign[1+factorassign[i]]
+            elseif i != 1 && i == varassign[factorassign[i]][1]
                 ind2 = 0
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[3] < 0
                     ind2 += 1
+                    println("Factor 2 index: $ind2")
                     ## Draw observation eq. hyperparameters 
                     β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                    if ind2 >= 100
+                    if ind2 >= 1000
                         ind2 = 0
                         factor[:, 1+factorassign[i]] = -factor[:, 1+factorassign[i]]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]]]
@@ -209,22 +220,24 @@ function PCA2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
             else
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
             end
-
+            =#
+            β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+            
             ## Fill out HDFM objects 
             betas[i, :] = β'
             sigmas[i] = σ2
             phis[i, :] = ϕ'
-
+        
             ## Save observation eq. hyperparameter draws 
             bsave[dr, ((i-1)*nregs)+1:i*nregs] = β'
             ssave[dr, i] = σ2
             psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
         end
-
+    
         ##################################
         ##################################
         # Draw factor lag coefficients 
-
+    
         for i in 1:nfacts
             ## Create factor regressor matrix 
             X = zeros(nobs, 1 + factorlags)
@@ -233,77 +246,25 @@ function PCA2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
                 X[:, 1+j] = lag(factor[:, i], j, default = 0.0)
             end
             X = X[(factorlags+1):nobs, :]
-        
+    
             ## Draw ψ
             ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, i], X, 1.0)
-        
+    
             ## Fill out HDFM objects 
             psis[i, :] = ψ'
-        
+    
             ## Save new draw of ψ
             psave[dr, ((i-1)*(1+factorlags)+1):(i*(1+factorlags))] = ψ'
         end
-
-        ############################################
-        ## Draw global (level-1) factor 
-        ############################################
-
-        yW = similar(y) 
-
-        # Fill out important objects 
-        for i = 1:nvars  # Iterate over all observable variable 
-
-            # Save level-2 factor index assigned to obs. variable i 
-            nfC = fassign[i,2]
-
-            # Partial out variation in variable i due to intercept + level-2 factor 
-            yW[:, i] = y[:, i] - ones(nobs, 1) * betas[i, 1] - factor[:, 1+nfC] * betas[i, 3]
-
-        end
-
-        # Obtain new draw of the global factor 
-        fact1 = firstComponentFactor(yW) 
-
-        # Save draw in output object 
-        Xtsave[:, 1, dr] = fact1
-
-        # Update factor data matrix to contain
-        # new global factor draw 
-        factor[:, 1] = fact1
-
-        ############################################
-        ## Draw level-2 factors 
-        ############################################
-
-        for c = 1:(nfacts-1) # Iterate over level-2 factors 
-        
-            # Store number of obs. variables 
-            # to which level-2 factor number c 
-            # gets assigned 
-            Size = fnvars[c]
-        
-            yC = zeros(nobs, Size)
-        
-            for i = 1:Size # Iterate over all obs. variables assigned to level-2 factor c 
-        
-                # Partial out variation in variables assigned to level-2 factor c
-                # corresponding to variation in intercept + level-1 factor 
-                yC[:, i] = y[:, varassign[c][i]] - ones(nobs, 1) * betas[varassign[c][i], 1] - factor[:, 1] * betas[varassign[c][i], 2]
-        
-            end
-        
-            # Obtain new draw of level-2 factor c
-            fact2 = firstComponentFactor(yC)
-        
-            # Save draw in output object 
-            Xtsave[:, 1+c, dr] = fact2
-        
-            # Update factor data matrix to contain
-            # new level-2 factor c draw 
-            factor[:, 1+c] = fact2
-        
-        end
-
+    
+        ##################################
+        ##################################
+        # Save factors 
+        Xtsave[:, 1, dr] = factor[:,1]
+        for c in 1:(nfacts-1)
+            Xtsave[:, 1+c, dr] = factor[:,1+c]
+        end 
+    
         println(dr)
     end
 
