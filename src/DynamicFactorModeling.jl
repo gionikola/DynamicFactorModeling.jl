@@ -16,7 +16,9 @@ using Kronecker
 ######################
 # Include all package scripts 
 include("simulations/dgp.jl")
-include("kim_nelson/kn_tools.jl")
+include("pca/pca_twolevel_estimator.jl")
+include("kim_nelson/kn_onelevel_estimator.jl")
+include("kim_nelson/kn_twolevel_estimator.jl")
 include("otrok_whiteman/ow_globalfactor_estimator.jl")
 include("otrok_whiteman/ow_twolevel_estimator.jl")
 include("test_scripts.jl")
