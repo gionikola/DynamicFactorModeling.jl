@@ -63,3 +63,11 @@ for i in 1:size(results.F)[1]
 end
 
 plot(results.means.F[:, j])
+
+vardecomp = vardecomp2level(datamat, results.means.F, reshape(results.means.B, 3, 50)', fassign)
+
+plot(vardecomp[:, 1])
+plot!(vardecomp[:, 2])
+
+histogram(vardecomp[:, 1], normalize = :probability)
+histogram(vardecomp[:, 2], normalize = :probability)
