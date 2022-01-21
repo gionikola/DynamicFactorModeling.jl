@@ -136,16 +136,56 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
         for i = 1:nvar
 
             ## Gather all regressors into `X`
-            X = [ones(nobs) factor[:,1] factor[:,1 + factorassign[i]]]
+            X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
 
             ## Initialize β, σ2, ϕ
-            β = ones(1+nlevels)
+            β = ones(1 + nlevels)
             σ2 = 0
             ϕ = zeros(errorlags)
 
             ## Save i-th series 
             Y = y[:, i]
+            ind = 0
 
+            if i == 1 && i == varassign[factorassign[i, 2]][1]
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+                while β[2] < 0 || β[3] < 0
+                    ind += 1
+                    println("Factor 1 index: $ind")
+                    if β[2] < 0
+                        factor[:, 1] = -factor[:, 1]
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
+                    end
+                    if β[3] < 0
+                        factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
+                    end
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+                end
+            elseif i == 1 && i != varassign[factorassign[i, 2]][1]
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+                while β[2] < 0
+                    ind += 1
+                    println("Factor 1 index: $ind")
+                    factor[:, 1] = -factor[:, 1]
+                    X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
+                    ## Draw observation eq. hyperparameters 
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+                end
+            elseif i != 1 && i == varassign[factorassign[i, 2]][1]
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+                while β[3] < 0
+                    ind += 1
+                    println("Factor 2 index: $ind")
+                    factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
+                    X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
+                    ## Draw observation eq. hyperparameters 
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+                end
+            else
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
+            end
+            #=
             if i == 1 && i == varassign[1+factorassign[i]]
                 ind = 0
                 ind2 = 0
@@ -195,6 +235,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
             else
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
             end
+            =#
 
             ## Fill out HDFM objects 
             betas[i, :] = β'
