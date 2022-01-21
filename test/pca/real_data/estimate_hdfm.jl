@@ -14,12 +14,17 @@ using DataFrames
 
 
 # Import data 
-data = readdlm("test/otrok_whiteman/real_data/data_deseasoned.csv", ',')
+data = readdlm("test/otrok_whiteman/real_data/data_deseasoned_growth.csv", ',')
 regstatematch = readdlm("test/otrok_whiteman/real_data/regstatematch.csv", ',')
 
 # Data as matrix 
 datamat = Matrix(data[2:end, :])     # remove first row containing col names 
 datamat = Float64.(datamat)         # transform entires to Float64
+
+for i in 1:size(datamat)[2]
+    datamat[:, i] = datamat[:, i] ./ std(datamat[:, i])
+end 
+
 regstatematch = Matrix(regstatematch[2:end, :])
 regassign = Int64.(regstatematch[:, 3])
 
@@ -49,12 +54,15 @@ hdfmpriors = HDFMParams(nlevels = nlevels,
 
 results = PCA2LevelEstimator(datamat, hdfmpriors)
 
+#Save state names
+statenames = data[1,:]
+
 medians = Any[]
 quant33 = Any[]
 quant66 = Any[]
 stds = Any[]
 
-j = 1
+j = 5
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
     push!(quant33, quantile(results.F[i, j, :], 0.05))
@@ -63,11 +71,14 @@ for i in 1:size(results.F)[1]
 end
 
 plot(results.means.F[:, j])
+plot!(results.means.F[:, 1])
 
 vardecomp = vardecomp2level(datamat, results.means.F, reshape(results.means.B, 3, 50)', fassign)
 
 plot(vardecomp[:, 1])
 plot!(vardecomp[:, 2])
+
+plot(ones(size(datamat)[2]) - vardecomp[:, 1] - vardecomp[:, 2])
 
 histogram(vardecomp[:, 1], normalize = :probability)
 histogram(vardecomp[:, 2], normalize = :probability)
