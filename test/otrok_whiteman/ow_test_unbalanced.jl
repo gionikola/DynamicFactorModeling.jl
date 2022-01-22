@@ -76,14 +76,15 @@ data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 
 #varlags = [3, 3, 3, 3, 3, 3, 3, 3, 3]
 
-hdfmpriors = HDFMPriors(nlevels = nlevels,
-    nvar = nvar,
+hdfmpriors = HDFMStruct(nlevels = nlevels,
     nfactors = nfactors,
-    fassign = fassign,
-    flags = flags,
-    varlags = varlags)
+    factorassign = fassign,
+    factorlags = flags,
+    errorlags = varlags,
+    ndraws = 1000,
+    burnin = 50)
 
-results = OWTwoLevelEstimator(data_y, hdfmpriors)
+results = OW2LevelEstimator(data_y, hdfmpriors)
 
 stds = Any[]
 quant33 = Any[]

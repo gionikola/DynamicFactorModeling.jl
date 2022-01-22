@@ -1,4 +1,4 @@
-include("kn_tools.jl")
+include("pca_tools.jl")
 ######################
 ######################
 ######################
@@ -11,32 +11,8 @@ include("kn_tools.jl")
 ######################
 ######################
 ######################
-"""
-"""
-@with_kw mutable struct HDFMParams
-    nlevels::Int64                  # number of levels in the multi-level model structure 
-    nvars::Int64                     # number of variables in the dataset 
-    nfactors::Array{Int64,1}        # number of factors for each level (vector of length `nlevels`)
-    factorassign::Array{Int64,2}         # integer matrix of size `nvar` × `nlevels` 
-    factorlags::Array{Int64,1}           # number of autoregressive lags for each factor level (vector of length `nlevels`)
-    errorlags::Array{Int64,1}         # number of obs. variable error autoregressive lags (vector of length `nvar`)
-    ndraws::Int64
-    burnin::Int64
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-    KN2LevelEstimator(data, params::HDFMParams)
+@doc """
+    KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
 
 Description:
 Estimate a single-factor DFM using the Kim-Nelson approach. 
@@ -50,10 +26,10 @@ Outputs:
 - F = single-factor DFM factor estimate. 
 - S = single-factor DFM error variance estimates. 
 """
-function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
+function PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
     # Unpack simulation parameters 
-    @unpack nlevels, nvars, nfactors, factorassign, factorlags, errorlags, ndraws, burnin = params
+    @unpack nlevels, nfactors, factorassign, factorlags, errorlags, ndraws, burnin = hdfm
 
     # Save total number of Monte Carlo draws 
     totdraws = ndraws + burnin
@@ -63,7 +39,8 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
 
     # nvar = number of variables including the variable with missing date
     # nobs = length of data of complete dataset
-    nobs, nvar = size(y)
+    nobs, nvars = size(y)
+    nvar = nvars 
 
     # Store factor and parameter counts 
     nfacts = sum(nfactors)       # # of factors 
@@ -114,39 +91,46 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
     betas = zeros(nvars, 1 + nlevels)                # Obs. eq. regression starting coefficient matrix 
     phis = zeros(nvars, errorlags)          # Idiosyncratic error AR companion matrix 
 
-    # Initialize factor series 
+    # Estimate factors 
     factor = zeros(nobs, nfacts)           # Random starting factor series matrix 
-    factor[:, 1] = mean(y, dims = 2)     # Starting global factor = crosssectional mean of obs. series 
+    factor[:, 1], component = firstComponentFactor(y)     # Starting global factor = crosssectional mean of obs. series 
     for i in 1:(nfacts-1)              # Set level-2 factors equal to their respective group means
-        factor[:, 1+i] = mean(y[:, varassign[i]], dims = 2)
+        factor[:, 1+i], component2 = firstComponentFactor(y[:, varassign[i]] - factor[:,1]*component[varassign[i]]')
+        if cor(factor[:, 1+i], y[:, varassign[i][1]] -  factor[:,1]) < 0
+            factor[:, 1+i] = -factor[:, 1+i]
+        end 
     end
+    if cor(factor[:,1], y[:,1] - y[:, varassign[1][1]]) < 0
+        factor[:,1] = -factor[:,1]
+    end 
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
-
+    
         println(dr)
-
+    
         ##################################
         ##################################
         # Draw β, σ2, ϕ
-
-
+    
+    
         ## Iterate over all data series 
         ## to draw obs. eq. hyperparameters 
         for i = 1:nvar
-
+        
             ## Gather all regressors into `X`
             X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
-
+        
             ## Initialize β, σ2, ϕ
             β = ones(1 + nlevels)
             σ2 = 0
             ϕ = zeros(errorlags)
-
+        
             ## Save i-th series 
             Y = y[:, i]
+        
             ind = 0
-
+        
             if i == 1 && i == varassign[factorassign[i, 2]][1]
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[2] < 0 || β[3] < 0
@@ -185,73 +169,22 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
             else
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
             end
-            #=
-            if i == 1 && i == varassign[1+factorassign[i]]
-                ind = 0
-                ind2 = 0
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                while β[2] < 0 || β[3] < 0
-                    ind += 1
-                    ind2 += 1
-                    ## Draw observation eq. hyperparameters 
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                    if ind >= 100
-                        ind = 0
-                        factor[:, 1] = -factor[:, 1]
-                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]] ]  
-                    end
-                    if ind2 >= 100
-                        ind2 = 0
-                        factor[:, 1+factorassign[i]] = -factor[:, 1+factorassign[i]]
-                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]]]
-                    end
-                end
-            elseif i == 1 && i != varassign[1+factorassign[i]]
-                ind = 0
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                while β[2] < 0
-                        ind += 1
-                    ## Draw observation eq. hyperparameters 
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                    if ind >= 100
-                        ind = 0
-                        factor[:, 1] = -factor[:, 1]
-                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]]]
-                    end
-                end
-            elseif i != 1 && i == varassign[1+factorassign[i]]
-                ind2 = 0
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                while β[3] < 0
-                    ind2 += 1
-                    ## Draw observation eq. hyperparameters 
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                    if ind2 >= 100
-                        ind2 = 0
-                        factor[:, 1+factorassign[i]] = -factor[:, 1+factorassign[i]]
-                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i]]]
-                    end
-                end
-            else
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-            end
-            =#
-
+        
             ## Fill out HDFM objects 
             betas[i, :] = β'
             sigmas[i] = σ2
             phis[i, :] = ϕ'
-
+        
             ## Save observation eq. hyperparameter draws 
             bsave[dr, ((i-1)*nregs)+1:i*nregs] = β'
             ssave[dr, i] = σ2
             psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
         end
-
+    
         ##################################
         ##################################
         # Draw factor lag coefficients 
-
+    
         for i in 1:nfacts
             ## Create factor regressor matrix 
             X = zeros(nobs, 1 + factorlags)
@@ -260,106 +193,25 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
                 X[:, 1+j] = lag(factor[:, i], j, default = 0.0)
             end
             X = X[(factorlags+1):nobs, :]
-        
+    
             ## Draw ψ
             ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, i], X, 1.0)
-        
+    
             ## Fill out HDFM objects 
             psis[i, :] = ψ'
-        
+    
             ## Save new draw of ψ
             psave[dr, ((i-1)*(1+factorlags)+1):(i*(1+factorlags))] = ψ'
         end
-
-        ############################################
-        ## Draw global (level-1) factor 
-        ############################################
-
-        # Initialize all important objects 
-        sinvf1 = sigbig(psis[1, 2:end], factorlags, nobs)   # (T×T) S^{-1} quasi-differencing matrix for global factor 
-        f = zeros(nobs, 1)                              # Empty vector for global factor to fill out 
-        H = sinvf1' * sinvf1                            # First term of (T×T) H matrix, implying b_0 = 0 (H^{-1} is factor covariance matrix)
-
-        # Fill out important objects 
-        for i = 1:nvars  # Iterate over all observable variable 
-
-            # Save level-2 factor index assigned to obs. variable i 
-            nfC = fassign[i,2]
-
-            # Partial out variation in variable i due to intercept + level-2 factor 
-            yW = y[:, i] - ones(nobs, 1) * betas[i, 1] - factor[:, 1+nfC] * betas[i, 3]
-
-            # S_i^{-1} for i > 2 
-            sinv1 = sigbig(vec(phis[i, :]), errorlags, nobs)
-
-            # Add next term in equation for H (pg. 1004, Otrok-Whiteman 1998)
-            H = H + ((betas[i, 2]^2 / (sigmas[i])) * (sinv1' * sinv1))
-
-            # Add next term of within-parenthesis sum in equation for f (pg. 1004, Otrok-Whiteman 1998)
-            f = f + (betas[i, 2] / sigmas[i]) * (sinv1' * sinv1) * yW
-
-        end
-        Hinv = inv(H)     # Invert H to save H^{-1} 
-        f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
-
-        # Obtain new draw of the global factor 
-        fact1 = sim_MvNormal(vec(f), Hinv)
-
-        # Save draw in output object 
-        Xtsave[:, 1, dr] = fact1
-
-        # Update factor data matrix to contain
-        # new global factor draw 
-        factor[:, 1] = fact1
-
-        ############################################
-        ## Draw level-2 factors 
-        ############################################
-
-        for c = 1:(nfacts-1) # Iterate over level-2 factors 
-        
-            # Store number of obs. variables 
-            # to which level-2 factor number c 
-            # gets assigned 
-            Size = fnvars[c]
-
-            # Initialize all important objects 
-            phiC = vec(psis[1+c, 2:end])                                      # Store level-2 factor c AR lag coefficients 
-            sinvf1 = sigbig(phiC, factorlags, nobs)                      # (T×T) S^{-1} quasi-differencing matrix for level-2 factor c
-            f = zeros(nobs, 1)                                      # Empty vector for level-2 factor c to fill out  
-            H = sinvf1' * sinvf1                                    # First term of (T×T) H matrix, implying b_0 = 0 (H^{-1} is factor covariance matrix) 
-        
-            for i = 1:Size # Iterate over all obs. variables assigned to level-2 factor c 
-            
-                # S_i^{-1} for i > 2 
-                sinv1 = sigbig(vec(phis[varassign[c][i], :]), errorlags, nobs)
-            
-                # Add next term in equation for H (pg. 1004, Otrok-Whiteman 1998)
-                H += ((betas[varassign[c][i], 3]^2 / (sigmas[varassign[c][i]])) * (sinv1' * sinv1))
-            
-                # Partial out variation in variables assigned to level-2 factor c
-                # corresponding to variation in intercept + level-1 factor 
-                yC = y[:, varassign[c][i]] - ones(nobs, 1) * betas[varassign[c][i], 1] - factor[:, 1] * betas[varassign[c][i], 2]
-
-                # Add next term of within-parenthesis sum in equation for f (pg. 1004, Otrok-Whiteman 1998)
-                f += (betas[varassign[c][i], 3] / sigmas[varassign[c][i]]) * (sinv1' * sinv1) * (yC)
-            
-            end
-            Hinv = inv(H)     # Invert H to save H^{-1} 
-            f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
-        
-            # Obtain new draw of level-2 factor c
-            fact2 = sim_MvNormal(vec(f), Hinv)
-        
-            # Save draw in output object 
-            Xtsave[:, 1+c, dr] = fact2
-        
-            # Update factor data matrix to contain
-            # new level-2 factor c draw 
-            factor[:, 1+c] = fact2
-        
-        end
-
+    
+        ##################################
+        ##################################
+        # Save factors 
+        Xtsave[:, 1, dr] = factor[:,1]
+        for c in 1:(nfacts-1)
+            Xtsave[:, 1+c, dr] = factor[:,1+c]
+        end 
+    
         println(dr)
     end
 
@@ -384,14 +236,13 @@ function KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
     ##############################################
     ##############################################
     means = DFMMeans(F, B, S, P, P2)
-    results = OWResults(Xtsave, bsave, ssave, psave, psave2, means)
+    results = DFMResults(Xtsave, bsave, ssave, psave, psave2, means)
 
     ##################################
     ##################################
     # Return results as single object 
     return results
-end
-;
+end;
 ######################
 ######################
 ######################

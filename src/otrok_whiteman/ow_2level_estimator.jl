@@ -11,42 +11,21 @@ include("ow_tools.jl")
 ######################
 ######################
 ######################
+@doc """
 """
-"""
-@with_kw mutable struct HDFMPriors
-    nlevels::Int64                  # number of levels in the multi-level model structure 
-    nvar::Int64                     # number of variables in the dataset 
-    nfactors::Array{Int64,1}        # number of factors for each level (vector of length `nlevels`)
-    fassign::Array{Int64,2}         # integer matrix of size `nvar` × `nlevels` 
-    flags::Array{Int64,1}           # number of autoregressive lags for each factor level (vector of length `nlevels`)
-    varlags::Array{Int64,1}         # number of obs. variable error autoregressive lags (vector of length `nvar`)
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-"""
-function OWTwoLevelEstimator(data, prior_hdfm)
+function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
     # Unpack two-level HDFM parameters 
-    @unpack nlevels, nvar, nfactors, fassign, flags, varlags = prior_hdfm
+    @unpack nlevels, nfactors, factorassign, factorlags, errorlags, ndraws, burnin  = hdfm
+
+    fassign = factorassign
+    flags = factorlags 
+    varlags = errorlags
 
     # Save data & its size 
     y = data                    # save data in new matrix 
     capt, nvars = size(y)       # nvar = # of variables; capt = # of time periods in complete sample 
-
-    # Specify simulation length 
-    ndraws = 1000               # # of Monte Carlo draws 
-    burnin = 50                 # # of initial draws to discard; total draws is ndraws + burnin 
+    nvar = nvars 
 
     # Store factor and parameter counts 
     nfact = sum(nfactors)       # # of factors 
@@ -312,10 +291,10 @@ function OWTwoLevelEstimator(data, prior_hdfm)
     ##############################################
     ##############################################
     means = DFMMeans(F, B, S, P, P2)
-    results = OWResults(Xtsave, bsave, ssave, psave, psave2, means)
+    results = DFMResults(Xtsave, bsave, ssave, psave, psave2, means)
 
     return results
-end 
+end;
 ######################
 ######################
 ######################

@@ -34,13 +34,13 @@ ssmodel = SSModel(H, A, F, μ, R, Q, Z)
 # Simulate common components model in state space form 
 data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
 
-priors = priorsSET(K, P, L)             # Set model priors 
+priors = DFMStruct(P, L, 1000, 50)             # Set model priors 
 
 ###############
 ###############
 ###############
 
-results = OWSingleFactorEstimator(data_y, priors)
+results = OW1LevelEstimator(data_y, priors)
 
 medians = Any[]
 quant33 = Any[]

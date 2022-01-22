@@ -11,65 +11,36 @@ include("ow_tools.jl")
 ######################
 ######################
 ######################
-"""
-    priorsSET(K, Plags, Llags)
-
-Description:
-Model priors for the Otrok-Whiteman estimator. 
-
-Inputs:
-- K = Number of factors.
-- Plags = Number of lags in the factor equation. 
-- Llags = Number of AR lags in the observation equation. 
-"""
-@with_kw mutable struct priorsSET
-    K::Int64
-    Plags::Int64
-    Llags::Int64
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-    OWSingleFactorEstimator(data, priorsIN)
+@doc """
+    OWSingleFactorEstimator(data, dfm)
 
 Description:
 Estimate a single-factor DFM. 
 
 Inputs:
 - data = set of observed variables with a hypothesized common trend.
-- priorsIN = model priors. 
+- dfm = model priors. 
 
 Outputs:
 - B = single-factor DFM coefficient hyperparameter estimates. 
 - F = single-factor DFM factor estimate. 
 - S = single-factor DFM error variance estimates. 
 """
-function OWSingleFactorEstimator(data, priorsIN)
+function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
 
     # nvar = number of variables including the variable with missing date
     # capt = length of data of complete dataset
     y = data
     capt, nvar = size(y)
 
-    ndraws = 1000          # number of monte carlo draws
-    burnin = 50            # number of initial draws to discard, total draws is undrws+burnin
+    ndraws = dfm.ndraws         # number of monte carlo draws
+    burnin = dfm.burnin         # number of initial draws to discard, total draws is undrws+burnin
 
-    nfact = priorsIN.K           # number of factors to estimate
-    arlag = priorsIN.Plags       # autoregressive lags in the dynamic factors 
-    arterms = priorsIN.Llags   # number of AR lags to include in each observable equation
+    nfact = 1                   # number of factors to estimate
+    arlag = dfm.factorlags      # autoregressive lags in the dynamic factors 
+    arterms = dfm.errorlags     # number of AR lags to include in each observable equation
     Size = nvar                 # number of variables each factor loads on
-    nreg = 1 + priorsIN.K       # number of regressors in each observable equation, constant plus K factors       
-    m = nfact * arlag        # dimension of state vector
+    nreg = 2                    # number of regressors in each observable equation, constant plus K factors       
 
     ytemp = y
     y = ytemp - repeat(mean(ytemp, dims = 1), capt, 1)
@@ -184,13 +155,12 @@ function OWSingleFactorEstimator(data, priorsIN)
     P = mean(psave, dims = 1)
     P2 = mean(psave2, dims = 1)
 
-    means = DFMMeans(F, B, S, P, P2) 
+    means = DFMMeans(F, B, S, P, P2)
 
-    results = OWResults(Xtsave, bsave, ssave, psave, psave2, means)
+    results = DFMResults(Xtsave, bsave, ssave, psave, psave2, means)
 
     return results
-end
-;
+end;
 ######################
 ######################
 ######################
