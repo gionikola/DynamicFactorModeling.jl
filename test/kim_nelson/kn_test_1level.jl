@@ -36,13 +36,13 @@ ssmodel = SSModel(H, A, F, μ, R, Q, Z)
 # Simulate common components model in state space form 
 data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
 
-samplerparams = SamplerParams(P, L, 1000, 50)            # Set model priors 
+samplerparams = DFMStruct(P, L, 1000, 50)            # Set model priors 
 
 ###############
 ###############
 ###############
 
-results = KNSingleFactorEstimator(data_y, samplerparams)
+results = KN1LevelEstimator(data_y, samplerparams)
 
 ###############
 ###############

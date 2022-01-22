@@ -10,50 +10,7 @@
 ######################
 ######################
 ######################
-"""
-"""
-@with_kw mutable struct DFMMeans
-    F::Array{Float64}   # Factor means 
-    B::Array{Float64}   # Obs. equation coefficient means 
-    S::Array{Float64}   # Idiosyncratic disturbance variance means 
-    P::Array{Float64}   # Factor autoregressive coefficient means 
-    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive means 
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-"""
-@with_kw mutable struct OWResults
-    F::Array{Float64}   # Factor sample 
-    B::Array{Float64}   # Obs. equation coefficient sample 
-    S::Array{Float64}   # Idiosyncratic disturbance variance sample 
-    P::Array{Float64}   # Factor autoregressive coefficient sample 
-    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive sample 
-    means::DFMMeans     # Factor and hyperparameter means
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
+@doc """
     ident(p)
 
 Description:
@@ -68,8 +25,7 @@ Outputs:
 function ident(p)
     ident_mat = 1.0 * Matrix(I, p, p)
     return ident_mat
-end
-
+end;
 ######################
 ######################
 ######################
@@ -82,7 +38,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     transp_dbl(A)
 
 Description:
@@ -97,8 +53,7 @@ Outputs:
 function transp_dbl(A)
     transp_A = 1.0 * Matrix(A')
     return transp_A
-end
-
+end;
 ######################
 ######################
 ######################
@@ -111,7 +66,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     transp_int(A)
 
 Description:
@@ -126,8 +81,7 @@ Outputs:
 function transp_int(A)
     transp_A = 1 * Matrix(A')
     return transp_A
-end
-
+end;
 ######################
 ######################
 ######################
@@ -140,7 +94,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     seqa(a, b, c)
 
 Description:
@@ -164,8 +118,7 @@ function seqa(a, b, c)
     end
 
     return seq
-end
-
+end;
 ######################
 ######################
 ######################
@@ -192,7 +145,7 @@ Inputs:
 Outputs:
 - Si    = T×T matrix S^(-1). 
 """
-function sigbig(phi, p, capt)
+@doc function sigbig(phi, p, capt)
 
     rotate = trunc.(Int, seqa(0, 1, capt - p))
     Siinv_upper = Hermitian(sigmat(phi, p))
@@ -206,8 +159,7 @@ function sigbig(phi, p, capt)
     Si = [Siinv_upper; Siinv_lower]
 
     return Si
-end
-
+end;
 ######################
 ######################
 ######################
@@ -220,7 +172,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     rnchisq(m)
 
 Description:
@@ -237,8 +189,7 @@ function rnchisq(m)
     g = rand(Chisq(m))
 
     return g
-end
-
+end;
 ######################
 ######################
 ######################
@@ -251,7 +202,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     sigmat(phi, p)
 
 Description:
@@ -277,8 +228,7 @@ function sigmat(phi, p)
     sigma = Matrix(sigma)
 
     return sigma
-end
-
+end;
 ######################
 ######################
 ######################
@@ -291,7 +241,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     gendiff(z, phi)
 
 Description:
@@ -318,8 +268,7 @@ function gendiff(z, phi)
     end
 
     return zgdiff
-end
-
+end;
 ######################
 ######################
 ######################
@@ -332,8 +281,7 @@ end
 ######################
 ######################
 ######################
-#function arfac(y, p, r0_, R0__, phi0, xvar, sig2, capt)
-function arfac(y, p, r0_, R0__, phi0, sig2, capt)
+@doc function arfac(y, p, r0_, R0__, phi0, sig2, capt)
 
     # Generation of phi 
     yp = y[1:p, 1]          # the first p observations  
@@ -399,8 +347,7 @@ function arfac(y, p, r0_, R0__, phi0, sig2, capt)
     end
 
     return phi1
-end
-
+end;
 ######################
 ######################
 ######################
@@ -413,7 +360,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     seqm(a,b,c)
 
 Description:
@@ -443,8 +390,7 @@ function seqm(a, b, c)
     end
 
     return seq
-end
-
+end;
 ######################
 ######################
 ######################
@@ -457,7 +403,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     invpd(X)
 
 Description:
@@ -487,8 +433,7 @@ function invpd(X)
     end
 
     return X_inv
-end
-
+end;
 ######################
 ######################
 ######################
@@ -501,7 +446,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     diagrv(X,V)
 
 Description: 
@@ -520,8 +465,7 @@ function diagrv(X, V)
     X_new[diagind(X_new)] = V
 
     X_new
-end
-
+end;
 ######################
 ######################
 ######################
@@ -534,7 +478,7 @@ end
 ######################
 ######################
 ######################
-"""
+@doc """
     ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size)
     
 Description:
@@ -653,8 +597,7 @@ function ar(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, f
     s20 = s21[1, 1]
 
     return b0, s20, phi1, facts
-end
-
+end;
 ######################
 ######################
 ######################
@@ -667,6 +610,8 @@ end
 ######################
 ######################
 ######################
+@doc """
+"""
 function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc, facts, capt, nreg, Size, varassign)
 
     # Make sure relevant objects are accessible
@@ -796,7 +741,7 @@ function ar_LJ(y, x, p, b0_, B0__, r0_, R0__, v0_, d0_, b0, s20, phi0, xvar, nfc
     s20 = s21[1, 1]
 
     return b0, s20, phi1, facts
-end 
+end;
 ######################
 ######################
 ######################

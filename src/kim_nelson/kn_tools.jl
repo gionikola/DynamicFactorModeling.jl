@@ -88,8 +88,7 @@ function kalmanFilter(data_y, ssmodel)
     # Returned filtered series 
     # for obs variable and state 
     return data_filtered_y, data_filtered_β, Pttlag, Ptt
-end
-
+end;
 ######################
 ######################
 ######################
@@ -197,8 +196,7 @@ function kalmanSmoother(data_y, ssmodel)
     # Returned filtered series 
     # for obs variable and state 
     return data_smoothed_y, data_smoothed_β, PtT
-end
-
+end;
 ######################
 ######################
 ######################
@@ -328,8 +326,7 @@ function KNFactorSampler(data_y, ssmodel)
     # Return sampled factor series 
     # fot t = 1,...,T 
     return β_realized
-end
-
+end;
 ######################
 ######################
 ######################
@@ -398,8 +395,7 @@ function linearRegressionSampler(Y, X)
     ##################################
     # Return parameters 
     return β, σ2
-end
-
+end;
 ######################
 ######################
 ######################
@@ -452,8 +448,7 @@ function linearRegressionSamplerRestrictedVariance(Y, X, σ2)
     ##################################
     # Return parameters 
     return β
-end
-
+end;
 ######################
 ######################
 ######################
@@ -576,49 +571,6 @@ function autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
     ##################################
     # Return parameters 
     return β, σ2, ϕ
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-"""
-@with_kw mutable struct DFMMeans
-    F::Array{Float64}   # Factor means 
-    B::Array{Float64}   # Obs. equation coefficient means 
-    S::Array{Float64}   # Idiosyncratic disturbance variance means 
-    P::Array{Float64}   # Factor autoregressive coefficient means 
-    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive means 
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-"""
-@with_kw mutable struct DFMResults
-    F::Array{Float64}   # Factor sample 
-    B::Array{Float64}   # Obs. equation coefficient sample 
-    S::Array{Float64}   # Idiosyncratic disturbance variance sample 
-    P::Array{Float64}   # Factor autoregressive coefficient sample 
-    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive sample 
-    means::DFMMeans     # Factor and hyperparameter means
 end;
 ######################
 ######################

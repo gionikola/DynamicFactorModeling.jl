@@ -38,14 +38,16 @@ flags = [3, 3]
 
 varlags = 3 * ones(Int, nvar)
 
-hdfmpriors = HDFMPriors(nlevels = nlevels,
-    nvar = nvar,
+hdfmpriors = HDFMStruct(nlevels = nlevels,
+    nvars = nvar,
     nfactors = nfactors,
-    fassign = fassign,
-    flags = flags,
-    varlags = varlags)
+    factorassign = fassign,
+    factorlags = flags,
+    errorlags = varlags,
+    ndraws = 1000,
+    burnin = 50)
 
-results = OWTwoLevelEstimator(datamat, hdfmpriors)
+results = OW2LevelEstimator(datamat, hdfmpriors)
 
 medians = Any[]
 quant33 = Any[]

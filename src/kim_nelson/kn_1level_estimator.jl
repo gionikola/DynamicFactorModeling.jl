@@ -11,55 +11,25 @@ include("kn_tools.jl")
 ######################
 ######################
 ######################
-"""
-    SamplerParams(factorlags, errorlags)
-
-Description:
-Model priors for the Kim-Nelson estimator. 
-
-Inputs:
-- factorlags = Number of lags in the factor equation. 
-- errorlags = Number of AR lags in the observation equation. 
-- ndraws = Number of Monte Carlo draws.
-- burnin = Number of initial draws to discard.
-"""
-@with_kw mutable struct SamplerParams
-    factorlags::Int64
-    errorlags::Int64
-    ndraws::Int64
-    burnin::Int64
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-"""
-    KNSingleFactorEstimator(data, priorsIN)
+@doc """
+    KNSingleFactorEstimator(data::Array{Float64,2}, dfm::DFMStruct)
 
 Description:
 Estimate a single-factor DFM using the Kim-Nelson approach. 
 
 Inputs:
 - data = set of observed variables with a hypothesized common trend.
-- priorsIN = model priors. 
+- dfm = model priors. 
 
 Outputs:
 - B = single-factor DFM coefficient hyperparameter estimates. 
 - F = single-factor DFM factor estimate. 
 - S = single-factor DFM error variance estimates. 
 """
-function KNSingleFactorEstimator(data, params)
+function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
 
     # Unpack simulation parameters 
-    @unpack factorlags, errorlags, ndraws, burnin = params
+    @unpack factorlags, errorlags, ndraws, burnin = dfm
 
     # Save total number of Monte Carlo draws 
     totdraws = ndraws + burnin
@@ -90,9 +60,9 @@ function KNSingleFactorEstimator(data, params)
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
-    
+
         println(dr)
-    
+
         # Create HDFM parameter containers 
         varcoefs = zeros(nvar, 2)[:, :]
         varlagcoefs = zeros(nvar, errorlags)[:, :]
@@ -101,26 +71,26 @@ function KNSingleFactorEstimator(data, params)
         fvars = Any[]
         push!(fvars, ones(1))
         varvars = zeros(nvar)
-    
+
         ##################################
         ##################################
         # Draw β, σ2, ϕ
-    
+
         ## Gather all regressors into `X`
         X = [ones(nobs) factor]
-    
+
         ## Initialize β, σ2, ϕ
         β = ones(2)
         σ2 = 0
         ϕ = zeros(errorlags)
-    
+
         ## Iterate over all data series 
         ## to draw obs. eq. hyperparameters 
         for i = 1:nvar
-    
+
             ## Save i-th series 
             Y = y[:, i]
-    
+
             if i == 1
                 ind = 0
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
@@ -135,24 +105,24 @@ function KNSingleFactorEstimator(data, params)
                 end
             else
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-            end 
-    
+            end
+
             ## Fill out HDFM objects 
             varcoefs[i, :] = β'
             varvars[i] = σ2
             varlagcoefs[i, :] = ϕ'
-    
+
             ## Save observation eq. hyperparameter draws 
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = β'
             ssave[dr, i] = σ2
             psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
-    
+
         end
-    
+
         ##################################
         ##################################
         # Draw factor lag coefficients 
-    
+
         ## Create factor regressor matrix 
         X = zeros(nobs, 1 + factorlags)
         X[:, 1] = ones(nobs)
@@ -160,39 +130,39 @@ function KNSingleFactorEstimator(data, params)
             X[:, 1+j] = lag(factor, j, default = 0.0)
         end
         X = X[(factorlags+1):nobs, :]
-    
+
         ## Draw ψ
         ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs], X, 1.0)
-    
+
         ## Fill out HDFM objects 
         fcoefs = ψ
-    
+
         ## Save new draw of ψ
         psave[dr, :] = ψ'
-    
+
         ##################################
         ##################################
         # Draw factor  
-        
+
         #draw factor
         #take drawing of World factor 
-        sinvf1 = sigbig( ψ[2:end], factorlags, nobs)
+        sinvf1 = sigbig(ψ[2:end], factorlags, nobs)
         f = zeros(nobs, 1)
         H = sinvf1' * sinvf1
 
         for i = 1:nvar
-            sinv1 = sigbig(vec(varlagcoefs[i,:]), errorlags, nobs)
-            H = H + ((varcoefs[i, 2]^2 / varvars[i] ) * sinv1' * sinv1)
+            sinv1 = sigbig(vec(varlagcoefs[i, :]), errorlags, nobs)
+            H = H + ((varcoefs[i, 2]^2 / varvars[i]) * sinv1' * sinv1)
             f = f + (varcoefs[i, 2] / varvars[i]) * sinv1' * sinv1 * (y[:, i])
         end
 
         Hinv = inv(H)
         f = Hinv * f
         factor = sim_MvNormal(vec(f), Hinv)
-    
+
         ## Save factor 
         Xtsave[:, dr] = factor
-        
+
         println(dr)
     end
 
@@ -218,8 +188,7 @@ function KNSingleFactorEstimator(data, params)
     ##################################
     # Return results as single object 
     return results
-end
-;
+end;
 ######################
 ######################
 ######################
