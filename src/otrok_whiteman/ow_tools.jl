@@ -131,7 +131,7 @@ end;
 ######################
 ######################
 ######################
-"""
+@doc """
     sigbig(phi, p, capt)
 
 Description:
@@ -145,7 +145,7 @@ Inputs:
 Outputs:
 - Si    = T×T matrix S^(-1). 
 """
-@doc function sigbig(phi, p, capt)
+function sigbig(phi, p, capt)
 
     rotate = trunc.(Int, seqa(0, 1, capt - p))
     Siinv_upper = Hermitian(sigmat(phi, p))
@@ -281,7 +281,9 @@ end;
 ######################
 ######################
 ######################
-@doc function arfac(y, p, r0_, R0__, phi0, sig2, capt)
+@doc """
+"""
+function arfac(y, p, r0_, R0__, phi0, sig2, capt)
 
     # Generation of phi 
     yp = y[1:p, 1]          # the first p observations  
