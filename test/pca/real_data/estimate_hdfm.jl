@@ -23,7 +23,7 @@ datamat = Float64.(datamat)         # transform entires to Float64
 
 for i in 1:size(datamat)[2]
     datamat[:, i] = datamat[:, i] ./ std(datamat[:, i])
-end 
+end
 
 regstatematch = Matrix(regstatematch[2:end, :])
 regassign = Int64.(regstatematch[:, 3])
@@ -53,16 +53,17 @@ hdfmpriors = HDFMParams(nlevels = nlevels,
     burnin = 50)
 
 results = PCA2LevelEstimator(datamat, hdfmpriors)
+results2 = KN2LevelEstimator(datamat, hdfmpriors)
 
 #Save state names
-statenames = data[1,:]
+statenames = data[1, :]
 
 medians = Any[]
 quant33 = Any[]
 quant66 = Any[]
 stds = Any[]
 
-j = 5
+j = 4
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
     push!(quant33, quantile(results.F[i, j, :], 0.05))
@@ -70,10 +71,13 @@ for i in 1:size(results.F)[1]
     push!(medians, median(results.F[i, j, :]))
 end
 
-plot(results.means.F[:, j])
-plot!(results.means.F[:, 1])
+plot(results.means.F[:, j][10:end])
+#plot!(results.means.F[:, 1])
+plot!(quant33[10:end])
+plot!(quant66[10:end])
 
 vardecomp = vardecomp2level(datamat, results.means.F, reshape(results.means.B, 3, 50)', fassign)
+vardecomp2 = vardecomp2level(datamat, results2.means.F, reshape(results2.means.B, 3, 50)', fassign)
 
 plot(vardecomp[:, 1])
 plot!(vardecomp[:, 2])
