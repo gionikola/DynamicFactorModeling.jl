@@ -39,7 +39,6 @@ flags = [3, 3]
 varlags = 3 * ones(Int, nvar)
 
 hdfmpriors = HDFMStruct(nlevels = nlevels,
-    nvars = nvar,
     nfactors = nfactors,
     factorassign = fassign,
     factorlags = flags,

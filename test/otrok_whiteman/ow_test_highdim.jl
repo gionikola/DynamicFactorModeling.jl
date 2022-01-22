@@ -61,7 +61,6 @@ data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 #varlags = [3, 3, 3, 3, 3, 3, 3, 3, 3]
 
 hdfmpriors = HDFMStruct(nlevels = nlevels,
-    nvars = nvar,
     nfactors = nfactors,
     factorassign = fassign,
     factorlags = flags,
