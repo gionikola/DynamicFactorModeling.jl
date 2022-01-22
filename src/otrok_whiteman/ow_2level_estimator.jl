@@ -16,7 +16,11 @@ include("ow_tools.jl")
 function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
     # Unpack two-level HDFM parameters 
-    @unpack nlevels, nfactors, fassign, flags, varlags, ndraws, burnin  = hdfm
+    @unpack nlevels, nfactors, factorassign, factorlags, errorlags, ndraws, burnin  = hdfm
+
+    fassign = factorassign
+    flags = factorlags 
+    varlags = errorlags
 
     # Save data & its size 
     y = data                    # save data in new matrix 
