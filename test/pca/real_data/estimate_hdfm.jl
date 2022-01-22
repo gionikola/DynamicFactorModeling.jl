@@ -52,7 +52,7 @@ hdfmpriors = HDFMStruct(nlevels = nlevels,
     burnin = 50)
 
 results = PCA2LevelEstimator(datamat, hdfmpriors)
-results2 = KN2LevelEstimator(datamat, hdfmpriors)
+#results2 = KN2LevelEstimator(datamat, hdfmpriors)
 
 #Save state names
 statenames = data[1, :]
@@ -76,7 +76,7 @@ plot!(quant33[10:end])
 plot!(quant66[10:end])
 
 vardecomp = vardecomp2level(datamat, results.means.F, reshape(results.means.B, 3, 50)', fassign)
-vardecomp2 = vardecomp2level(datamat, results2.means.F, reshape(results2.means.B, 3, 50)', fassign)
+#vardecomp2 = vardecomp2level(datamat, results2.means.F, reshape(results2.means.B, 3, 50)', fassign)
 
 plot(vardecomp[:, 1])
 plot!(vardecomp[:, 2])
