@@ -13,6 +13,7 @@ Three HDFM estimation approaches are offered:
 1. Principal component analysis (PCA) (overviewed in [[1]](#1)) (**AVAILABLE**);
 2. Kim-Nelson (KM) state-space approach (introduced in [[2]](#2) and [[3]](#3)) (**IN PROGRESS**);
 3. Otrok-Whiteman (OW) approach (introduced in [[5]](#6) and [[3]](#4)) (**IN PROGRESS**).
+
 This package estimates HDFM hyperaparemeters in the same manner (outlined in [[3]](#3)) across all of the above methodologies, despite the original hyperparameter estimation procedure for the OW estimator being based on the Chib-Greenberg linear regression with ARMA(p,q) error estimator -- the former seems to be faster and easier to diagnose.
 
 ## Installation
