@@ -11,7 +11,7 @@
 ######################
 ######################
 @doc """
-    DFMStruct(factorlags, errorlags, ndraws, burnin)
+    DFMStruct(factorlags::Int64, errorlags::Int64, ndraws::Int64, burnin::Int64)
 
 Description:
 1-level DFM lag structure specification and MCMC sample size for Bayesian estimation. 
@@ -41,7 +41,7 @@ end;
 ######################
 ######################
 @doc """
-    HDFMStruct(nlevels, nvars, nfactors, factorassign, factorlags, errorlags, ndraws, burnin)
+    HDFMStruct(nlevels::Int64, nfactors::Array{Int64,1}, factorassign::Array{Int64,2}, factorlags::Array{Int64,1}, errorlags::Array{Int64,1}, ndraws::Int64, burnin::Int64)
 
 Description:
 Multi-level/hierarchical DFM (HDFM) level, factor assignment, and lag structure specification, and MCMC sample size for Bayesian estimation. 
@@ -78,7 +78,17 @@ end;
 ######################
 ######################
 @doc """
-    DFMMeans(F, B, S, P, P2)
+    DFMMeans(F::Array{Float64}, B::Array{Float64}, S::Array{Float64}, P::Array{Float64}, P2::Array{Float64})
+
+Description:
+HDFM Bayesian estimator-generated latent factor and hyperparameter sample means (expected values). 
+
+Inputs:
+- F = MCMC-generated latent factor sample mean.
+- B = MCMC-generated observation equation regression coefficient sample means.
+- S = MCMC-generated observable variable idiosyncratic error disturbance variance sample means. 
+- P = MCMC-generated latent factor autoregressive coefficient sample means. 
+- P2 = MCMC-generated idiosyncratic error autoregressive coefficient sample means. 
 """
 @with_kw mutable struct DFMMeans
     F::Array{Float64}   # Factor means 
@@ -100,7 +110,18 @@ end;
 ######################
 ######################
 @doc """
-    DFMResults(F, B, S, P, P2, means)
+    DFMResults(F::Array{Float64}, B::Array{Float64}, S::Array{Float64}, P::Array{Float64}, P2::Array{Float64}, means::DFMMeans)
+
+Description:
+HDMF Bayesian estimator-generated MCMC posterior distribution samples and their means for latent factors and hyperparameters. 
+
+Inputs:
+- F = MCMC-generated latent factor sample.
+- B = MCMC-generated observation equation regression coefficient sample.
+- S = MCMC-generated observable variable idiosyncratic error disturbance variance sample. 
+- P = MCMC-generated latent factor autoregressive coefficient sample. 
+- P2 = MCMC-generated idiosyncratic error autoregressive coefficient sample. 
+- means = HDFM Bayesian estimator-generated latent factor and hyperparameter sample means (expected values).
 """
 @with_kw mutable struct DFMResults
     F::Array{Float64}   # Factor sample 
