@@ -15,16 +15,15 @@ include("ow_tools.jl")
     OWSingleFactorEstimator(data, dfm)
 
 Description:
-Estimate a single-factor DFM. 
+Estimate a single-factor DFM using the Otrok-Whiteman approach.
+Both the latent factor and hyperparameters are estimated using the Bayesian approach outlined in Otrok and Whiteman (1998).  
 
 Inputs:
-- data = set of observed variables with a hypothesized common trend.
-- dfm = model priors. 
+- data = Matrix with each column being a data series. 
+- dfm = Model structure specification. 
 
 Outputs:
-- B = single-factor DFM coefficient hyperparameter estimates. 
-- F = single-factor DFM factor estimate. 
-- S = single-factor DFM error variance estimates. 
+- results = HDMF Bayesian estimator-generated MCMC posterior distribution samples and their means for latent factors and hyperparameters.
 """
 function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
 

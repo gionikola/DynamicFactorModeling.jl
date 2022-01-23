@@ -1,4 +1,17 @@
 @doc """
+    vardecomp2level(data::Array{Float64, 2}, factor::Array{Float64}, betas::Array{Float64}, factorassign::Array{Float64})
+
+Description:
+Compute the portion of the variation of each observable series that may be attributed to their corresponding/assigned latent factors across all levels. 
+
+Inputs: 
+- data = Matrix with each column representing a data series. 
+- factor = Matrix containing latent factor estimates.
+- betas = Matrix containing observation equation coefficient parameter estimates.
+- factorassign = Matrix containing the indeces of factors across all levels (columns) assigned to each observable series (rows). 
+
+Output: 
+- vardecomps = Matrix containing the variance contributions of factors across all levels (columns) corresponding to each observable series (rows). 
 """
 function vardecomp2level(data, factor, betas, factorassign)
 
