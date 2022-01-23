@@ -12,19 +12,18 @@ include("pca_tools.jl")
 ######################
 ######################
 @doc """
-    KN2LevelEstimator(data::Array{Float64,2}, params::HDFMParams)
+    PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
 Description:
-Estimate a single-factor DFM using the Kim-Nelson approach. 
+Estimate a two-level HDFM using the PCA approach.
+The latent factors are estimated using PCA, while the hyperparameters are estimated using the Bayesian approach outlined in Kim and Nelson (1999).  
 
 Inputs:
-- data = set of observed variables with a hypothesized common trend.
-- priorsIN = model priors. 
+- data = Matrix with each column being a data series. 
+- hdfm = Model structure specification. 
 
 Outputs:
-- B = single-factor DFM coefficient hyperparameter estimates. 
-- F = single-factor DFM factor estimate. 
-- S = single-factor DFM error variance estimates. 
+- results = HDMF Bayesian estimator-generated MCMC posterior distribution samples and their means for latent factors and hyperparameters.
 """
 function PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
@@ -40,7 +39,7 @@ function PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     # nvar = number of variables including the variable with missing date
     # nobs = length of data of complete dataset
     nobs, nvars = size(y)
-    nvar = nvars 
+    nvar = nvars
 
     # Store factor and parameter counts 
     nfacts = sum(nfactors)       # # of factors 
@@ -95,42 +94,42 @@ function PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     factor = zeros(nobs, nfacts)           # Random starting factor series matrix 
     factor[:, 1], component = firstComponentFactor(y)     # Starting global factor = crosssectional mean of obs. series 
     for i in 1:(nfacts-1)              # Set level-2 factors equal to their respective group means
-        factor[:, 1+i], component2 = firstComponentFactor(y[:, varassign[i]] - factor[:,1]*component[varassign[i]]')
-        if cor(factor[:, 1+i], y[:, varassign[i][1]] -  factor[:,1]) < 0
+        factor[:, 1+i], component2 = firstComponentFactor(y[:, varassign[i]] - factor[:, 1] * component[varassign[i]]')
+        if cor(factor[:, 1+i], y[:, varassign[i][1]] - factor[:, 1]) < 0
             factor[:, 1+i] = -factor[:, 1+i]
-        end 
+        end
     end
-    if cor(factor[:,1], y[:,1] - y[:, varassign[1][1]]) < 0
-        factor[:,1] = -factor[:,1]
-    end 
+    if cor(factor[:, 1], y[:, 1] - y[:, varassign[1][1]]) < 0
+        factor[:, 1] = -factor[:, 1]
+    end
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
-    
+
         println(dr)
-    
+
         ##################################
         ##################################
         # Draw β, σ2, ϕ
-    
-    
+
+
         ## Iterate over all data series 
         ## to draw obs. eq. hyperparameters 
         for i = 1:nvar
-        
+
             ## Gather all regressors into `X`
             X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
-        
+
             ## Initialize β, σ2, ϕ
             β = ones(1 + nlevels)
             σ2 = 0
             ϕ = zeros(errorlags)
-        
+
             ## Save i-th series 
             Y = y[:, i]
-        
+
             ind = 0
-        
+
             if i == 1 && i == varassign[factorassign[i, 2]][1]
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[2] < 0 || β[3] < 0
@@ -169,22 +168,22 @@ function PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
             else
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
             end
-        
+
             ## Fill out HDFM objects 
             betas[i, :] = β'
             sigmas[i] = σ2
             phis[i, :] = ϕ'
-        
+
             ## Save observation eq. hyperparameter draws 
             bsave[dr, ((i-1)*nregs)+1:i*nregs] = β'
             ssave[dr, i] = σ2
             psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
         end
-    
+
         ##################################
         ##################################
         # Draw factor lag coefficients 
-    
+
         for i in 1:nfacts
             ## Create factor regressor matrix 
             X = zeros(nobs, 1 + factorlags)
@@ -193,25 +192,25 @@ function PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                 X[:, 1+j] = lag(factor[:, i], j, default = 0.0)
             end
             X = X[(factorlags+1):nobs, :]
-    
+
             ## Draw ψ
             ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, i], X, 1.0)
-    
+
             ## Fill out HDFM objects 
             psis[i, :] = ψ'
-    
+
             ## Save new draw of ψ
             psave[dr, ((i-1)*(1+factorlags)+1):(i*(1+factorlags))] = ψ'
         end
-    
+
         ##################################
         ##################################
         # Save factors 
-        Xtsave[:, 1, dr] = factor[:,1]
+        Xtsave[:, 1, dr] = factor[:, 1]
         for c in 1:(nfacts-1)
-            Xtsave[:, 1+c, dr] = factor[:,1+c]
-        end 
-    
+            Xtsave[:, 1+c, dr] = factor[:, 1+c]
+        end
+
         println(dr)
     end
 

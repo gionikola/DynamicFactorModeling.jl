@@ -12,20 +12,32 @@ include("ow_tools.jl")
 ######################
 ######################
 @doc """
+    OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
+
+Description:
+Estimate a two-level HDFM using the Otrok-Whiteman approach.
+Both the latent factors and hyperparameters are estimated using the Bayesian approach outlined in Otrok and Whiteman (1998).  
+
+Inputs:
+- data = Matrix with each column being a data series. 
+- hdfm = Model structure specification. 
+
+Outputs:
+- results = HDMF Bayesian estimator-generated MCMC posterior distribution samples and their means for latent factors and hyperparameters.
 """
 function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
     # Unpack two-level HDFM parameters 
-    @unpack nlevels, nfactors, factorassign, factorlags, errorlags, ndraws, burnin  = hdfm
+    @unpack nlevels, nfactors, factorassign, factorlags, errorlags, ndraws, burnin = hdfm
 
     fassign = factorassign
-    flags = factorlags 
+    flags = factorlags
     varlags = errorlags
 
     # Save data & its size 
     y = data                    # save data in new matrix 
     capt, nvars = size(y)       # nvar = # of variables; capt = # of time periods in complete sample 
-    nvar = nvars 
+    nvar = nvars
 
     # Store factor and parameter counts 
     nfact = sum(nfactors)       # # of factors 
@@ -130,9 +142,9 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     # Initialize factor series 
     facts = rand(capt, nfact)           # Random starting factor series matrix 
     facts[:, 1] = mean(y, dims = 2)     # Starting global factor = crosssectional mean of obs. series 
-    for i in 1:(nfact - 1)              # Set level-2 factors equal to their respective group means
-        facts[:, 1+i] = mean(y[:,varassign[i]], dims = 2) 
-    end 
+    for i in 1:(nfact-1)              # Set level-2 factors equal to their respective group means
+        facts[:, 1+i] = mean(y[:, varassign[i]], dims = 2)
+    end
 
     # Begin Monte Carlo Loop
     # (start iteratively drawing hyperparameters and factors)
@@ -190,7 +202,7 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
         for i = 1:nvar  # Iterate over all observable variable 
 
             # Save level-2 factor index assigned to obs. variable i 
-            nfC = fassign[i,2]
+            nfC = fassign[i, 2]
 
             # Partial out variation in variable i due to intercept + level-2 factor 
             yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, 1+nfC] * bold[i, 3]'

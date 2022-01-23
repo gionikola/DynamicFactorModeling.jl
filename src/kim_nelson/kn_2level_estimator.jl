@@ -15,7 +15,8 @@ include("kn_tools.jl")
     KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
 Description:
-Estimate a single-factor DFM using the Kim-Nelson approach. 
+Estimate a two-level HDFM using the Kim-Nelson approach. 
+Both the latent factors and hyperparameters are estimated using the Bayesian approach outlined in Kim and Nelson (1999).   
 
 Inputs:
 - data = Matrix with each column being a data series. 
