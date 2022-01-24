@@ -260,7 +260,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
         for i = 1:nvars  # Iterate over all observable variable 
 
             # Save level-2 factor index assigned to obs. variable i 
-            nfC = fassign[i, 2]
+            nfC = factorassign[i, 2]
 
             # Partial out variation in variable i due to intercept + level-2 factor 
             yW = y[:, i] - ones(nobs, 1) * betas[i, 1] - factor[:, 1+nfC] * betas[i, 3]
