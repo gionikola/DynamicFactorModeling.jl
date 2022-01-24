@@ -53,7 +53,7 @@ function PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     fnvars = zeros(Int, nfacts - 1)
     for i in 1:(nfacts-1)
         for j in 1:nvars
-            if fassign[j, 2] == i
+            if factorassign[j, 2] == i
                 fnvars[i] = fnvars[i] + 1
             end
         end
@@ -68,7 +68,7 @@ function PCA2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     for i in 1:(nfacts-1) # iterate over level-2 factors 
         push!(varassign, Any[])
         for j in 1:nvars # iterate over variables 
-            if fassign[j, 2] == i
+            if factorassign[j, 2] == i
                 push!(varassign[i], j)
             end
         end
