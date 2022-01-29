@@ -38,6 +38,7 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     # nvar = number of variables including the variable with missing date
     # nobs = length of data of complete dataset
     nobs, nvar = size(y)
+    nvars = nvar 
 
     # Number of regressors in each observable equation
     # (constant + global factor)
@@ -179,18 +180,18 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
         m = factorlags + nvars * errorlags
     
         H = zeros(nvars, m)
-        H[:, 1] = betas[:, 2]
+        H[:, 1] = varcoefs[:, 2]
         H[:, 2:2+nvars-1] = I(nvars)
     
         A = zeros(nvars, m)
     
         F = zeros(m, m)
         for j in 1:factorlags
-            F[1, 1+(j-1)*nvars] = psis[1, 1+j]
+            F[1, 1+(j-1)*nvars] = fcoefs[1+j]
         end
         for i in 1:nvars
             for j in 1:errorlags
-                F[1+i, 1+i+(j-1)*nvars] = phis[i, j]
+                F[1+i, 1+i+(j-1)*nvars] = varlagcoefs[i, j]
             end
         end
     
@@ -201,7 +202,7 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
         Q = zeros(m, m)
         Q[1, 1] = 1
         for i in 1:nvars
-            Q[1+i, 1+i] = sigmas[i]
+            Q[1+i, 1+i] = varvars[i]
         end
     
         Z = zeros(nvars, nvars)
