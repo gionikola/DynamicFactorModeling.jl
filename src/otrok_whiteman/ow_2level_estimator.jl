@@ -15,8 +15,8 @@ include("ow_tools.jl")
     OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
 Description:
-Estimate a two-level HDFM using the Otrok-Whiteman approach.
-Both the latent factors and hyperparameters are estimated using the Bayesian approach outlined in Otrok and Whiteman (1998).  
+Estimate a two-level HDFM using the Kim-Nelson approach. 
+Both the latent factors and hyperparameters are estimated using the Bayesian approach outlined in Kim and Nelson (1999).   
 
 Inputs:
 - data = Matrix with each column being a data series. 
@@ -27,29 +27,31 @@ Outputs:
 """
 function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
-    # Unpack two-level HDFM parameters 
+    # Unpack simulation parameters 
     @unpack nlevels, nfactors, factorassign, factorlags, errorlags, ndraws, burnin = hdfm
 
-    fassign = factorassign
-    flags = factorlags
-    varlags = errorlags
+    # Save total number of Monte Carlo draws 
+    totdraws = ndraws + burnin
 
-    # Save data & its size 
-    y = data                    # save data in new matrix 
-    capt, nvars = size(y)       # nvar = # of variables; capt = # of time periods in complete sample 
+    # Store data as separate object 
+    y = data
+
+    # nvar = number of variables including the variable with missing date
+    # nobs = length of data of complete dataset
+    nobs, nvars = size(y)
     nvar = nvars
 
     # Store factor and parameter counts 
-    nfact = sum(nfactors)       # # of factors 
-    arlag = max(flags...)       # autoregressive lags in the dynamic factors 
-    arterms = max(varlags...)   # number of AR lags to include in each observable equation
-    nreg = 1 + nlevels          # # of regressors in each obs. eq. (intercept + factors)
+    nfacts = sum(nfactors)       # # of factors 
+    factorlags = max(factorlags...)       # autoregressive lags in the dynamic factors 
+    errorlags = max(errorlags...)   # number of AR lags to include in each observable equation
+    nregs = 1 + nlevels          # # of regressors in each obs. eq. (intercept + factors)
 
     # Count number of variables each 2nd-level factor loads on
     # using a vector called `fnvars`
     # where the i-th entry represents the i-th 2nd-level factors 
-    fnvars = zeros(Int, nfact - 1)
-    for i in 1:(nfact-1)
+    fnvars = zeros(Int, nfacts - 1)
+    for i in 1:(nfacts-1)
         for j in 1:nvars
             if fassign[j, 2] == i
                 fnvars[i] = fnvars[i] + 1
@@ -63,130 +65,198 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     # that contains the indices of the corresponding variables 
     # in the dataset
     varassign = Any[]
-    for i in 1:(nfact-1) # iterate over level-2 factors 
+    for i in 1:(nfacts-1) # iterate over level-2 factors 
         push!(varassign, Any[])
-        for j in 1:nvar # iterate over variables 
+        for j in 1:nvars # iterate over variables 
             if fassign[j, 2] == i
                 push!(varassign[i], j)
             end
         end
     end
 
-    # Load data 
-    ytemp = y
+    # De-mean data series 
+    y = y - repeat(mean(y, dims = 1), nobs, 1)
 
-    # Express each variable in the dataset 
-    # in deviation-from-mean form 
-    # (de-mean each variable in the dataset)
-    y = ytemp - repeat(mean(ytemp, dims = 1), capt, 1)
-
-    # Set up some matrices for storage
-    Xtsave = zeros(capt, nfact, (ndraws + burnin))          # Keep draw of factor, not all states (others are trivial)
-    bsave = zeros(ndraws + burnin, nreg * nvar)             # Observable equation regression coefficients
-    ssave = zeros(ndraws + burnin, nvar)                    # Innovation variances
-    psave = zeros(ndraws + burnin, nfact * arlag)           # Factor autoregressive polynomials
-    psave2 = zeros(ndraws + burnin, nvar * arterms)         # Idiosyncratic disturbance autoregressive polynomials
-
-    ##############################################
-    ##############################################
-    ##### include a necessary procedure #####
-    ##### set priors for observable equations in factor model
-
-    # Specify prior mean of factor loading
-    # and precision of factor loading 
-    b0_ = ones(nreg, 1)                 # prior mean of factor loading
-    B0__ = 0.01 * ident(nreg)           # prior precision of factor loading
-    B0__[1, 1] = 1.0
-
-    # Specify prior mean of idiosyncratic 
-    # disturbance AR lag coefficients
-    # and precision of AR lag coefficients 
-    r0_ = zeros(arterms, 1)             # prior mean of phi (idiosyncratic AR polynomial)
-    phipri = 0.25
-    R0__ = phipri * ident(arterms)      # prior precision of phi
-
-    # Specify prior parameters of 
-    # innovation variances 
-    v0_ = trunc(Int, ceil(capt * 0.05)) # inverted gamma parameters of for innovation variances
-    d0_ = (0.25)^2                      # v0 is an integer
-
-    # Specify prior for factor AR lag coefficients 
-    # and precision of factor AR lag coefficients 
-    prem = 1
-    for i = 1:(arlag-1)
-        prem = [prem; (1 / 2)^i]
-    end
-    phiprif = 1 ./ prem
-    r0f_ = zeros(arlag)                        # prior mean of phi
-    R0f__ = diagrv(ident(arlag), phiprif)
-    #R0f__ = phipri * ident(arlag) 
-
-    # Normalize innovation variance for the factor vector 
-    # since diagonal variance is set to 1
-    sigU = [1; zeros(arlag - 1)]
-    for i = 2:nfact
-        sigU = [sigU; 1; zeros(arlag - 1)]
-    end
-
-    ##############################################
-    ##############################################
-    ##############################################
-    ##############################################
+    # Set up some matricies for storage (optional)
+    Xtsave = zeros(nobs, nfacts, totdraws)              # Keep draw of factor, not all states (others are trivial)
+    bsave = zeros(totdraws, nregs * nvars)              # Observable equation regression coefficients
+    ssave = zeros(totdraws, nvars)                      # Innovation variances
+    psave = zeros(totdraws, nfacts * (1 + factorlags))  # Factor autoregressive polynomials
+    psave2 = zeros(totdraws, nvars * errorlags)         # Idiosyncratic disturbance autoregressive polynomials
 
     # Initialize hyperparameters 
-    SigE = ones(nvar, 1) * 0.0001           # Idiosyncratic error precision vector 
-    phi = zeros(arlag, nfact)               # Factor AR companion matrix 
-    bold = zeros(nvar, nreg)                # Obs. eq. regression starting coefficient matrix 
-    phimat0 = zeros(arterms, nvar)          # Idiosyncratic error AR companion matrix 
+    sigmas = ones(nvars)                    # Idiosyncratic error variance vector 
+    psis = zeros(nfacts, 1 + factorlags)               # Factor AR companion matrix 
+    betas = zeros(nvars, 1 + nlevels)                # Obs. eq. regression starting coefficient matrix 
+    phis = zeros(nvars, errorlags)          # Idiosyncratic error AR companion matrix 
 
+    #=
     # Initialize factor series 
-    facts = rand(capt, nfact)           # Random starting factor series matrix 
-    facts[:, 1] = mean(y, dims = 2)     # Starting global factor = crosssectional mean of obs. series 
-    for i in 1:(nfact-1)              # Set level-2 factors equal to their respective group means
-        facts[:, 1+i] = mean(y[:, varassign[i]], dims = 2)
+    factor = zeros(nobs, nfacts)           # Random starting factor series matrix 
+    factor[:, 1] = mean(y, dims = 2)     # Starting global factor = crosssectional mean of obs. series 
+    for i in 1:(nfacts-1)              # Set level-2 factors equal to their respective group means
+        factor[:, 1+i] = mean(y[:, varassign[i]], dims = 2)
+    end
+    =#
+    # Estimate factors 
+    factor = zeros(nobs, nfacts)           # Random starting factor series matrix 
+    factor[:, 1], component = firstComponentFactor(y)     # Starting global factor = crosssectional mean of obs. series 
+    for i in 1:(nfacts-1)              # Set level-2 factors equal to their respective group means
+        factor[:, 1+i], component2 = firstComponentFactor(y[:, varassign[i]] - factor[:, 1] * component[varassign[i]]')
+        if cor(factor[:, 1+i], y[:, varassign[i][1]] - factor[:, 1]) < 0
+            factor[:, 1+i] = -factor[:, 1+i]
+        end
+    end
+    if cor(factor[:, 1], y[:, 1] - y[:, varassign[1][1]]) < 0
+        factor[:, 1] = -factor[:, 1]
     end
 
     # Begin Monte Carlo Loop
-    # (start iteratively drawing hyperparameters and factors)
-    for dr = 1:(ndraws+burnin)
+    for dr = 1:totdraws
 
         println(dr)
 
-        ############################################
-        ## Draw observation equation hyperparameters 
-        ############################################
-        for i = 1:nvar # Iterate over all obs. variables 
+        ##################################
+        ##################################
+        # Draw β, σ2, ϕ
 
-            # Save the index of the factor assigned 
-            # to observable variable i 
-            nf = fassign[i, 2]
+        ## Iterate over all data series 
+        ## to draw obs. eq. hyperparameters 
+        for i = 1:nvar
 
-            # Create matrix containing all regressors 
-            # corresponding to variable i including:
-            # (1) an intercept, (2) global factor, (3) level-2 factor 
-            xft = [ones(capt, 1) facts[:, 1] facts[:, 1+nf]]
+            ϕold = zeros(errorlags)
+            if dr > 1
+                ϕold = psave2[dr-1, ((i-1)*errorlags)+1:i*errorlags]
+                ϕold = vec(ϕold)
+            end
+            ## Gather all regressors into `X`
+            X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
 
-            # Update variable i observation equation 
-            # hyperparameters, and update corresponding 
-            # factor orientation (if appropriate)
-            b1, s21, phi1, facts = ar_LJ(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, transp_dbl(bold[i, :]), SigE[i], phimat0[:, i], i, nf, facts, capt, nreg, fnvars[fassign[i, 2]], varassign)
-            #b1, s21, phi1, facts = ar2(y[:, i], xft, arterms, b0_, B0__, r0_, R0__, v0_, d0_, vec(bold[i, :]), phimat0[:, i], SigE[i], i, nf, facts, capt, varassign)
-            bold[i, :] = b1                                     # Update obs. regression coefficients
-            phimat0[:, i] = phi1                                # Update idiosyncratic error AR coefficients 
-            SigE[i] = s21                                       # Update innovation variance parameter 
-            bsave[dr, (((i-1)*nreg)+1):(i*nreg)] = b1           # Save current obs. regression coefficient draw 
-            ssave[dr, i] = s21                                  # Save current innovation variance parameter draw
-            psave2[dr, (((i-1)*arterms)+1):(i*arterms)] = phi1  # Save current idiosyncratic error AR coefficient draw  
+            ## Initialize β, σ2, ϕ
+            β = ones(1 + nlevels)
+            σ2 = 0
+            ϕ = zeros(errorlags)
 
+            ## Save i-th series 
+            Y = y[:, i]
+            ind1 = 0
+            ind2 = 0
+
+            if i == 1 && i == varassign[factorassign[i, 2]][1]
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                while β[2] < 0 || β[3] < 0
+                    if β[2] < 0
+                        ind1 += 1
+                    else
+                        ind1 -= 1
+                    end
+                    if β[3] < 0
+                        ind2 += 1
+                    else
+                        ind2 -= 1
+                    end
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                    println("Factor 1 index: $ind1")
+                    println("Factor 2 index: $ind2")
+                    if ind1 > 100
+                        ind1 = 0
+                        factor[:, 1] = -factor[:, 1]
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
+                    end
+                    if ind2 > 100
+                        ind2 = 0
+                        factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
+                    end
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                end
+            elseif i == 1 && i != varassign[factorassign[i, 2]][1]
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                while β[2] < 0
+                    ind1 += 1
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                    println("Factor 1 index: $ind1")
+                    if ind1 > 100
+                        ind1 = 0
+                        factor[:, 1] = -factor[:, 1]
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
+                        ## Draw observation eq. hyperparameters 
+                        β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                    end
+                end
+            elseif i != 1 && i == varassign[factorassign[i, 2]][1]
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                while β[3] < 0
+                    ind2 += 1
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                    println("Factor 2 index: $ind2")
+                    if ind2 > 100
+                        ind2 = 0
+                        factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
+                        X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
+                        ## Draw observation eq. hyperparameters 
+                        β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                    end
+                end
+            else
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+            end
+
+            ## Fill out HDFM objects 
+            betas[i, :] = β'
+            sigmas[i] = σ2
+            phis[i, :] = ϕ'
+
+            ## Save observation eq. hyperparameter draws 
+            bsave[dr, ((i-1)*nregs)+1:i*nregs] = β'
+            ssave[dr, i] = σ2
+            psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
         end
 
-        ############################################
-        ## Draw factor autoregression coefficients  
-        ############################################
-        for i = 1:nfact # Iterate over all factors
-            j = 1 + (i - 1) * arlag
-            phi[:, i] = arfac(facts[:, i], arlag, r0f_, R0f__, phi[:, i], sigU[j, 1], capt)
-            psave[dr, ((i-1)*arlag+1):((i-1)*arlag+arlag)] = transp_dbl(phi[:, i])
+        ##################################
+        ##################################
+        # Draw factor lag coefficients 
+
+        for i in 1:nfacts
+            ## Create factor regressor matrix 
+            X = zeros(nobs, 1 + factorlags)
+            X[:, 1] = ones(nobs)
+            for j in 1:factorlags
+                X[:, 1+j] = lag(factor[:, i], j, default = 0.0)
+            end
+            X = X[(factorlags+1):nobs, :]
+
+            ind = 0
+            accept = 0
+            ψ = zeros(1 + factorlags)
+            while accept == 0
+
+                ind += 1
+
+                ## Draw ψ
+                ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, i], X, 1.0)
+
+                ## Check for stationarity 
+                coef = [-reverse(vec(ψ[2:end]), dims = 1); 1]                      # check stationarity 
+                root = roots(Polynomial(reverse(coef)))
+                rootmod = abs.(root)
+                accept = min(rootmod...) >= 1.01
+
+                ## If while loop goes on for too long 
+                if ind > 100
+                    ψ = psave[dr-1, ((i-1)*(1+factorlags)+1):(i*(1+factorlags))]
+                    coef = [-reverse(vec(ψ[2:end]), dims = 1); 1]                      # check stationarity 
+                    root = roots(Polynomial(reverse(coef)))
+                    rootmod = abs.(root)
+                    accept = min(rootmod...) >= 1.01
+                end
+            end
+
+            ## Fill out HDFM objects 
+            psis[i, :] = ψ'
+
+            ## Save new draw of ψ
+            psave[dr, ((i-1)*(1+factorlags)+1):(i*(1+factorlags))] = ψ'
         end
 
         ############################################
@@ -194,30 +264,30 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
         ############################################
 
         # Initialize all important objects 
-        sinvf1 = sigbig(phi[:, 1], arlag, capt)             # (T×T) S^{-1} quasi-differencing matrix for global factor 
-        f = zeros(capt, 1)                                  # Empty vector for global factor to fill out 
-        H = ((1 / sigU[1]) * (transp_dbl(sinvf1) * sinvf1)) # First term of (T×T) H matrix, implying b_0 = 0 (H^{-1} is factor covariance matrix)
+        sinvf1 = sigbig(psis[1, 2:end], factorlags, nobs)   # (T×T) S^{-1} quasi-differencing matrix for global factor 
+        f = zeros(nobs, 1)                              # Empty vector for global factor to fill out 
+        H = sinvf1' * sinvf1                            # First term of (T×T) H matrix, implying b_0 = 0 (H^{-1} is factor covariance matrix)
 
         # Fill out important objects 
-        for i = 1:nvar  # Iterate over all observable variable 
+        for i = 1:nvars  # Iterate over all observable variable 
 
             # Save level-2 factor index assigned to obs. variable i 
             nfC = fassign[i, 2]
 
             # Partial out variation in variable i due to intercept + level-2 factor 
-            yW = y[:, i] - ones(capt, 1) * bold[i, 1] - facts[:, 1+nfC] * bold[i, 3]'
+            yW = y[:, i] - ones(nobs, 1) * betas[i, 1] - factor[:, 1+nfC] * betas[i, 3]
 
             # S_i^{-1} for i > 2 
-            sinv1 = sigbig(phimat0[:, i], arterms, capt)
+            sinv1 = sigbig(vec(phis[i, :]), errorlags, nobs)
 
             # Add next term in equation for H (pg. 1004, Otrok-Whiteman 1998)
-            H = H + ((bold[i, 2]^2 / (SigE[i])) * (transp_dbl(sinv1) * sinv1))
+            H = H + ((betas[i, 2]^2 / (sigmas[i])) * (sinv1' * sinv1))
 
             # Add next term of within-parenthesis sum in equation for f (pg. 1004, Otrok-Whiteman 1998)
-            f = f + (bold[i, 2] / SigE[i]) * (transp_dbl(sinv1) * sinv1) * yW
+            f = f + (betas[i, 2] / sigmas[i]) * (sinv1' * sinv1) * yW
 
         end
-        Hinv = invpd(H)     # Invert H to save H^{-1} 
+        Hinv = inv(H)     # Invert H to save H^{-1} 
         f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
 
         # Obtain new draw of the global factor 
@@ -228,43 +298,42 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
         # Update factor data matrix to contain
         # new global factor draw 
-        facts[:, 1] = fact1
+        factor[:, 1] = fact1
 
         ############################################
         ## Draw level-2 factors 
         ############################################
-        for c = 1:(nfact-1) # Iterate over level-2 factors 
 
-            j = 1 + c * arlag
+        for c = 1:(nfacts-1) # Iterate over level-2 factors 
 
             # Store number of obs. variables 
             # to which level-2 factor number c 
             # gets assigned 
             Size = fnvars[c]
 
-            # Partial out variation in variables assigned to level-2 factor c
-            # corresponding to variation in intercept + level-1 factor 
-            yC = y[:, varassign[c]] - ones(capt, 1) * transp_dbl(bold[varassign[c], 1]) - facts[:, 1] * transp_dbl(bold[varassign[c], 2])
-
             # Initialize all important objects 
-            phiC = phi[:, 1+c]                                      # Store level-2 factor c AR lag coefficients 
-            sinvf1 = sigbig(phiC, arlag, capt)                      # (T×T) S^{-1} quasi-differencing matrix for level-2 factor c
-            f = zeros(capt, 1)                                      # Empty vector for level-2 factor c to fill out  
-            H = ((1 / sigU[j]) * (transp_dbl(sinvf1) * sinvf1))     # First term of (T×T) H matrix, implying b_0 = 0 (H^{-1} is factor covariance matrix) 
+            phiC = vec(psis[1+c, 2:end])                                      # Store level-2 factor c AR lag coefficients 
+            sinvf1 = sigbig(phiC, factorlags, nobs)                      # (T×T) S^{-1} quasi-differencing matrix for level-2 factor c
+            f = zeros(nobs, 1)                                      # Empty vector for level-2 factor c to fill out  
+            H = sinvf1' * sinvf1                                    # First term of (T×T) H matrix, implying b_0 = 0 (H^{-1} is factor covariance matrix) 
 
             for i = 1:Size # Iterate over all obs. variables assigned to level-2 factor c 
 
                 # S_i^{-1} for i > 2 
-                sinv1 = sigbig(phimat0[:, varassign[c][i]], arterms, capt)
+                sinv1 = sigbig(vec(phis[varassign[c][i], :]), errorlags, nobs)
 
                 # Add next term in equation for H (pg. 1004, Otrok-Whiteman 1998)
-                H = H + ((bold[varassign[c][i], 3]^2 / (SigE[varassign[c][i]])) * (transp_dbl(sinv1) * sinv1))
+                H += ((betas[varassign[c][i], 3]^2 / (sigmas[varassign[c][i]])) * (sinv1' * sinv1))
+
+                # Partial out variation in variables assigned to level-2 factor c
+                # corresponding to variation in intercept + level-1 factor 
+                yC = y[:, varassign[c][i]] - ones(nobs, 1) * betas[varassign[c][i], 1] - factor[:, 1] * betas[varassign[c][i], 2]
 
                 # Add next term of within-parenthesis sum in equation for f (pg. 1004, Otrok-Whiteman 1998)
-                f = f + (bold[varassign[c][i], 3] / SigE[varassign[c][i]]) * (transp_dbl(sinv1) * sinv1) * (yC[:, i])
+                f += (betas[varassign[c][i], 3] / sigmas[varassign[c][i]]) * (sinv1' * sinv1) * (yC)
 
             end
-            Hinv = invpd(H)     # Invert H to save H^{-1} 
+            Hinv = inv(H)     # Invert H to save H^{-1} 
             f = Hinv * f        # Obtain mean of f by pre-multiplying existing sum by H^{-1} 
 
             # Obtain new draw of level-2 factor c
@@ -275,7 +344,7 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
 
             # Update factor data matrix to contain
             # new level-2 factor c draw 
-            facts[:, 1+c] = fact2
+            factor[:, 1+c] = fact2
 
         end
 
@@ -285,11 +354,11 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     ##############################################
     ##############################################
     ## Save Monte Carlo samples 
-    Xtsave = Xtsave[:, :, (burnin+1):(burnin+ndraws)]
-    bsave = bsave[(burnin+1):(burnin+ndraws), :]
-    ssave = ssave[(burnin+1):(burnin+ndraws), :]
-    psave = psave[(burnin+1):(burnin+ndraws), :]
-    psave2 = psave2[(burnin+1):(burnin+ndraws), :]
+    Xtsave = Xtsave[:, :, (burnin+1):totdraws]
+    bsave = bsave[(burnin+1):totdraws, :]
+    ssave = ssave[(burnin+1):totdraws, :]
+    psave = psave[(burnin+1):totdraws, :]
+    psave2 = psave2[(burnin+1):totdraws, :]
 
     ##############################################
     ##############################################
@@ -305,8 +374,12 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     means = DFMMeans(F, B, S, P, P2)
     results = DFMResults(Xtsave, bsave, ssave, psave, psave2, means)
 
+    ##################################
+    ##################################
+    # Return results as single object 
     return results
-end;
+end
+;
 ######################
 ######################
 ######################
