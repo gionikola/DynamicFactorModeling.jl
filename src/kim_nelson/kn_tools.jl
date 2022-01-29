@@ -69,7 +69,7 @@ function kalmanFilter(data_y, ssmodel)
         push!(Pttlag, P_pred_lag)
 
         # Updating 
-        K = P_pred_lag * transpose(H) * inv(f_pred_lag)
+        K = P_pred_lag * transpose(H) * pinv(f_pred_lag)
         β_pred = β_pred_lag + K * η_pred_lag
         P_pred = P_pred_lag - K * H * P_pred_lag
 
@@ -241,14 +241,6 @@ function KNFactorSampler(data_y, ssmodel)
     # Run Kalman filter 
     data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, ssmodel)
 
-    # Format non-positive definite P_{t|t}
-    # matrices as PSDMat for sampler 
-    for t = 1:size(Ptt)[1]
-        if isposdef(Ptt[t]) == false
-            Ptt[t] = PSDMat(Ptt[t])
-        end
-    end
-
     # Create placeholders for factor distr. 
     # mean vector and covariance matrix for all t 
     β_t_mean = Any[]
@@ -263,7 +255,7 @@ function KNFactorSampler(data_y, ssmodel)
     # Initialize β_realized 
     push!(β_t_mean, data_filtered_β[T, :])
     push!(β_t_var, Ptt[T])
-    β_realized[T, :] = rand(MvNormal(β_t_mean[1], β_t_var[1]))
+    β_realized[T, :] = sim_MvNormal_alt(β_t_mean[1], β_t_var[1])
 
     # Generate `β_t_mean` and `β_t_var`
     # for all time periods 
@@ -294,13 +286,10 @@ function KNFactorSampler(data_y, ssmodel)
 
             # P_{t|t,β*_{t+1}}
             β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F_star) * inv(F_star * Ptt[T-j] * transpose(F_star) + Q_star) * F_star * Ptt[T-j]
-            if isposdef(β_t_var_temp) == false
-                β_t_var_temp = PSDMat(β_t_var_temp)
-            end
             push!(β_t_var, β_t_var_temp)
 
             # Draw new β_t 
-            β_realized[T-j, :] = rand(MvNormal(β_t_mean[1+j], β_t_var[1+j]))
+            β_realized[T-j, :] = sim_MvNormal_alt(β_t_mean[1+j], β_t_var[1+j])
         end
     else
         ## IF Q IS NOT SINGULAR (redundant, but potentially faster) 
@@ -313,13 +302,10 @@ function KNFactorSampler(data_y, ssmodel)
 
             # P_{t|t,β_{t+1}}
             β_t_var_temp = Ptt[T-j] - Ptt[T-j] * transpose(F) * inv(F * Ptt[T-j] * transpose(F) + Q) * F * Ptt[T-j]
-            if isposdef(β_t_var_temp) == false
-                β_t_var_temp = PSDMat(β_t_var_temp)
-            end
             push!(β_t_var, β_t_var_temp)
 
             # Draw new β_t 
-            β_realized[T-j, :] = rand(MvNormal(β_t_mean[1+j], β_t_var[1+j]))
+            β_realized[T-j, :] = sim_MvNormal_alt(β_t_mean[1+j], β_t_var[1+j])
         end
     end
 
@@ -476,7 +462,8 @@ Inputs:
 - error_lag_num = Number of lags in the disturbance DGP 
 """
 
-function autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
+function autocorrErrorLinearRegressionSampler(Y, X, ϕold, error_lag_num)
+#function autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
 
     # Save number of obs 
     T = size(X)[1]
@@ -549,7 +536,36 @@ function autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
     B1 = Hermitian(B1)
 
     ## Generate new ϕ
-    ϕ = sim_MvNormal(c1, B1)
+    ###=
+    ind = 0
+    accept = 0
+    ϕ = similar(ϕold)
+    while accept == 0
+
+        ind += 1
+
+        ## Draw ψ
+        ϕ = sim_MvNormal(c1, B1)
+
+        ## Check for stationarity 
+        coef = [-reverse(vec(ϕ), dims = 1); 1]                      # check stationarity 
+        root = roots(Polynomial(reverse(coef)))
+        rootmod = abs.(root)
+        accept = min(rootmod...) >= 1.01
+
+        ## If while loop goes on for too long 
+        if ind > 100
+            ϕ = ϕold
+            coef = [-reverse(vec(ϕ), dims = 1); 1]                      # check stationarity 
+            root = roots(Polynomial(reverse(coef)))
+            rootmod = abs.(root)
+            accept = min(rootmod...) >= 1.01
+        end
+    end
+    ##=#
+
+    #ϕ = sim_MvNormal(c1, B1)
+
 
     ##################################
     ##################################
