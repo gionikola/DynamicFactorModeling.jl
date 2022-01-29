@@ -90,11 +90,25 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     betas = zeros(nvars, 1 + nlevels)                # Obs. eq. regression starting coefficient matrix 
     phis = zeros(nvars, errorlags)          # Idiosyncratic error AR companion matrix 
 
+    #=
     # Initialize factor series 
     factor = zeros(nobs, nfacts)           # Random starting factor series matrix 
     factor[:, 1] = mean(y, dims = 2)     # Starting global factor = crosssectional mean of obs. series 
     for i in 1:(nfacts-1)              # Set level-2 factors equal to their respective group means
         factor[:, 1+i] = mean(y[:, varassign[i]], dims = 2)
+    end
+    =#
+    # Estimate factors 
+    factor = zeros(nobs, nfacts)           # Random starting factor series matrix 
+    factor[:, 1], component = firstComponentFactor(y)     # Starting global factor = crosssectional mean of obs. series 
+    for i in 1:(nfacts-1)              # Set level-2 factors equal to their respective group means
+        factor[:, 1+i], component2 = firstComponentFactor(y[:, varassign[i]] - factor[:, 1] * component[varassign[i]]')
+        if cor(factor[:, 1+i], y[:, varassign[i][1]] - factor[:, 1]) < 0
+            factor[:, 1+i] = -factor[:, 1+i]
+        end
+    end
+    if cor(factor[:, 1], y[:, 1] - y[:, varassign[1][1]]) < 0
+        factor[:, 1] = -factor[:, 1]
     end
 
     # Begin Monte Carlo Loop
@@ -159,7 +173,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                     β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                     println("Factor 1 index: $ind1")
                     if ind1 > 100
-                        ind1 = 0 
+                        ind1 = 0
                         factor[:, 1] = -factor[:, 1]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                         ## Draw observation eq. hyperparameters 
@@ -173,12 +187,12 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                     β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                     println("Factor 2 index: $ind2")
                     if ind2 > 100
-                        ind2 = 0 
+                        ind2 = 0
                         factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                         ## Draw observation eq. hyperparameters 
                         β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
-                    end 
+                    end
                 end
             else
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
