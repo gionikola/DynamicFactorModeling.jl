@@ -24,7 +24,7 @@ Inputs:
 Outputs:
 - results = HDMF Bayesian estimator-generated MCMC posterior distribution samples and their means for latent factors and hyperparameters.
 """
-function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
+function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
 
     # Unpack simulation parameters 
     @unpack factorlags, errorlags, ndraws, burnin = dfm
