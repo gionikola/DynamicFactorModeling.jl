@@ -22,7 +22,7 @@ datamat = Matrix(data[2:end, :])     # remove first row containing col names
 datamat = Float64.(datamat)         # transform entires to Float64
 
 for i in 1:size(datamat)[2]
-    datamat[:, i] = (datamat[:, i] .- mean(datamat[:,i]) )./ std(datamat[:, i])
+    datamat[:, i] = (datamat[:, i] .- mean(datamat[:, i])) ./ std(datamat[:, i])
 end
 
 regstatematch = Matrix(regstatematch[2:end, :])
@@ -52,7 +52,9 @@ hdfmpriors = HDFMStruct(nlevels = nlevels,
     burnin = 50)
 
 #results = PCA2LevelEstimator(datamat, hdfmpriors)
-results = KN2LevelEstimator(datamat, hdfmpriors)
+resultsKN = KN2LevelEstimator(datamat, hdfmpriors)
+resultsOW = OW2LevelEstimator(datamat, hdfmpriors)
+resultsPCA = PCA2LevelEstimator(datamat, hdfmpriors)
 
 #Save state names
 statenames = data[1, :]
@@ -72,12 +74,23 @@ end
 
 plot(results.means.F[:, j][1:end])
 #plot!(results.means.F[:, 1])
-plot(medians) 
+plot(medians)
 plot!(quant33)
 plot!(quant66)
 
 vardecomp = vardecomp2level(datamat, results.means.F, reshape(results.means.B, 3, 50)', fassign)
 #vardecomp2 = vardecomp2level(datamat, results2.means.F, reshape(results2.means.B, 3, 50)', fassign)
+vardecomp = [vardecomp zeros(nvar)]
+vardecomp[:, 3] = ones(nvar) - vardecomp[:, 1] - vardecomp[:, 2]
+
+groupedbar(vardecomp,
+    bar_position = :stack,
+    bar_width = 0.9,
+    xticks = (1:nvar, 1:nvar),
+    label = ["National" "Regional" "Idiosyncratic"],
+    title = "Variance Decompositions",
+    ylabel = "Variance Contribution",
+    xlabel = "State")
 
 plot(vardecomp[:, 1])
 plot!(vardecomp[:, 2])
