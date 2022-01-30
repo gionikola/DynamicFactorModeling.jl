@@ -224,36 +224,41 @@ function OW2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                 X[:, j] = lag(factor[:, i], j, default = 0.0)
             end
             X = X[(factorlags+1):nobs, :]
-
+        
             ind = 0
             accept = 0
             ψ = zeros(factorlags)
             while accept == 0
-
+        
                 ind += 1
-
+        
                 ## Draw ψ
-                ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, i], X, 1.0)
-
+                ψ, discard = linearRegressionSampler(factor[(factorlags+1):nobs, i], X)
+        
                 ## Check for stationarity 
                 coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
                 root = roots(Polynomial(reverse(coef)))
                 rootmod = abs.(root)
                 accept = min(rootmod...) >= 1.01
-
+        
                 ## If while loop goes on for too long 
                 if ind > 100
-                    ψ = psave[dr-1, ((i-1)*(factorlags)+1):(i*(factorlags))]
-                    coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
-                    root = roots(Polynomial(reverse(coef)))
-                    rootmod = abs.(root)
-                    accept = min(rootmod...) >= 1.01
+                    if dr == 1
+                        ψ = zeros(factorlags)
+                        accept = 1
+                    else
+                        ψ = psave[dr-1, ((i-1)*(factorlags)+1):(i*(factorlags))]
+                        coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
+                        root = roots(Polynomial(reverse(coef)))
+                        rootmod = abs.(root)
+                        accept = min(rootmod...) >= 1.01
+                    end
                 end
             end
-
+        
             ## Fill out HDFM objects 
             psis[i, :] = ψ'
-
+        
             ## Save new draw of ψ
             psave[dr, ((i-1)*(factorlags)+1):(i*(factorlags))] = ψ'
         end
