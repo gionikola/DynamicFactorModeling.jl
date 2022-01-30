@@ -63,9 +63,9 @@ function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
-
+    
         println(dr)
-
+    
         # Create HDFM parameter containers 
         varcoefs = zeros(nvar, 2)[:, :]
         varlagcoefs = zeros(nvar, errorlags)[:, :]
@@ -74,32 +74,32 @@ function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
         fvars = Any[]
         push!(fvars, ones(1))
         varvars = zeros(nvar)
-
+    
         ##################################
         ##################################
         # Draw β, σ2, ϕ
-
+    
         ## Gather all regressors into `X`
         X = [ones(nobs) factor]
-
+    
         ## Initialize β, σ2, ϕ
         β = ones(2)
         σ2 = 0
         ϕ = zeros(errorlags)
-
+    
         ## Iterate over all data series 
         ## to draw obs. eq. hyperparameters 
         for i = 1:nvar
-
+    
             ## Save i-th series 
             Y = y[:, i]
-
+    
             ϕold = zeros(errorlags)
             if dr > 1
                 ϕold = psave2[dr-1, ((i-1)*errorlags)+1:i*errorlags]
                 ϕold = vec(ϕold)
             end
-
+    
             if i == 1
                 ind = 0
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
@@ -115,85 +115,90 @@ function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
             else
                 β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
             end
-
+    
             ## Fill out HDFM objects 
             varcoefs[i, :] = β'
             varvars[i] = σ2
             varlagcoefs[i, :] = ϕ'
-
+    
             ## Save observation eq. hyperparameter draws 
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = β'
             ssave[dr, i] = σ2
             psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
-
+    
         end
-
+    
         ##################################
         ##################################
         # Draw factor lag coefficients 
-
+    
         ## Create factor regressor matrix 
         X = zeros(nobs, factorlags)
         for j in 1:factorlags
             X[:, j] = lag(factor, j, default = 0.0)
         end
         X = X[(factorlags+1):nobs, :]
-
+    
         ind = 0
         accept = 0
         ψ = zeros(factorlags)
         while accept == 0
-
+    
             ind += 1
-
+    
             ## Draw ψ
-            ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, 1], X, 1.0)
-
+            ψ, discard = linearRegressionSampler(factor[(factorlags+1):nobs, i], X)
+    
             ## Check for stationarity 
             coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
             root = roots(Polynomial(reverse(coef)))
             rootmod = abs.(root)
             accept = min(rootmod...) >= 1.01
-
+    
             ## If while loop goes on for too long 
             if ind > 100
-                ψ = psave[dr-1, 1:(factorlags)]
-                coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
-                root = roots(Polynomial(reverse(coef)))
-                rootmod = abs.(root)
-                accept = min(rootmod...) >= 1.01
+                if dr == 1
+                    ψ = zeros(factorlags)
+                    accept = 1
+                else
+                    ψ = psave[dr-1, :]
+                    coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
+                    root = roots(Polynomial(reverse(coef)))
+                    rootmod = abs.(root)
+                    accept = min(rootmod...) >= 1.01
+                end 
             end
         end
-
+    
         ## Fill out HDFM objects 
         fcoefs = ψ
-
+    
         ## Save new draw of ψ
         psave[dr, :] = ψ'
-
+    
         ##################################
         ##################################
         # Draw factor  
-
+    
         #draw factor
         #take drawing of World factor 
         sinvf1 = sigbig(ψ, factorlags, nobs)
         f = zeros(nobs, 1)
         H = sinvf1' * sinvf1
-
+    
         for i = 1:nvar
             sinv1 = sigbig(vec(varlagcoefs[i, :]), errorlags, nobs)
             H = H + ((varcoefs[i, 2]^2 / varvars[i]) * sinv1' * sinv1)
             f = f + (varcoefs[i, 2] / varvars[i]) * sinv1' * sinv1 * (y[:, i])
         end
-
+    
         Hinv = inv(H)
         f = Hinv * f
         factor = sim_MvNormal(vec(f), Hinv)
-
+    
         ## Save factor 
         Xtsave[:, dr] = factor
-
+    
         println(dr)
     end
 
