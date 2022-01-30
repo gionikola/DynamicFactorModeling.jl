@@ -70,7 +70,7 @@ function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
         varcoefs = zeros(nvar, 2)[:, :]
         varlagcoefs = zeros(nvar, errorlags)[:, :]
         fcoefs = Any[]
-        push!(fcoefs, zeros(1 + factorlags))
+        push!(fcoefs, zeros(factorlags))
         fvars = Any[]
         push!(fvars, ones(1))
         varvars = zeros(nvar)
@@ -141,7 +141,7 @@ function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     
         ind = 0
         accept = 0
-        ψ = zeros(1 + factorlags)
+        ψ = zeros(factorlags)
         while accept == 0
     
             ind += 1
@@ -157,11 +157,16 @@ function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     
             ## If while loop goes on for too long 
             if ind > 100
-                ψ = psave[dr-1, 1:(1+factorlags)]
-                coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
-                root = roots(Polynomial(reverse(coef)))
-                rootmod = abs.(root)
-                accept = min(rootmod...) >= 1.01
+                if dr == 1
+                    ψ = zeros(factorlags)
+                    accept = 1
+                else 
+                    ψ = psave[dr-1, :]
+                    coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
+                    root = roots(Polynomial(reverse(coef)))
+                    rootmod = abs.(root)
+                    accept = min(rootmod...) >= 1.01
+                end 
             end
         end
     
