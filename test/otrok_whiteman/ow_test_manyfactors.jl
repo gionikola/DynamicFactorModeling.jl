@@ -101,3 +101,6 @@ plot!(quant33)
 plot!(quant66)
 plot!(results.means.F[:, j] - stds)
 plot!(results.means.F[:, j] + stds)
+
+vardecomp = vardecomp2level(data_y, results.means.F, reshape(results.means.B, 3, nvar)', fassign)
+vardecomp2 = vardecomp2level(data_y, data_β[:, 2:7], varcoefs, fassign)
