@@ -19,11 +19,12 @@ This package estimates HDFM hyperaparemeters in the same manner (outlined in [[3
 ## Installation
 
 DynamicFactorModeling.jl is still in development and not available through the Julia registry.
-Thereofore, you may import the package using the GitHub repo url in the following manner:
+Thereofore, you may install and load the package using the GitHub repo url in the following manner:
 
 ```julia
 using Pkg
 Pkg.add(url = "https://github.com/gionikola/DynamicFactorModeling.jl")
+using DynamicFactorModeling
 ```
 
 ## Walkthrough 
