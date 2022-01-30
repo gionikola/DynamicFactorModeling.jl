@@ -42,7 +42,7 @@ samplerparams = DFMStruct(P, L, 1000, 50)            # Set model priors
 ###############
 ###############
 
-results = KN1LevelEstimator(data_y, samplerparams)
+results = PCA1LevelEstimator(data_y, samplerparams)
 
 ###############
 ###############

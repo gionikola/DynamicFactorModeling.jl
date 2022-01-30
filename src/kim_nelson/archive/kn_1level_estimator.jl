@@ -1,4 +1,4 @@
-include("ow_tools.jl")
+include("kn_tools.jl")
 ######################
 ######################
 ######################
@@ -12,10 +12,10 @@ include("ow_tools.jl")
 ######################
 ######################
 @doc """
-    OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
+    KNSingleFactorEstimator(data::Array{Float64,2}, dfm::DFMStruct)
 
 Description:
-Estimate a single-factor DFM using the Otrok-Whiteman approach. 
+Estimate a single-factor DFM using the Kim-Nelson approach. 
 
 Inputs:
 - data = Matrix with each column being a data series. 
@@ -24,7 +24,7 @@ Inputs:
 Outputs:
 - results = HDMF Bayesian estimator-generated MCMC posterior distribution samples and their means for latent factors and hyperparameters.
 """
-function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
+function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
 
     # Unpack simulation parameters 
     @unpack factorlags, errorlags, ndraws, burnin = dfm
@@ -38,7 +38,6 @@ function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     # nvar = number of variables including the variable with missing date
     # nobs = length of data of complete dataset
     nobs, nvar = size(y)
-    nvars = nvar
 
     # Number of regressors in each observable equation
     # (constant + global factor)
@@ -55,11 +54,7 @@ function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     psave2 = zeros(totdraws, nvar * errorlags)      # factor autoregressive polynomials
 
     # Initialize global factor 
-    factor = zeros(nobs, 1)           # Random starting factor series matrix 
-    factor[:, 1], component = firstComponentFactor(y)     # Starting global factor = crosssectional mean of obs. series 
-    if cor(factor[:, 1], y[:, 1]) < 0
-        factor[:, 1] = -factor[:, 1]
-    end
+    factor = mean(y, dims = 2)
 
     # Begin Monte Carlo Loop
     for dr = 1:totdraws
@@ -94,26 +89,20 @@ function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
             ## Save i-th series 
             Y = y[:, i]
 
-            ϕold = zeros(errorlags)
-            if dr > 1
-                ϕold = psave2[dr-1, ((i-1)*errorlags)+1:i*errorlags]
-                ϕold = vec(ϕold)
-            end
-
             if i == 1
                 ind = 0
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                 while β[2] < 0
                     ind += 1
                     ## Draw observation eq. hyperparameters 
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
                     if ind >= 100
                         factor = -factor
                         X = [ones(nobs) factor]
                     end
                 end
             else
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, errorlags)
             end
 
             ## Fill out HDFM objects 
@@ -140,31 +129,8 @@ function OW1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
         end
         X = X[(factorlags+1):nobs, :]
 
-        ind = 0
-        accept = 0
-        ψ = zeros(1 + factorlags)
-        while accept == 0
-
-            ind += 1
-
-            ## Draw ψ
-            ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, 1], X, 1.0)
-
-            ## Check for stationarity 
-            coef = [-reverse(vec(ψ[2:end]), dims = 1); 1]                      # check stationarity 
-            root = roots(Polynomial(reverse(coef)))
-            rootmod = abs.(root)
-            accept = min(rootmod...) >= 1.01
-
-            ## If while loop goes on for too long 
-            if ind > 100
-                ψ = psave[dr-1, 1:(1+factorlags)]
-                coef = [-reverse(vec(ψ[2:end]), dims = 1); 1]                      # check stationarity 
-                root = roots(Polynomial(reverse(coef)))
-                rootmod = abs.(root)
-                accept = min(rootmod...) >= 1.01
-            end
-        end
+        ## Draw ψ
+        ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs], X, 1.0)
 
         ## Fill out HDFM objects 
         fcoefs = ψ

@@ -77,16 +77,18 @@ hdfmpriors = HDFMStruct(nlevels = nlevels,
     factorlags = flags,
     errorlags = varlags,
     ndraws = 1000,
-    burnin = 50)
+    burnin = 300)
 
-results = OW2LevelEstimator(data_y, hdfmpriors)
+results = KN2LevelEstimator(data_y, hdfmpriors)
+results2 = KN2LevelEstimator(data_y, hdfmpriors)
+results3 = PCA2LevelEstimator(data_y, hdfmpriors)
 
 medians = Any[]
 quant33 = Any[]
 quant66 = Any[]
 stds = Any[]
 
-j = 4
+j = 6
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
     push!(quant33, quantile(results.F[i, j, :], 0.33))
@@ -99,8 +101,44 @@ plot!(results.means.F[:, j])
 plot!(medians)
 plot!(quant33)
 plot!(quant66)
-plot!(results.means.F[:, j] - stds)
-plot!(results.means.F[:, j] + stds)
 
 vardecomp = vardecomp2level(data_y, results.means.F, reshape(results.means.B, 3, nvar)', fassign)
+vardecomp = vardecomp2level(data_y, results2.means.F, reshape(results2.means.B, 3, nvar)', fassign)
+vardecomp3 = vardecomp2level(data_y, results3.means.F, reshape(results3.means.B, 3, nvar)', fassign)
 vardecomp2 = vardecomp2level(data_y, data_β[:, 2:7], varcoefs, fassign)
+
+plot(vardecomp[:, 1])
+plot!(vardecomp[:, 2])
+
+plot!(vardecomp2[:, 1])
+plot!(vardecomp2[:, 2])
+
+medianF = similar(results.means.F)
+for j in 1:6
+    medians = Any[]
+    for i in 1:size(results.F)[1]
+        push!(medians, median(results.F[i, j, :]))
+    end
+    medianF[:, j] = medians
+end
+medianB = similar(results.means.B)
+for i in 1:length(results.means.B)
+    medianB[i] = median(results.B[:, i])
+end
+vardecomp = vardecomp2level(data_y, medianF, reshape(medianB, 3, nvar)', fassign)
+
+for i in 1:300
+    coefvec = results.P[270, 2:3]
+    coef = [-reverse(vec(coefvec), dims = 1); 1]                      # check stationarity 
+    root = roots(Polynomial(reverse(coef)))
+    rootmod = abs.(root)
+    accept = min(rootmod...) >= 1.01
+    accept
+    println(accept)
+end 
+
+varvec = []
+for i in 1:4000
+    facvar = var(results.F[:,end,i])
+    push!(varvec, facvar)
+end 
