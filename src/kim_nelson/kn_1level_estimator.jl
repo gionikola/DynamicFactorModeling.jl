@@ -51,7 +51,7 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     Xtsave = zeros(nobs, totdraws)                  # just keep draw of factor, not all states (others are trivial)
     bsave = zeros(totdraws, nreg * nvar)           # observable equation regression coefficients
     ssave = zeros(totdraws, nvar)                  # innovation variances
-    psave = zeros(totdraws, 1 + factorlags)            # factor autoregressive polynomials
+    psave = zeros(totdraws, factorlags)            # factor autoregressive polynomials
     psave2 = zeros(totdraws, nvar * errorlags)      # factor autoregressive polynomials
 
     # Initialize global factor 
@@ -133,16 +133,15 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
         # Draw factor lag coefficients 
     
         ## Create factor regressor matrix 
-        X = zeros(nobs, 1 + factorlags)
-        X[:, 1] = ones(nobs)
+        X = zeros(nobs, factorlags)
         for j in 1:factorlags
-            X[:, 1+j] = lag(factor, j, default = 0.0)
+            X[:, j] = lag(factor, j, default = 0.0)
         end
         X = X[(factorlags+1):nobs, :]
     
         ind = 0
         accept = 0
-        ψ = zeros(1 + factorlags)
+        ψ = zeros(factorlags)
         while accept == 0
     
             ind += 1
@@ -151,15 +150,15 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
             ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, 1], X, 1.0)
     
             ## Check for stationarity 
-            coef = [-reverse(vec(ψ[2:end]), dims = 1); 1]                      # check stationarity 
+            coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
             root = roots(Polynomial(reverse(coef)))
             rootmod = abs.(root)
             accept = min(rootmod...) >= 1.01
     
             ## If while loop goes on for too long 
             if ind > 100
-                ψ = psave[dr-1, 1:(1+factorlags)]
-                coef = [-reverse(vec(ψ[2:end]), dims = 1); 1]                      # check stationarity 
+                ψ = psave[dr-1, 1:factorlags]
+                coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
                 root = roots(Polynomial(reverse(coef)))
                 rootmod = abs.(root)
                 accept = min(rootmod...) >= 1.01
@@ -187,7 +186,7 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     
         F = zeros(m, m)
         for j in 1:factorlags
-            F[1, 1+(j-1)*nvars] = fcoefs[1+j]
+            F[1, 1+(j-1)*nvars] = fcoefs[j]
         end
         for i in 1:nvars
             for j in 1:errorlags
