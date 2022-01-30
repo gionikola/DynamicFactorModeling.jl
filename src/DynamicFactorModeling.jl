@@ -31,7 +31,7 @@ include("test_scripts.jl")
 export SSModel, HDFM, convertHDFMtoSS, simulateSSModel,
         DFMStruct, HDFMStruct,
         KN1LevelEstimator, KN2LevelEstimator,
-        OW2LevelEstimator, OW2LevelEstimator,
+        OW1LevelEstimator, OW2LevelEstimator,
         PCA1LevelEstimator, PCA2LevelEstimator,
         vardecomp2level,
         sayhi
