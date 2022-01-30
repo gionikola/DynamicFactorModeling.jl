@@ -24,6 +24,7 @@ include("kim_nelson/kn_2level_estimator.jl")
 include("otrok_whiteman/ow_1level_estimator.jl")
 include("otrok_whiteman/ow_2level_estimator.jl")
 include("output_analysis/variance_decomposition.jl")
+include("hyperparameter_est/hyperparam_est.jl")
 include("test_scripts.jl")
 
 ######################
@@ -33,6 +34,7 @@ export SSModel, HDFM, convertHDFMtoSS, simulateSSModel,
         KN1LevelEstimator, KN2LevelEstimator,
         OW1LevelEstimator, OW2LevelEstimator,
         PCA1LevelEstimator, PCA2LevelEstimator,
+        Hyperparam2LEstimator,
         vardecomp2level,
         sayhi
 end
