@@ -81,12 +81,12 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     Xtsave = zeros(nobs, nfacts, totdraws)              # Keep draw of factor, not all states (others are trivial)
     bsave = zeros(totdraws, nregs * nvars)              # Observable equation regression coefficients
     ssave = zeros(totdraws, nvars)                      # Innovation variances
-    psave = zeros(totdraws, nfacts * (1 + factorlags))  # Factor autoregressive polynomials
+    psave = zeros(totdraws, nfacts * factorlags)  # Factor autoregressive polynomials
     psave2 = zeros(totdraws, nvars * errorlags)         # Idiosyncratic disturbance autoregressive polynomials
 
     # Initialize hyperparameters 
     sigmas = ones(nvars)                    # Idiosyncratic error variance vector 
-    psis = zeros(nfacts, 1 + factorlags)               # Factor AR companion matrix 
+    psis = zeros(nfacts, factorlags)               # Factor AR companion matrix 
     betas = zeros(nvars, 1 + nlevels)                # Obs. eq. regression starting coefficient matrix 
     phis = zeros(nvars, errorlags)          # Idiosyncratic error AR companion matrix 
 
@@ -219,16 +219,15 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     
         for i in 1:nfacts
             ## Create factor regressor matrix 
-            X = zeros(nobs, 1 + factorlags)
-            X[:, 1] = ones(nobs)
+            X = zeros(nobs, factorlags)
             for j in 1:factorlags
-                X[:, 1+j] = lag(factor[:, i], j, default = 0.0)
+                X[:, j] = lag(factor[:, i], j, default = 0.0)
             end
             X = X[(factorlags+1):nobs, :]
     
             ind = 0
             accept = 0
-            ψ = zeros(1 + factorlags)
+            ψ = zeros(factorlags)
             while accept == 0
     
                 ind += 1
@@ -237,15 +236,15 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                 ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, i], X, 1.0)
     
                 ## Check for stationarity 
-                coef = [-reverse(vec(ψ[2:end]), dims = 1); 1]                      # check stationarity 
+                coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
                 root = roots(Polynomial(reverse(coef)))
                 rootmod = abs.(root)
                 accept = min(rootmod...) >= 1.01
     
                 ## If while loop goes on for too long 
                 if ind > 100
-                    ψ = psave[dr-1, ((i-1)*(1+factorlags)+1):(i*(1+factorlags))]
-                    coef = [-reverse(vec(ψ[2:end]), dims = 1); 1]                      # check stationarity 
+                    ψ = psave[dr-1, ((i-1)*(factorlags)+1):(i*(factorlags))]
+                    coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
                     root = roots(Polynomial(reverse(coef)))
                     rootmod = abs.(root)
                     accept = min(rootmod...) >= 1.01
@@ -256,7 +255,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
             psis[i, :] = ψ'
     
             ## Save new draw of ψ
-            psave[dr, ((i-1)*(1+factorlags)+1):(i*(1+factorlags))] = ψ'
+            psave[dr, ((i-1)*(factorlags)+1):(i*(factorlags))] = ψ'
         end
     
         ############################################
@@ -274,7 +273,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     
         F = zeros(m, m)
         for j in 1:factorlags
-            F[1, 1+(j-1)*nvars] = psis[1, 1+j]
+            F[1, 1+(j-1)*nvars] = psis[1, j]
         end
         for i in 1:nvars
             for j in 1:errorlags
@@ -332,7 +331,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     
             F = zeros(m, m)
             for j in 1:factorlags
-                F[1, 1+(j-1)*numvars] = psis[1+c, 1+j]
+                F[1, 1+(j-1)*numvars] = psis[1+c, j]
             end
             for i in 1:numvars
                 for j in 1:errorlags
