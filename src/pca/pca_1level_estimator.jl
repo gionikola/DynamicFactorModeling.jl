@@ -147,7 +147,7 @@ function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
             ind += 1
     
             ## Draw ψ
-            ψ = linearRegressionSamplerRestrictedVariance(factor[(factorlags+1):nobs, 1], X, 1.0)
+            ψ, discard = linearRegressionSampler(factor[(factorlags+1):nobs, i], X)
     
             ## Check for stationarity 
             coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
@@ -160,13 +160,13 @@ function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
                 if dr == 1
                     ψ = zeros(factorlags)
                     accept = 1
-                else 
+                else
                     ψ = psave[dr-1, :]
                     coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
                     root = roots(Polynomial(reverse(coef)))
                     rootmod = abs.(root)
                     accept = min(rootmod...) >= 1.01
-                end 
+                end
             end
         end
     
