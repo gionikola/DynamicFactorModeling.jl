@@ -21,7 +21,8 @@ function vardecomp2level(data, factor, betas, factorassign)
     # Record data variances 
     varvars = zeros(N)
     for i in 1:N
-        varvars[i] = var(data[:, i])
+        errors = data[:,i] - betas[i, 2] * factor[:, 1] + betas[i, 3] * factor[:, 1+factorassign[i, 2]]
+        varvars[i] = betas[i, 2]^2 * var(factor[:, 1]) + betas[i, 3]^2 * var(factor[:, 1+factorassign[i, 2]]) + var(errors) 
     end
 
     # Record factor estimate variances 
