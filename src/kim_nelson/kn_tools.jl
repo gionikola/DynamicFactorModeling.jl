@@ -462,15 +462,14 @@ Inputs:
 - error_lag_num = Number of lags in the disturbance DGP 
 """
 
-function autocorrErrorLinearRegressionSampler(Y, X, ϕold, error_lag_num)
-#function autocorrErrorLinearRegressionSampler(Y, X, error_lag_num)
+function autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, error_lag_num)
 
     # Save number of obs 
     T = size(X)[1]
 
     # Initialize σ2 
     ϕ = 0.0 .* ones(error_lag_num)
-    σ2 = 1
+    σ2 = σ2old
 
     ##################################
     ##################################
