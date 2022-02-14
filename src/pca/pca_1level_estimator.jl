@@ -66,6 +66,13 @@ function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     
         println(dr)
     
+        sigmas = zeros(nvar)
+        if dr == 1
+            sigmas = ones(nvar)
+        else
+            sigmas = vec(ssave[dr-1, :])
+        end
+    
         # Create HDFM parameter containers 
         varcoefs = zeros(nvar, 2)[:, :]
         varlagcoefs = zeros(nvar, errorlags)[:, :]
@@ -84,48 +91,48 @@ function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
     
         ## Initialize β, σ2, ϕ
         β = ones(2)
-        σ2 = 0
         ϕ = zeros(errorlags)
     
         ## Iterate over all data series 
         ## to draw obs. eq. hyperparameters 
         for i = 1:nvar
-    
+        
             ## Save i-th series 
             Y = y[:, i]
-    
+        
             ϕold = zeros(errorlags)
             if dr > 1
                 ϕold = psave2[dr-1, ((i-1)*errorlags)+1:i*errorlags]
                 ϕold = vec(ϕold)
             end
-    
+            σ2 = sigmas[i]
+        
             if i == 1
                 ind = 0
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
                 while β[2] < 0
                     ind += 1
                     ## Draw observation eq. hyperparameters 
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
                     if ind >= 100
                         factor = -factor
                         X = [ones(nobs) factor]
                     end
                 end
             else
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, errorlags)
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
             end
-    
+        
             ## Fill out HDFM objects 
             varcoefs[i, :] = β'
             varvars[i] = σ2
             varlagcoefs[i, :] = ϕ'
-    
+        
             ## Save observation eq. hyperparameter draws 
             bsave[dr, ((i-1)*nreg)+1:i*nreg] = β'
             ssave[dr, i] = σ2
             psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
-    
+        
         end
     
         ##################################
@@ -147,7 +154,7 @@ function PCA1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
             ind += 1
     
             ## Draw ψ
-            ψ, discard = linearRegressionSampler(factor[(factorlags+1):nobs, i], X)
+            ψ, discard = linearRegressionSampler(factor[(factorlags+1):nobs, 1], X)
     
             ## Check for stationarity 
             coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
