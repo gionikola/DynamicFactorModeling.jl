@@ -141,7 +141,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
     
             ## Initialize β, σ2, ϕ
             β = ones(1 + nlevels)
-            σ2 = sigmas[i]
+            σ2old = sigmas[i]
             ϕ = zeros(errorlags)
     
             ## Save i-th series 
@@ -150,7 +150,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
             ind2 = 0
     
             if i == 1 && i == varassign[factorassign[i, 2]][1]
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                 while β[2] < 0 || β[3] < 0
                     if β[2] < 0
                         ind1 += 1
@@ -162,7 +162,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                     else
                         ind2 -= 1
                     end
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                     println("Factor 1 index: $ind1")
                     println("Factor 2 index: $ind2")
                     if ind1 > 100
@@ -175,38 +175,38 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                         factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                     end
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                 end
             elseif i == 1 && i != varassign[factorassign[i, 2]][1]
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                 while β[2] < 0
                     ind1 += 1
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                     println("Factor 1 index: $ind1")
                     if ind1 > 100
                         ind1 = 0
                         factor[:, 1] = -factor[:, 1]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                         ## Draw observation eq. hyperparameters 
-                        β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                        β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                     end
                 end
             elseif i != 1 && i == varassign[factorassign[i, 2]][1]
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                 while β[3] < 0
                     ind2 += 1
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                     println("Factor 2 index: $ind2")
                     if ind2 > 100
                         ind2 = 0
                         factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                         ## Draw observation eq. hyperparameters 
-                        β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                        β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
                     end
                 end
             else
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2, errorlags)
+                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
             end
     
             ## Fill out HDFM objects 
