@@ -468,7 +468,7 @@ function autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, error_lag_num
     T = size(X)[1]
 
     # Initialize σ2 
-    ϕ = 0.0 .* ones(error_lag_num)
+    ϕ = ϕold
     σ2 = σ2old
 
     ##################################
