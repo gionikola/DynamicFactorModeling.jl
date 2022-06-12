@@ -1,4 +1,4 @@
-# DynamicFactorModeling.jl
+# DynamicFactorModeling.jl (Incomplete)
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://gionikola.github.io/DynamicFactorModeling.jl/stable)
 [![Build Status](https://github.com/gionikola/DynamicFactorModeling.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/gionikola/DynamicFactorModeling.jl/actions/workflows/CI.yml?query=branch%3Amain)
@@ -6,16 +6,13 @@
 
 ## Overview 
 
-This is a Julia package that allows the user to easily construct, simulate, and estimate linear multi-level/hierarchical dynamic factor models (HDFMs) using a variety of Bayesian approaches. 
+This is Julia package allows the user to easily construct, simulate, and estimate linear multi-level/hierarchical dynamic factor models (HDFMs) using a variety of Bayesian approaches. 
 A wonderful explanation of HDFMs is provided in [[5]](#5). For an example, check out [[4]](#4).
 
-Although the simulation capabalities can come in quite handy, the main value of this package lies in its estimation capabilities.
-Three HDFM estimation approaches are offered: 
-1. Principal component analysis (PCA) (overviewed in [[1]](#1)) (**AVAILABLE**);
-2. Kim-Nelson (KM) state-space approach (introduced in [[2]](#2) and [[3]](#3)) (**AVAILABLE**);
-3. Otrok-Whiteman (OW) approach (introduced in [[5]](#6) and [[3]](#4)) (**AVAILABLE**).
-
-This package estimates HDFM hyperaparemeters in the same manner (outlined in [[3]](#3)) across all of the above methodologies, despite the original hyperparameter estimation procedure for the OW estimator being based on the Chib-Greenberg linear regression with ARMA(p,q) error estimator -- the former seems to be faster and easier to diagnose.
+The following three HDFM estimation approaches are offered: 
+1. Principal component analysis (PCA) (overviewed in [[1]](#1));
+2. Kim-Nelson (KM) state-space approach (introduced in [[2]](#2) and [[3]](#3));
+3. Otrok-Whiteman (OW) approach (introduced in [[5]](#6) and [[3]](#4)).
 
 ## Installation
 
@@ -31,8 +28,6 @@ using DynamicFactorModeling
 ## Walkthrough 
 
 ### 1. **Specify HDFM** 
-
-Text.
 
 ```julia
 
@@ -107,8 +102,6 @@ hdfm = HDFM(nlevels = nlevels,
 
 ### 2. Simulate HDFM 
 
-Text.
-
 ```julia
 
 ssmodel = convertHDFMtoSS(hdfm)
@@ -119,8 +112,6 @@ data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 ```
 
 ### 3. Estimate HDFM 
-
-Text.
 
 ```julia
 
@@ -137,8 +128,6 @@ results = PCA2LevelEstimator(data_y, hdfmpriors)
 ```
 
 ### 4. Variance decomposition
-
-Text.
 
 ```julia
 
