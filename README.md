@@ -4,6 +4,8 @@
 [![Build Status](https://github.com/gionikola/DynamicFactorModeling.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/gionikola/DynamicFactorModeling.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/gionikola/DynamicFactorModeling.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/gionikola/DynamicFactorModeling.jl)
 
+**Currently not open to contributions!**
+
 ## Overview 
 
 This is Julia package allows the user to easily construct, simulate, and estimate linear multi-level/hierarchical dynamic factor models (HDFMs) using a variety of Bayesian approaches. 
