@@ -2,7 +2,7 @@
 ###############
 ###############
 
-T = 100                                 # Number of periods in the data 
+T = 1000                                 # Number of periods in the data 
 P = 2                                   # Number of lags in the factor equation 
 L = 2                                   # Number of AR lags in the observation equation 
 N = 10                                  # Total number of series 
