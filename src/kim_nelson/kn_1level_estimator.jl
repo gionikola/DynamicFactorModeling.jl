@@ -128,7 +128,7 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
         X = X[(factorlags+1):nobs, :]
 
         ## Draw ψ
-        ψ = draw_coefficients(factor[(factorlags+1):nobs, 1], X, σ2)
+        ψ = draw_coefficients(factor[(factorlags+1):nobs, 1], X, 1.0)
 
         ## Fill out HDFM objects 
         fcoefs = ψ
