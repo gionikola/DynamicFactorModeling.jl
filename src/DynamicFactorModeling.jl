@@ -17,6 +17,7 @@ using Kronecker
 # Include all package scripts 
 include("simulations/dgp.jl")
 include("common_types/common_types.jl")
+include("linear_regression/linear_regression.jl")
 include("pca/pca_1level_estimator.jl")
 include("pca/pca_2level_estimator.jl")
 include("kim_nelson/kn_1level_estimator.jl")
