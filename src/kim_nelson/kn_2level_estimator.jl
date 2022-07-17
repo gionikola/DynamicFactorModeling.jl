@@ -150,7 +150,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
             ind2 = 0
     
             if i == 1 && i == varassign[factorassign[i, 2]][1]
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                 while β[2] < 0 || β[3] < 0
                     if β[2] < 0
                         ind1 += 1
@@ -162,7 +162,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                     else
                         ind2 -= 1
                     end
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                    β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                     println("Factor 1 index: $ind1")
                     println("Factor 2 index: $ind2")
                     if ind1 > 100
@@ -175,38 +175,38 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                         factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                     end
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                    β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                 end
             elseif i == 1 && i != varassign[factorassign[i, 2]][1]
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                 while β[2] < 0
                     ind1 += 1
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                    β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                     println("Factor 1 index: $ind1")
                     if ind1 > 100
                         ind1 = 0
                         factor[:, 1] = -factor[:, 1]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                         ## Draw observation eq. hyperparameters 
-                        β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                        β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                     end
                 end
             elseif i != 1 && i == varassign[factorassign[i, 2]][1]
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                 while β[3] < 0
                     ind2 += 1
-                    β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                    β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                     println("Factor 2 index: $ind2")
                     if ind2 > 100
                         ind2 = 0
                         factor[:, 1+factorassign[i, 2]] = -factor[:, 1+factorassign[i, 2]]
                         X = [ones(nobs) factor[:, 1] factor[:, 1+factorassign[i, 2]]]
                         ## Draw observation eq. hyperparameters 
-                        β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                        β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
                     end
                 end
             else
-                β, σ2, ϕ = autocorrErrorLinearRegressionSampler(Y, X, ϕold, σ2old, errorlags)
+                β, ϕ, σ2 = draw_parameters(Y, X, ϕold, σ2old)
             end
     
             ## Fill out HDFM objects 
@@ -240,13 +240,13 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                 ind += 1
     
                 ## Draw ψ
-                ψ, discard = linearRegressionSampler(factor[(factorlags+1):nobs, i], X)
+                ψ, discard = draw_parameters(factor[(factorlags+1):nobs, i], X, 1.0)
     
                 ## Check for stationarity 
-                coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
-                root = roots(Polynomial(reverse(coef)))
-                rootmod = abs.(root)
-                accept = min(rootmod...) >= 1.01
+                #coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
+                #root = roots(Polynomial(reverse(coef)))
+                #accept = minimum(abs.(root)) >= 1.01
+                accept = 1
     
                 ## If while loop goes on for too long 
                 if ind > 100
@@ -255,10 +255,10 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
                         accept = 1
                     else
                         ψ = psave[dr-1, ((i-1)*(factorlags)+1):(i*(factorlags))]
-                        coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
-                        root = roots(Polynomial(reverse(coef)))
-                        rootmod = abs.(root)
-                        accept = min(rootmod...) >= 1.01
+                        #coef = [-reverse(vec(ψ), dims = 1); 1]                      # check stationarity 
+                        #root = roots(Polynomial(reverse(coef)))
+                        #accept = minimum(abs.(root)) >= 1.01
+                        accept = 1
                     end
                 end
             end
