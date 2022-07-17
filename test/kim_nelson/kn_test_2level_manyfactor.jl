@@ -32,13 +32,13 @@ varlagcoefs[:, 1] = 0.5 * varlagcoefs[:, 1]
 varlagcoefs[:, 2] = 0.25 * varlagcoefs[:, 2]
 
 fcoefs = Any[]
-fmat = [0.85 -0.3][:, :]
+fmat = [0.45 -0.2][:, :]
 push!(fcoefs, fmat)
-fmat = [0.5 0.05
+fmat = [0.6 0.00
+    0.2 -0.05
+    -0.3 0.2
     0.2 -0.1
-    0.3 -0.1
-    0.4 -0.1
-    0.5 -0.1]
+    -0.4 0.15]
 push!(fcoefs, fmat)
 
 fvars = Any[]
@@ -47,7 +47,7 @@ push!(fvars, fmat)
 fmat = [1.0, 1.0, 1.0, 1.0, 1.0]
 push!(fvars, fmat)
 
-varvars = 0.05 * ones(nvar);
+varvars = 0.2 * ones(nvar);
 
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
@@ -77,11 +77,11 @@ hdfmpriors = HDFMStruct(nlevels = nlevels,
     factorlags = flags,
     errorlags = varlags,
     ndraws = 1000,
-    burnin = 300)
+    burnin = 100)
 
 results = KN2LevelEstimator(data_y, hdfmpriors)
-results2 = KN2LevelEstimator(data_y, hdfmpriors)
-results3 = PCA2LevelEstimator(data_y, hdfmpriors)
+#results2 = KN2LevelEstimator(data_y, hdfmpriors)
+#results3 = PCA2LevelEstimator(data_y, hdfmpriors)
 
 medians = Any[]
 quant33 = Any[]
@@ -98,18 +98,15 @@ end
 
 plot(data_β[:, 1+j])
 plot!(results.means.F[:, j])
-plot!(medians)
+#plot!(medians)
 plot!(quant33)
 plot!(quant66)
 
 vardecomp = vardecomp2level(data_y, results.means.F, reshape(results.means.B, 3, nvar)', fassign)
-vardecomp = vardecomp2level(data_y, results2.means.F, reshape(results2.means.B, 3, nvar)', fassign)
-vardecomp3 = vardecomp2level(data_y, results3.means.F, reshape(results3.means.B, 3, nvar)', fassign)
 vardecomp2 = vardecomp2level(data_y, data_β[:, 2:7], varcoefs, fassign)
 
 plot(vardecomp[:, 1])
 plot!(vardecomp[:, 2])
-
 plot!(vardecomp2[:, 1])
 plot!(vardecomp2[:, 2])
 
@@ -138,7 +135,7 @@ for i in 1:300
 end 
 
 varvec = []
-for i in 1:4000
+for i in 1:1000
     facvar = var(results.F[:,end,i])
     push!(varvec, facvar)
 end 

@@ -1,59 +1,48 @@
 
 nlevels = 2
 
-nvar = 9
+nvar = 90
 
-nfactors = [1, 2]
+nfactors = [1, 3]
 
-fassign = [1 1
-    1 1
-    1 1
-    1 1
-    1 2
-    1 2
-    1 2
-    1 2
-    1 2]
+fassign = ones(Int, nvar, 2)
+fassign[1:30, 2] = ones(Int, 30)
+fassign[31:60, 2] = ones(Int, 30)*2
+fassign[61:90, 2] = ones(Int, 30)*3
 
 flags = [2, 2]
 
-varlags = [2, 2, 2, 2, 2, 2, 2, 2, 2]
+varlags = 1 * ones(Int, nvar)
 
-varcoefs = [0.0 1.0 1.0
-    0.0 0.5 0.2
-    0.0 0.7 0.4
-    0.0 0.3 0.5
-    0.0 0.5 1.0
-    0.0 0.5 0.7
-    0.0 0.4 0.5
-    0.0 0.5 0.2
-    0.0 0.5 0.2]
-varcoefs[:,3] = 2.5 .* varcoefs[:,3]
+varcoefs = zeros(nvar, 1 + nlevels)
+varcoefs[:, 2] = 0.5 * ones(nvar)
+varcoefs[1, 2] = 1.0
+varcoefs[:, 3] = 0.1 * ones(nvar)
+varcoefs[1, 3] = 1.0
+varcoefs[31, 3] = 1.0
+varcoefs[61, 3] = 1.0
 
-varlagcoefs = [0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25]
+
+varlagcoefs = ones(nvar, 1)[:,:]
+varlagcoefs[:, 1] = 0.6 * varlagcoefs[:, 1]
 
 fcoefs = Any[]
-fmat = [0.85 -0.3][:, :]
+fmat = [0.3 0.0][:, :]
 push!(fcoefs, fmat)
-fmat = [0.5 0.05
-    0.2 -0.1]
+fmat = [0.6 0.0
+    0.3 0.0
+    -0.4 0.0][:,:]
 push!(fcoefs, fmat)
 
 fvars = Any[]
 fmat = [1.0]
 push!(fvars, fmat)
-fmat = [1.0, 1.0]
+fmat = [1.0
+        1.0
+        1.0]
 push!(fvars, fmat)
 
-varvars = 0.1 * ones(nvar);
+varvars = 0.4 * ones(nvar);
 
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
@@ -69,7 +58,7 @@ hdfm = HDFM(nlevels = nlevels,
 
 ssmodel = convertHDFMtoSS(hdfm)
 
-num_obs = 100
+num_obs = 110
 data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 
 
@@ -83,20 +72,22 @@ hdfmpriors = HDFMStruct(nlevels = nlevels,
     factorlags = flags,
     errorlags = varlags,
     ndraws = 1000,
-    burnin = 50)
+    burnin = 100)
 
 results = KN2LevelEstimator(data_y, hdfmpriors)
+#results2 = KN2LevelEstimator(data_y, hdfmpriors)
+#results3 = PCA2LevelEstimator(data_y, hdfmpriors)
 
-stds = Any[]
+medians = Any[]
 quant33 = Any[]
 quant66 = Any[]
-medians = Any[]
+stds = Any[]
 
-j = 1
+j = 4
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
-    push!(quant33, quantile(results.F[i, j, :], 0.05))
-    push!(quant66, quantile(results.F[i, j, :], 0.95))
+    push!(quant33, quantile(results.F[i, j, :], 0.1))
+    push!(quant66, quantile(results.F[i, j, :], 0.9))
     push!(medians, median(results.F[i, j, :]))
 end
 
@@ -106,9 +97,12 @@ plot!(results.means.F[:, j])
 plot!(quant33)
 plot!(quant66)
 
+
 vardecomp = vardecomp2level(data_y, results.means.F, reshape(results.means.B, 3, nvar)', fassign)
-vardecomp2 = vardecomp2level(data_y, data_β[:, 2:4], varcoefs, fassign)
+vardecomp2 = vardecomp2level(data_y, data_β[:, 2:5], varcoefs, fassign)
+
+
 plot(vardecomp[:, 1])
 plot!(vardecomp[:, 2])
 plot!(vardecomp2[:, 1])
-plot!(vardecomp2[:, 2])
+plot(vardecomp2[:, 2])
