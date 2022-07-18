@@ -9,7 +9,6 @@ using Distributions
 using ShiftedArrays
 using Parameters
 using Polynomials
-using Kronecker
 
 ######################
 # Include all package scripts 
