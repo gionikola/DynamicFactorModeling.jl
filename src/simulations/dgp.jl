@@ -1,8 +1,5 @@
 """
-    mvn(
-        μ::Vector{Any}, 
-        Σ::Matrix{Any}
-    )
+    mvn(μ, Σ)
 
 Draw from a multivariate normal distribution with mean vector μ and covariance matrix Σ.
 Use cholesky decomposition to generate X = Z Q + μ, where Z is (d × 1) N(0,1) vector, and Q is upper-triangular cholesky matrix. 
@@ -15,12 +12,12 @@ Inputs:
 Outputs:
 - X::Array{Float64, 1} = observed draw of X ~ N(μ,Σ)
 """
-function mvn(μ::Vector{Any}, Σ::Matrix{Any})
+function mvn(μ, Σ)
 
     nvar  = size(Σ)[1]         # Num. of variables 
 
     if (0 in diag(Σ)) == false  # No degenerate random vars.
-        Q = cholesky(Σ).U       # Upper triang. Cholesky mat.  
+        Q = cholesky(Hermitian(Σ), Val(true), check = false).U       # Upper triang. Cholesky mat.  
         X = Q * randn(length(μ)) + μ    # Multiv. normal vector draw  
     else                        # in case of degenerate random vars.
         keep = Any[] 
@@ -31,7 +28,7 @@ function mvn(μ::Vector{Any}, Σ::Matrix{Any})
         end  
         Σsub = Σ[keep, keep] 
         μsub = μ[keep] 
-        Q = cholesky(Σsub).U       # Upper triang. Cholesky mat.  
+        Q = cholesky(Hermitian(Σsub), Val(true), check = false).U       # Upper triang. Cholesky mat.  
         Xsub = Q * randn(length(μsub)) + μsub    # Multiv. normal vector draw  
         X = zeros(nvar) 
         j = 1
@@ -45,11 +42,11 @@ function mvn(μ::Vector{Any}, Σ::Matrix{Any})
         end 
     end 
 
-    return X::Array{Float64, 1}
+    return X
 end;
 
 """
-    mvn(μ::Vector{Any}, Σ::Matrix{Any}, n::Int64)
+    mvn(μ, Σ, n::Int64)
 
 Draw `n` number of observations from a multivariate normal distribution with mean vector μ and covariance matrix Σ.
 Use cholesky decomposition to generate `n` draws of X = Z Q + μ, where Z is (d × 1) N(0,1) vector, and Q is upper-triangular cholesky matrix. 
@@ -63,7 +60,7 @@ Inputs:
 Output:
 - X::Array{Float64, 2} = simulated data matrix composed of n-number of draws of X ~ N(μ,Σ)
 """
-function mvn(μ::Vector{Any}, Σ::Matrix{Any}, n::Int64)
+function mvn(μ, Σ, n::Int64)
 
     d  = size(Σ)[1]         # Num. of variables  
     X = zeros(n, d)    # Empty data matrix 
@@ -73,7 +70,7 @@ function mvn(μ::Vector{Any}, Σ::Matrix{Any}, n::Int64)
         X[i,:] = mvn(μ, Σ)
     end 
 
-    return X::Array{Float64, 2} 
+    return X
 end;
 
 """
@@ -295,7 +292,7 @@ function simulateSSModel(num_obs::Int64, ssmodel::SSModel)
         z0 = zeros(size(Z)[1])
     else
         #z0 = rand(MvNormal(zeros(size(Z)[1]), Z))
-        z0 = sim_MvNormal_alt(zeros(size(Z)[1]), Z)
+        z0 = mvn(zeros(size(Z)[1]), Z)
     end
 
     # Save first observations of y and z
@@ -313,7 +310,7 @@ function simulateSSModel(num_obs::Int64, ssmodel::SSModel)
             v = zeros(size(Q)[1])
         else
             #v = rand(MvNormal(zeros(size(Q)[1]), Q))
-            v = sim_MvNormal_alt(zeros(size(Q)[1]), Q)
+            v = mvn(zeros(size(Q)[1]), Q)
         end
         # Record new state observation 
         β = μ + F * β_lag + v
@@ -322,14 +319,14 @@ function simulateSSModel(num_obs::Int64, ssmodel::SSModel)
             z = zeros(size(Z)[1])
         else
             #z = rand(MvNormal(zeros(size(Z)[1]), Z))
-            z = sim_MvNormal_alt(zeros(size(Z)[1]), Z)
+            z = mvn(zeros(size(Z)[1]), Z)
         end
         # Draw measurement distrubance 
         if R == zeros(size(R)[1], size(R)[1])
             e = zeros(size(R)[1])
         else
             #e = rand(MvNormal(zeros(size(R)[1]), R))
-            e = sim_MvNormal_alt(zeros(size(R)[1]), R)
+            e = mvn(zeros(size(R)[1]), R)
         end
         # Record new measurement observation 
         y = H * β + A * z + e
