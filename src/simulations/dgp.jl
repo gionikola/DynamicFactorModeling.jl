@@ -151,7 +151,7 @@ Inputs:
     varlagcoefs::Array{Float64,2}   # vector of error lag coefficients for each variable (matrix length `nvar`, width max(varlags))
     fcoefs::Array{Any,1}            # list of `nlevels` number of matrices, where each row contains vectors of autoregressive lag coefficients of corresponding factors
     fvars::Array{Any,1}             # list of `nlevels` number of vectors, where each entry contains the disturbance variance of the corresponding factors
-    varvars::Array{Float64,1}         # vector of `nvar` number of entries, where each entry contains innovation variances of corresponding variables
+    varvars::Array{Float64,1}       # vector of `nvar` number of entries, where each entry contains innovation variances of corresponding variables
 end;
 ######################
 ######################
