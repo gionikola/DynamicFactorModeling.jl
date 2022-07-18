@@ -1,180 +1,124 @@
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
 """
-function sim_MvNormal(μ, Σ)
+    mvn(μ, Σ)
 
-    obs_aug = μ + cholesky(Hermitian(Σ), Val(true), check = false).U' * randn(length(μ), 1)
+Draw from a multivariate normal distribution with mean vector μ and covariance matrix Σ.
+Use cholesky decomposition to generate X = Z Q + μ, where Z is (d × 1) N(0,1) vector, and Q is upper-triangular cholesky matrix. 
+Cov. matrix Σ does not require non-degenerate random variables (nonzero diagonal). 
 
-    return obs_aug
-end
+Inputs:
+- μ = mean vector 
+- Σ = covariance matrix 
 
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
+Outputs:
+- X::Array{Float64, 1} = observed draw of X ~ N(μ,Σ)
 """
-function sim_MvNormal_alt(μ,Σ)
-    
-    nvars = size(Σ)[1]
+function mvn(μ, Σ)
 
-    keep = Any[]
+    nvar  = size(Σ)[1]         # Num. of variables 
 
-    for i in 1:nvars
-        if Σ[i,i] != 0.0
-            push!(keep, i)
+    if (0 in diag(Σ)) == false  # No degenerate random vars.
+        Q = cholesky(Hermitian(Σ), Val(true), check = false).U       # Upper triang. Cholesky mat.  
+        X = Q * randn(length(μ)) + μ    # Multiv. normal vector draw  
+    else                        # in case of degenerate random vars.
+        keep = Any[] 
+        for i in 1:nvar
+            if Σ[i,i] != 0
+                push!(keep, i)
+            end 
         end  
-    end 
-
-    Σnew = Σ[keep, keep]
-    μnew = μ[keep]
-
-    obs = sim_MvNormal(μnew, Σnew)
-    
-    obs_aug = zeros(nvars) 
-
-    j = 1
-    for i in 1:nvars
-        if i in keep
-            obs_aug[i] = obs[j]
-            j = j + 1   
-        else
-            obs_aug[i] = μ[i] 
+        Σsub = Σ[keep, keep] 
+        μsub = μ[keep] 
+        Q = cholesky(Hermitian(Σsub), Val(true), check = false).U       # Upper triang. Cholesky mat.  
+        Xsub = Q * randn(length(μsub)) + μsub    # Multiv. normal vector draw  
+        X = zeros(nvar) 
+        j = 1
+        for i in 1:nvar
+            if i in keep    # If i-th var. is non-degen. 
+                X[i] = Xsub[j]
+                j = j + 1   
+            else
+                X[i] = μ[i] # If i-th var. is degen. 
+            end 
         end 
     end 
 
-    return obs_aug
-end 
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-    SSModel(H, A, F, μ, R, Q, Z)
+    return X
+end;
 
-Description:
-A type object containing all parameters necessary to specify a data-generating process in state-space form. 
-Measurement Equation:   
-    y_{t} = H β_{t} + A z_{t} + e_{t} 
-Transition Equation:    
-    β_{t} = μ + F β_{t-1} + v_{t}
-    e_{t} ~ i.i.d.N(0,R)
-    v_{t} ~ i.i.d.N(0,Q)
-    z_{t} ~ i.i.d.N(0,Z)
-    E(e_t v_s') = 0
+"""
+    mvn(μ, Σ, n::Int64)
+
+Draw `n` number of observations from a multivariate normal distribution with mean vector μ and covariance matrix Σ.
+Use cholesky decomposition to generate `n` draws of X = Z Q + μ, where Z is (d × 1) N(0,1) vector, and Q is upper-triangular cholesky matrix. 
+Cov. matrix Σ does not require non-degenerate random variables (nonzero diag.). 
 
 Inputs:
+- μ = mean vector 
+- Σ = covariance matrix 
+- n = number of draws 
+
+Output:
+- X::Array{Float64, 2} = simulated data matrix composed of n-number of draws of X ~ N(μ,Σ)
+"""
+function mvn(μ, Σ, n::Int64)
+
+    d  = size(Σ)[1]         # Num. of variables  
+    X = zeros(n, d)    # Empty data matrix 
+
+    # Draw `n` observations 
+    for i in 1:n
+        X[i,:] = mvn(μ, Σ)
+    end 
+
+    return X
+end;
+
+"""
+    Γinv(T::Int64, θ::Float64)
+
+Gamma inverse distribution with T degrees of freedom and scale parameter θ.
+
+Inputs:
+- T = degrees of freedom 
+- θ = scale parameter 
+
+Output:
+- σ2 = draw of X ~ Γ_inverse(T,θ)
+
+"""
+function Γinv(T,θ)
+
+    z0 = randn(T)
+    z0z0 = z0' * z0
+
+    return σ2 = θ/z0z0
+end 
+
+"""
+    createSSforHDFM(hdfm::HDFM))
+
+Description:
+Create state-space form coefficient and variance matrices for an HDFM object.
+Measurement Equation:   
+- y_{t} = H β_{t} + A z_{t} + e_{t} 
+Transition Equation:    
+- β_{t} = μ + F β_{t-1} + v_{t}
+- e_{t} ~ i.i.d.N(0,R)
+- v_{t} ~ i.i.d.N(0,Q)
+- z_{t} ~ i.i.d.N(0,Z)
+- E(e_{t} v_{s}') = 0
+
+Inputs:
+- hdfm::HDFM
+
+Output:
 - H = measurement equation state vector coefficient matrix.
 - A = measurement equation predetermined vector coefficient matrix. 
 - F = state equation companion matrix.
 - μ = state equation intercept vector.
 - R = measurement equation error covariance matrix. 
 - Q = state equation innovation covariance matrix.
-- Z = pretermined vector covariance matrix.
-"""
-@with_kw mutable struct SSModel
-    H::Array{Float64,2}   # Measurement equation state vector coefficient matrix 
-    A::Array{Float64,2}   # Measurement equation predetermined vector coefficient matrix 
-    F::Array{Float64,2}   # State equation companion matrix 
-    μ::Array{Float64,1}   # State equation intercept vector 
-    R::Array{Float64,2}   # Measurement equation error covariance matrix 
-    Q::Array{Float64,2}   # State equation innovation covariance matrix 
-    Z::Array{Float64,2}   # Pretermined vector covariance matrix 
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-
-    HDFM(nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, fcoefs, fvars, varvars) 
-
-Description:
-Creates an object of type `HDFM` that contains all parameters necessary to specify a multi-level linear dynamic factor data-generating process.
-This is a convenient alternative to specifying an HDFM directly in state-space form. 
-
-Inputs: 
-- nlevels = number of levels in the multi-level model structure.
-- nvar = number of variables.
-- nfactors = number of factors for each level (vector of length `nlevels`). 
-- fassign = determines which factor is assigned to which variable for each level (integer matrix of size `nvar` × `nlevels`).
-- flags = number of autoregressive lags for factors of each level (factors of the same level are restricted to having the same number of lags; vector of length `nlevels`).
-- varlags = number of observed variable error autoregressive lags (vector of length `nvar`).
-- varcoefs = vector of coefficients for each variable in the observation equation (length 1+`nlevels`, where first entry represents the intercept). 
-- fcoefs = list of `nlevels` number of matrices, for which each row contains vectors of the autoregressive lag coefficients of the corresponding factor. 
-- fvars = list of `nlevels` number of vectors, where each entry contains the disturbance variance of the corresponding factors.
-- varvars = vector of `nvar` number of entries, where each entry contains the innovation variance of the corresponding variable.
-"""
-@with_kw mutable struct HDFM
-    nlevels::Int64                  # number of levels in the multi-level model structure 
-    nvar::Int64                     # number of variables in the dataset 
-    nfactors::Array{Int64,1}        # number of factors for each level (vector of length `nlevels`)
-    fassign::Array{Int64,2}         # integer matrix of size `nvar` × `nlevels` 
-    flags::Array{Int64,1}           # number of autoregressive lags for each factor level (vector of length `nlevels`)
-    varlags::Array{Int64,1}         # number of obs. variable error autoregressive lags (vector of length `nvar`)
-    varcoefs::Array{Float64,2}      # vector of observation equation coefficients for each variables (length 1+`nlevels`)
-    varlagcoefs::Array{Float64,2}   # vector of error lag coefficients for each variable (matrix length `nvar`, width max(varlags))
-    fcoefs::Array{Any,1}            # list of `nlevels` number of matrices, where each row contains vectors of autoregressive lag coefficients of corresponding factors
-    fvars::Array{Any,1}             # list of `nlevels` number of vectors, where each entry contains the disturbance variance of the corresponding factors
-    varvars::Array{Float64,1}       # vector of `nvar` number of entries, where each entry contains innovation variances of corresponding variables
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-
-    createSSforHDFM(hdfm)
-
-Description:
-Create state-space form coefficient and variance matrices for an HDFM object.
-
-Inputs:
-- hdfm = `HDFM` object with all parameters necessary to specify a multi-level linear dynamic factor data-generating process. 
+- Z = predetermined vector covariance matrix.
 """
 function createSSforHDFM(hdfm::HDFM)
 
@@ -282,30 +226,18 @@ function createSSforHDFM(hdfm::HDFM)
     ######################################
     return H, A, F, μ, R, Q, Z
 end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-    convertHDFMtoSS(hdfm) 
+
+"""
+    convertHDFMtoSS(hdfm::HDFM) 
 
 Description:
 Converts an `HDFM` object to an `SSModel` object. 
 
 Inputs:
-- hdfm = HDFM object containing all HDFM DGP parameters. 
+- hdfm::HDFM
 
-Outputs:
-- ssmodel = SSModel object containing all state-space model parameters.
+Output:
+- ssmodel::SSModel 
 """
 function convertHDFMtoSS(hdfm::HDFM)
 
@@ -313,26 +245,12 @@ function convertHDFMtoSS(hdfm::HDFM)
 
     ssmodel = SSModel(H, A, F, μ, R, Q, Z)
 
-    return ssmodel
+    return ssmodel::SSModel
 end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
 
-    simulateSSModel(num_obs, ssmodel::SSModel)
+"""
+    simulateSSModel(num_obs::Int64, ssmodel::SSModel)
 
-Description: 
 Generate data from a DGP in state space form.
 Measurement Equation:   
     y_{t} = H β_{t} + A z_{t} + e_{t} 
@@ -344,10 +262,15 @@ Transition Equation:
     E(e_t v_s') = 0
 
 Inputs: 
-- num_obs   = number of observations
-- ssmodel   = `SSModel` object containing all parameters necessary to specify a data-generating process in state-space form.  
+- num_obs           = number of observations
+- ssmodel::SSModel 
+
+Output:
+- data_y = simulated sample of observed vector  
+- data_z = simulated sample of exogenous variables
+- data_β = simulated sample of state vector 
 """
-function simulateSSModel(num_obs, ssmodel::SSModel)
+function simulateSSModel(num_obs::Int64, ssmodel::SSModel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
@@ -369,7 +292,7 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
         z0 = zeros(size(Z)[1])
     else
         #z0 = rand(MvNormal(zeros(size(Z)[1]), Z))
-        z0 = sim_MvNormal_alt(zeros(size(Z)[1]), Z)
+        z0 = mvn(zeros(size(Z)[1]), Z)
     end
 
     # Save first observations of y and z
@@ -387,7 +310,7 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
             v = zeros(size(Q)[1])
         else
             #v = rand(MvNormal(zeros(size(Q)[1]), Q))
-            v = sim_MvNormal_alt(zeros(size(Q)[1]), Q)
+            v = mvn(zeros(size(Q)[1]), Q)
         end
         # Record new state observation 
         β = μ + F * β_lag + v
@@ -396,14 +319,14 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
             z = zeros(size(Z)[1])
         else
             #z = rand(MvNormal(zeros(size(Z)[1]), Z))
-            z = sim_MvNormal_alt(zeros(size(Z)[1]), Z)
+            z = mvn(zeros(size(Z)[1]), Z)
         end
         # Draw measurement distrubance 
         if R == zeros(size(R)[1], size(R)[1])
             e = zeros(size(R)[1])
         else
             #e = rand(MvNormal(zeros(size(R)[1]), R))
-            e = sim_MvNormal_alt(zeros(size(R)[1]), R)
+            e = mvn(zeros(size(R)[1]), R)
         end
         # Record new measurement observation 
         y = H * β + A * z + e
@@ -418,15 +341,3 @@ function simulateSSModel(num_obs, ssmodel::SSModel)
     # Return data 
     return data_y, data_z, data_β
 end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################

@@ -2,13 +2,13 @@
 ###############
 ###############
 
-T = 1000                                 # Number of periods in the data 
+T = 100                                 # Number of periods in the data 
 P = 2                                   # Number of lags in the factor equation 
 L = 2                                   # Number of AR lags in the observation equation 
 N = 10                                  # Total number of series 
 K = 1                                   # Total number of factors (only the global factor)
 
-H = [ones(N) ident(N) zeros(N)]
+H = [ones(N) I(N) zeros(N)]
 R = zeros(N, N)
 A = zeros(N, 2)
 Z = zeros(2, 2)
@@ -17,7 +17,7 @@ F = zeros(P + N, P + N)
 F[1, 1] = 0.5
 F[1, P+N] = 0.1
 F[P+N, 1] = 1.0
-F[2:(P+N-1), 2:(P+N-1)] = 0.25 * ident(N)
+F[2:(P+N-1), 2:(P+N-1)] = 0.25 * I(N)
 
 Q = zeros(P + N, P + N)
 Q[1, 1] = 1.0
