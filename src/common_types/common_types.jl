@@ -1,3 +1,87 @@
+"""
+SSModel(
+    H::Array{Float64,2}, 
+    A::Array{Float64,2}, 
+    F::Array{Float64,2}, 
+    μ::Array{Float64,1}, 
+    R::Array{Float64,2}, 
+    Q::Array{Float64,2}, 
+    Z::Array{Float64,2}
+)
+
+A type object containing all parameters necessary to specify a data-generating process in state-space form. 
+Measurement Equation:   
+- y_{t} = H β_{t} + A z_{t} + e_{t} 
+Transition Equation:    
+- β_{t} = μ + F β_{t-1} + v_{t}
+- e_{t} ~ i.i.d.N(0,R)
+- v_{t} ~ i.i.d.N(0,Q)
+- z_{t} ~ i.i.d.N(0,Z)
+- E(e_{t} v_{s}') = 0
+
+Inputs:
+- H = measurement equation state vector coefficient matrix.
+- A = measurement equation predetermined vector coefficient matrix. 
+- F = state equation companion matrix.
+- μ = state equation intercept vector.
+- R = measurement equation error covariance matrix. 
+- Q = state equation innovation covariance matrix.
+- Z = predetermined vector covariance matrix.
+"""
+@with_kw mutable struct SSModel
+H::Array{Float64,2}  
+A::Array{Float64,2}  
+F::Array{Float64,2}    
+μ::Array{Float64,1}   
+R::Array{Float64,2}  
+Q::Array{Float64,2}  
+Z::Array{Float64,2}  
+end;
+
+"""
+    HDFM(
+        nlevels::Int64                   
+        nvar::Int64                     
+        nfactors::Array{Int64,1}        
+        fassign::Array{Int64,2}          
+        flags::Array{Int64,1}         
+        varlags::Array{Int64,1}        
+        varcoefs::Array{Any,2}          
+        varlagcoefs::Array{Any,2}    
+        fcoefs::Array{Any,1}           
+        fvars::Array{Any,1}             
+        varvars::Array{Any,1}  
+    ) 
+
+Creates an object of type `HDFM` that contains all parameters necessary to specify a multi-level linear dynamic factor data-generating process.
+This is a convenient alternative to specifying an HDFM directly in state-space form. 
+
+Inputs: 
+- nlevels = number of levels in the multi-level model structure.
+- nvar = number of variables.
+- nfactors = number of factors for each level (vector of length `nlevels`). 
+- fassign = determines which factor is assigned to which variable for each level (integer matrix of size `nvar` × `nlevels`).
+- flags = number of autoregressive lags for factors of each level (factors of the same level are restricted to having the same number of lags; vector of length `nlevels`).
+- varlags = number of observed variable error autoregressive lags (vector of length `nvar`).
+- varcoefs = vector of coefficients for each variable in the observation equation (length 1+`nlevels`, where first entry represents the intercept). 
+- fcoefs = list of `nlevels` number of matrices, for which each row contains vectors of the autoregressive lag coefficients of the corresponding factor. 
+- fvars = list of `nlevels` number of vectors, where each entry contains the disturbance variance of the corresponding factors.
+- varvars = vector of `nvar` number of entries, where each entry contains the innovation variance of the corresponding variable.
+"""
+@with_kw mutable struct HDFM
+    nlevels::Int64                   
+    nvar::Int64                     
+    nfactors::Array{Int64,1}        
+    fassign::Array{Int64,2}          
+    flags::Array{Int64,1}         
+    varlags::Array{Int64,1}        
+    varcoefs::Array{Any,2}          
+    varlagcoefs::Array{Any,2}    
+    fcoefs::Array{Any,1}           
+    fvars::Array{Any,1}             
+    varvars::Array{Any,1}         
+end;
+
 ######################
 ######################
 ######################

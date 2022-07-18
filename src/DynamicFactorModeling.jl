@@ -11,9 +11,9 @@ using Parameters
 using Polynomials
 
 ######################
-# Include all package scripts 
+# Include all package scripts
+include("common_types/common_types.jl") 
 include("simulations/dgp.jl")
-include("common_types/common_types.jl")
 include("linear_regression/linear_regression.jl")
 include("kim_nelson/kn_1level_estimator.jl")
 include("kim_nelson/kn_2level_estimator.jl")
