@@ -27,8 +27,9 @@ varcoefs = [0.0 1.0 1.0
     0.0 0.5 0.7
     0.0 0.4 0.5
     0.0 0.5 0.2
-    0.0 0.5 0.2]
-varcoefs[:,3] = 2.5 .* varcoefs[:,3]
+    0.0 0.5 0.3]
+varcoefs[:,2] = 3 .* varcoefs[:,2]
+varcoefs[:,3] = 1 .* varcoefs[:,3]
 
 varlagcoefs = [0.5 0.25
     0.5 0.25
@@ -41,7 +42,7 @@ varlagcoefs = [0.5 0.25
     0.5 0.25]
 
 fcoefs = Any[]
-fmat = [0.85 -0.3][:, :]
+fmat = [0.45 -0.1][:, :]
 push!(fcoefs, fmat)
 fmat = [0.5 0.05
     0.2 -0.1]
@@ -53,7 +54,7 @@ push!(fvars, fmat)
 fmat = [1.0, 1.0]
 push!(fvars, fmat)
 
-varvars = 0.1 * ones(nvar);
+varvars = 0.2 * ones(nvar);
 
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
@@ -69,7 +70,7 @@ hdfm = HDFM(nlevels = nlevels,
 
 ssmodel = convertHDFMtoSS(hdfm)
 
-num_obs = 100
+num_obs = 110
 data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 
 
@@ -92,7 +93,7 @@ quant33 = Any[]
 quant66 = Any[]
 medians = Any[]
 
-j = 1
+j = 3
 for i in 1:size(results.F)[1]
     push!(stds, std(results.F[i, j, :]))
     push!(quant33, quantile(results.F[i, j, :], 0.05))
