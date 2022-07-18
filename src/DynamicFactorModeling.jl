@@ -34,7 +34,6 @@ export SSModel, HDFM, convertHDFMtoSS, simulateSSModel,
         KN1LevelEstimator, KN2LevelEstimator,
         OW1LevelEstimator, OW2LevelEstimator,
         PCA1LevelEstimator, PCA2LevelEstimator,
-        Hyperparam2LEstimator,
         vardecomp2level,
         sayhi
 end
