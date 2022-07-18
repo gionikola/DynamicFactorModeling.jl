@@ -6,7 +6,6 @@ using LinearAlgebra
 using Statistics
 using Random
 using Distributions
-using PDMats
 using ShiftedArrays
 using Parameters
 using Polynomials
