@@ -255,7 +255,7 @@ function KNFactorSampler(data_y, ssmodel)
     # Initialize β_realized 
     push!(β_t_mean, data_filtered_β[T, :])
     push!(β_t_var, Ptt[T])
-    β_realized[T, :] = sim_MvNormal_alt(β_t_mean[1], β_t_var[1])
+    β_realized[T, :] = mvn(β_t_mean[1], β_t_var[1])
 
     # Generate `β_t_mean` and `β_t_var`
     # for all time periods 
@@ -289,7 +289,7 @@ function KNFactorSampler(data_y, ssmodel)
             push!(β_t_var, β_t_var_temp)
 
             # Draw new β_t 
-            β_realized[T-j, :] = sim_MvNormal_alt(β_t_mean[1+j], β_t_var[1+j])
+            β_realized[T-j, :] = mvn(β_t_mean[1+j], β_t_var[1+j])
         end
     else
         ## IF Q IS NOT SINGULAR (redundant, but potentially faster) 
@@ -305,7 +305,7 @@ function KNFactorSampler(data_y, ssmodel)
             push!(β_t_var, β_t_var_temp)
 
             # Draw new β_t 
-            β_realized[T-j, :] = sim_MvNormal_alt(β_t_mean[1+j], β_t_var[1+j])
+            β_realized[T-j, :] = mvn(β_t_mean[1+j], β_t_var[1+j])
         end
     end
 
