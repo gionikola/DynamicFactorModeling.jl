@@ -22,7 +22,7 @@ include("test_scripts.jl")
 
 ######################
 # Export package objects 
-export SSModel, HDFM, convertHDFMtoSS, simulateSSModel, DFMStruct, HDFMStruct,
+export  HDFM, DFMStruct, convertHDFMtoSS, simulateSSModel, DFMStruct,
         KN1LevelEstimator, KN2LevelEstimator,
         vardecomp2level,
         sayhi
