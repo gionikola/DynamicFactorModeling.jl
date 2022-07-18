@@ -1,4 +1,3 @@
-include("utils.jl")
 include("draw_coefficients.jl")
 include("draw_error_variance.jl")
 include("draw_parameters.jl")
