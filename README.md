@@ -33,12 +33,16 @@ using DynamicFactorModeling
 
 ```julia
 
+#
 nlevels = 2
 
+#
 nvar = 9
 
+#
 nfactors = [1, 2]
 
+#
 fassign = [1 1
     1 1
     1 1
@@ -49,10 +53,13 @@ fassign = [1 1
     1 2
     1 2]
 
+#
 flags = [2, 2]
 
+#
 varlags = [2, 2, 2, 2, 2, 2, 2, 2, 2]
 
+#
 varcoefs = [0.0 1.0 1.0
     0.0 0.5 0.2
     0.0 0.7 0.4
@@ -63,6 +70,7 @@ varcoefs = [0.0 1.0 1.0
     0.0 0.5 0.2
     0.0 0.5 0.2]
 
+#
 varlagcoefs = [0.5 0.25
     0.5 0.25
     0.5 0.25
@@ -73,6 +81,7 @@ varlagcoefs = [0.5 0.25
     0.5 0.25
     0.5 0.25]
 
+#
 fcoefs = Any[]
 fmat = [0.85 -0.3][:, :]
 push!(fcoefs, fmat)
@@ -80,14 +89,17 @@ fmat = [0.5 0.05
     0.2 -0.1]
 push!(fcoefs, fmat)
 
+#
 fvars = Any[]
 fmat = [1.0]
 push!(fvars, fmat)
 fmat = [1.0, 1.0]
 push!(fvars, fmat)
 
+#
 varvars = 0.5 * ones(nvar);
 
+#
 hdfm = HDFM(nlevels = nlevels,
     nvar = nvar,
     nfactors = nfactors,
@@ -106,8 +118,10 @@ hdfm = HDFM(nlevels = nlevels,
 
 ```julia
 
+#
 ssmodel = convertHDFMtoSS(hdfm)
 
+#
 num_obs = 100
 data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 
@@ -117,6 +131,7 @@ data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
 
 ```julia
 
+#
 hdfmpriors = HDFMStruct(nlevels = nlevels,
     nfactors = nfactors,
     factorassign = fassign,
@@ -125,6 +140,7 @@ hdfmpriors = HDFMStruct(nlevels = nlevels,
     ndraws = 1000,
     burnin = 50)
 
+#
 results = PCA2LevelEstimator(data_y, hdfmpriors)
 
 ```
@@ -133,6 +149,7 @@ results = PCA2LevelEstimator(data_y, hdfmpriors)
 
 ```julia
 
+#
 vardecomp = vardecomp2level(datamat, results.means.F, reshape(results.means.B, 3, 50)', fassign)
 
 ```
