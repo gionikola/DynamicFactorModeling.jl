@@ -12,7 +12,7 @@ Inputs:
 Outputs:
 - X::Array{Float64, 1} = observed draw of X ~ N(μ,Σ)
 """
-function mvn(μ, Σ)
+function mvn(μ::Vector{Float64}, Σ::Matrix{Float64})
 
     nvar  = size(Σ)[1]         # Num. of variables 
 
@@ -42,8 +42,30 @@ function mvn(μ, Σ)
         end 
     end 
 
-    return X
-end;
+    return X::Vector{Float64}
+end
+
+function mvn(μ::Float64, Σ::Float64)
+
+    if Σ != 0  # No degenerate random vars.     # Upper triang. Cholesky mat.  
+        X = sqrt(Σ) * randn() + μ    # Multiv. normal vector draw  
+    else # in case of degenerate random vars.
+        X = μ
+    end
+
+    return X::Float64
+end
+
+function mvn(μ::Int, Σ::Int)
+
+    if Σ != 0  # No degenerate random vars.     # Upper triang. Cholesky mat.  
+        X = sqrt(Σ) * randn() + μ    # Multiv. normal vector draw  
+    else # in case of degenerate random vars.
+        X = μ
+    end
+
+    return X::Float64
+end
 
 """
     mvn(μ, Σ, n::Int64)
@@ -60,7 +82,7 @@ Inputs:
 Output:
 - X::Array{Float64, 2} = simulated data matrix composed of n-number of draws of X ~ N(μ,Σ)
 """
-function mvn(μ, Σ, n::Int64)
+function mvn(μ::Vector{Float64}, Σ::Matrix{Float64}, n::Int64)
 
     d  = size(Σ)[1]         # Num. of variables  
     X = zeros(n, d)    # Empty data matrix 
@@ -70,8 +92,20 @@ function mvn(μ, Σ, n::Int64)
         X[i,:] = mvn(μ, Σ)
     end 
 
-    return X
-end;
+    return X::Matrix{Float64} 
+end
+
+function mvn(μ::Float64, Σ::Float64, n::Int64)
+
+    X = zeros(n, 1)    # Empty data matrix 
+
+    # Draw `n` observations 
+    for i in 1:n
+        X[i, 1] = mvn(μ, Σ)
+    end
+
+    return X::Matrix{Float64}
+end
 
 """
     Γinv(T::Int64, θ::Float64)
