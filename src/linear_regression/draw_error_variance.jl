@@ -1,4 +1,4 @@
-function draw_error_variance(Y,X,β)
+function draw_error_variance(Y::Matrix{Float64}, X::Matrix{Float64}, β::Vector{Float64})
 
     ## Priors
     T0 = 1
@@ -12,5 +12,5 @@ function draw_error_variance(Y,X,β)
     θ1 = θ0 + dot((Y - X * β),(Y - X * β))
     
     ## Return draw of σ2
-    return σ2 = Γinv(T1,θ1)
+    return σ2 = Γinv(T1,θ1)::Float64 
 end 
