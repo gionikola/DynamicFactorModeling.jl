@@ -5,25 +5,25 @@ using Test
 
     μ = [0.0, 0.0]
     Σ = [1.0 0.0; 0.0 1.0]
-    X = mvn(μ, Σ)
+    X = DynamicFactorModeling.mvn(μ, Σ)
     @test typeof(X) == Vector{Float64}
     @test size(X) == (2,)
 
     μ = [0, 0]
     Σ = [1 0; 0 1]
-    X = mvn(μ, Σ)
+    X = DynamicFactorModeling.mvn(μ, Σ)
     @test typeof(X) == Vector{Float64}
     @test size(X) == (2,)
 
     μ = 0.0
     Σ = 1.0
-    X = mvn(μ, Σ)
+    X = DynamicFactorModeling.mvn(μ, Σ)
     @test typeof(X) == Float64
     @test size(X) == ()
 
     μ = 0
     Σ = 1
-    X = mvn(μ, Σ)
+    X = DynamicFactorModeling.mvn(μ, Σ)
     @test typeof(X) == Float64
     @test size(X) == ()
 
