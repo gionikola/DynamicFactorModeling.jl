@@ -27,7 +27,7 @@ PDMats = "0.11"
 PDMatsExtras = "2"
 Parameters = "0.12"
 Polynomials = "2, 3"
-ShiftedArrays = "1"
+ShiftedArrays = "1, 2"
 StatsPlots = "0.14, 0.15"
 julia = "1"
 
