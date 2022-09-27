@@ -14,66 +14,66 @@ Outputs:
 """
 function mvn(μ::Vector{Float64}, Σ::Matrix{Float64})
 
-    nvar  = size(Σ)[1]         # Num. of variables 
+    nvar = size(Σ)[1]         # Num. of variables 
 
     if (0 in diag(Σ)) == false  # No degenerate random vars.
-        Q = cholesky(Hermitian(Σ), Val(true), check = false).U       # Upper triang. Cholesky mat.  
+        Q = cholesky(Hermitian(Σ), Val(true), check=false).U       # Upper triang. Cholesky mat.  
         X = Q * randn(length(μ)) + μ    # Multiv. normal vector draw  
     else                        # in case of degenerate random vars.
-        keep = Any[] 
+        keep = Any[]
         for i in 1:nvar
-            if Σ[i,i] != 0
+            if Σ[i, i] != 0
                 push!(keep, i)
-            end 
-        end  
-        Σsub = Σ[keep, keep] 
-        μsub = μ[keep] 
-        Q = cholesky(Hermitian(Σsub), Val(true), check = false).U       # Upper triang. Cholesky mat.  
+            end
+        end
+        Σsub = Σ[keep, keep]
+        μsub = μ[keep]
+        Q = cholesky(Hermitian(Σsub), Val(true), check=false).U       # Upper triang. Cholesky mat.  
         Xsub = Q * randn(length(μsub)) + μsub    # Multiv. normal vector draw  
-        X = zeros(nvar) 
+        X = zeros(nvar)
         j = 1
         for i in 1:nvar
             if i in keep    # If i-th var. is non-degen. 
                 X[i] = Xsub[j]
-                j = j + 1   
+                j = j + 1
             else
                 X[i] = μ[i] # If i-th var. is degen. 
-            end 
-        end 
-    end 
+            end
+        end
+    end
 
     return X::Vector{Float64}
 end
 
 function mvn(μ::Vector{Int}, Σ::Matrix{Int})
 
-    nvar  = size(Σ)[1]         # Num. of variables 
+    nvar = size(Σ)[1]         # Num. of variables 
 
     if (0 in diag(Σ)) == false  # No degenerate random vars.
-        Q = cholesky(Hermitian(Σ), Val(true), check = false).U       # Upper triang. Cholesky mat.  
+        Q = cholesky(Hermitian(Σ), Val(true), check=false).U       # Upper triang. Cholesky mat.  
         X = Q * randn(length(μ)) + μ    # Multiv. normal vector draw  
     else                        # in case of degenerate random vars.
-        keep = Any[] 
+        keep = Any[]
         for i in 1:nvar
-            if Σ[i,i] != 0
+            if Σ[i, i] != 0
                 push!(keep, i)
-            end 
-        end  
-        Σsub = Σ[keep, keep] 
-        μsub = μ[keep] 
-        Q = cholesky(Hermitian(Σsub), Val(true), check = false).U       # Upper triang. Cholesky mat.  
+            end
+        end
+        Σsub = Σ[keep, keep]
+        μsub = μ[keep]
+        Q = cholesky(Hermitian(Σsub), Val(true), check=false).U       # Upper triang. Cholesky mat.  
         Xsub = Q * randn(length(μsub)) + μsub    # Multiv. normal vector draw  
-        X = zeros(nvar) 
+        X = zeros(nvar)
         j = 1
         for i in 1:nvar
             if i in keep    # If i-th var. is non-degen. 
                 X[i] = Xsub[j]
-                j = j + 1   
+                j = j + 1
             else
                 X[i] = μ[i] # If i-th var. is degen. 
-            end 
-        end 
-    end 
+            end
+        end
+    end
 
     return X::Vector{Float64}
 end
@@ -94,7 +94,7 @@ function mvn(μ::Int, Σ::Int)
     if Σ != 0  # No degenerate random vars.     # Upper triang. Cholesky mat.  
         X = sqrt(Σ) * randn() + μ    # Multiv. normal vector draw  
     else # in case of degenerate random vars.
-        X = μ
+        X = μ * 1.0 
     end
 
     return X::Float64
@@ -115,20 +115,95 @@ Inputs:
 Output:
 - X::Array{Float64, 2} = simulated data matrix composed of n-number of draws of X ~ N(μ,Σ)
 """
-function mvn(μ::Vector{Float64}, Σ::Matrix{Float64}, n::Int64)
+function mvn(μ::Vector{Float64}, Σ::Matrix{Float64}, n::Int)
 
-    d  = size(Σ)[1]         # Num. of variables  
+    d = size(Σ)[1]         # Num. of variables  
     X = zeros(n, d)    # Empty data matrix 
 
     # Draw `n` observations 
     for i in 1:n
-        X[i,:] = mvn(μ, Σ)
-    end 
+        X[i, :] = mvn(μ, Σ)
+    end
 
-    return X::Matrix{Float64} 
+    return X::Matrix{Float64}
 end
 
-function mvn(μ::Float64, Σ::Float64, n::Int64)
+function mvn(μ::Vector{Int}, Σ::Matrix{Float64}, n::Int)
+
+    d = size(Σ)[1]         # Num. of variables  
+    X = zeros(n, d)    # Empty data matrix 
+
+    # Draw `n` observations 
+    for i in 1:n
+        X[i, :] = mvn(μ, Σ)
+    end
+
+    return X::Matrix{Float64}
+end
+
+function mvn(μ::Vector{Float64}, Σ::Matrix{Int}, n::Int)
+
+    d = size(Σ)[1]         # Num. of variables  
+    X = zeros(n, d)    # Empty data matrix 
+
+    # Draw `n` observations 
+    for i in 1:n
+        X[i, :] = mvn(μ, Σ)
+    end
+
+    return X::Matrix{Float64}
+end
+
+function mvn(μ::Vector{Int}, Σ::Matrix{Int}, n::Int)
+
+    d = size(Σ)[1]         # Num. of variables  
+    X = zeros(n, d)    # Empty data matrix 
+
+    # Draw `n` observations 
+    for i in 1:n
+        X[i, :] = mvn(μ, Σ)
+    end
+
+    return X::Matrix{Float64}
+end
+
+function mvn(μ::Float64, Σ::Float64, n::Int)
+
+    X = zeros(n, 1)    # Empty data matrix 
+
+    # Draw `n` observations 
+    for i in 1:n
+        X[i, 1] = mvn(μ, Σ)
+    end
+
+    return X::Matrix{Float64}
+end
+
+function mvn(μ::Float64, Σ::Int, n::Int)
+
+    X = zeros(n, 1)    # Empty data matrix 
+
+    # Draw `n` observations 
+    for i in 1:n
+        X[i, 1] = mvn(μ, Σ)
+    end
+
+    return X::Matrix{Float64}
+end
+
+function mvn(μ::Int, Σ::Float64, n::Int)
+
+    X = zeros(n, 1)    # Empty data matrix 
+
+    # Draw `n` observations 
+    for i in 1:n
+        X[i, 1] = mvn(μ, Σ)
+    end
+
+    return X::Matrix{Float64}
+end
+
+function mvn(μ::Int, Σ::Int, n::Int)
 
     X = zeros(n, 1)    # Empty data matrix 
 
@@ -153,13 +228,13 @@ Output:
 - σ2 = draw of X ~ Γ_inverse(T,θ)
 
 """
-function Γinv(T,θ)
+function Γinv(T, θ)
 
     z0 = randn(T)
     z0z0 = z0' * z0
 
-    return σ2 = θ/z0z0
-end 
+    return σ2 = θ / z0z0
+end
 
 """
     createSSforHDFM(hdfm::HDFM))
@@ -197,7 +272,7 @@ function createSSforHDFM(hdfm::HDFM)
     ## Specify observation equation coefficient matrix 
 
     # Store number of total lag terms in the state vector 
-    ntotlags = sum(varlags) + dot(nfactors,flags)           # variable error lags
+    ntotlags = sum(varlags) + dot(nfactors, flags)           # variable error lags
 
     # Create empty observation eq. coefficient matrix 
     H = zeros(nvar, 1 + ntotlags)               # intercept + total lags 
@@ -208,7 +283,7 @@ function createSSforHDFM(hdfm::HDFM)
         for j = 1:nlevels
             for k = 1:nfactors[j]
                 if k == fassign[i, j]
-                    H[i, 1 + sum(nfactors[1:(j-1)]) + k] = varcoefs[i, 1 + j]
+                    H[i, 1+sum(nfactors[1:(j-1)])+k] = varcoefs[i, 1+j]
                 end
             end
         end
@@ -232,16 +307,16 @@ function createSSforHDFM(hdfm::HDFM)
     ntotfactors = sum(nfactors)
 
     # Fill out transition eq. companion matrix 
-    μ[1,1] = 1.0
+    μ[1, 1] = 1.0
     for i = 1:nlevels
         for j = 1:nfactors[i]
-            
+
             rowind = 0
             if i > 1
                 rowind = sum(nfactors[1:(i-1)]) + j
-            else 
+            else
                 rowind = j
-            end 
+            end
 
             for k = 1:flags[i]
                 F[1+rowind, 1+rowind+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j, k] # factor autoregressive lag coefficients
@@ -257,7 +332,7 @@ function createSSforHDFM(hdfm::HDFM)
         for j = 1:(slength-ntotfactors-nvar)
             if i == ntotfactors + nvar + j
                 F[i, j] = 1.0
-            end 
+            end
         end
     end
 
@@ -270,14 +345,14 @@ function createSSforHDFM(hdfm::HDFM)
     # Fill out state equation error covariance matrix 
     for i = 1:nlevels
         for j = 1:nfactors[i]
-        
+
             rowind = 0
             if i > 1
                 rowind = sum(nfactors[1:(i-1)]) + j
             else
                 rowind = j
             end
-        
+
             Q[1+rowind, 1+rowind] = (fvars[i])[j]
         end
     end
@@ -351,7 +426,7 @@ function simulateSSModel(num_obs::Int64, ssmodel::SSModel)
     data_β = zeros(num_obs, size(Q)[1])
 
     # Initialize β and y 
-    β0 = inv(I - F) * μ 
+    β0 = inv(I - F) * μ
     y0 = H * β0
 
     # Initialize z

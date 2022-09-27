@@ -4,28 +4,86 @@ using Test
 @testset "DynamicFactorModeling.jl" begin
 
     μ = [0.0, 0.0]
-    Σ = [1.0 0.0; 0.0 1.0]
+    Σ = [1.0 0.0
+        0.0 1.0]
     X = DynamicFactorModeling.mvn(μ, Σ)
     @test typeof(X) == Vector{Float64}
-    @test size(X) == (2,)
+    @test size(X) == (length(μ),)
+    n = 100
+    X = DynamicFactorModeling.mvn(μ, Σ, n)
+    @test typeof(X) == Matrix{Float64}
+    @test size(X) == (n, length(μ))
+
+    μ = [0.0, 0.0]
+    Σ = [0.0 0.0
+        0.0 0.0]
+    X = DynamicFactorModeling.mvn(μ, Σ)
+    @test typeof(X) == Vector{Float64}
+    @test size(X) == (length(μ),)
+    n = 100
+    X = DynamicFactorModeling.mvn(μ, Σ, n)
+    @test typeof(X) == Matrix{Float64}
+    @test size(X) == (n, length(μ))
 
     μ = [0, 0]
     Σ = [1 0; 0 1]
     X = DynamicFactorModeling.mvn(μ, Σ)
     @test typeof(X) == Vector{Float64}
-    @test size(X) == (2,)
+    @test size(X) == (length(μ),)
+    n = 100
+    X = DynamicFactorModeling.mvn(μ, Σ, n)
+    @test typeof(X) == Matrix{Float64}
+    @test size(X) == (n, length(μ))
+
+    μ = [0, 0]
+    Σ = [0 0; 0 0]
+    X = DynamicFactorModeling.mvn(μ, Σ)
+    @test typeof(X) == Vector{Float64}
+    @test size(X) == (length(μ),)
+    n = 100
+    X = DynamicFactorModeling.mvn(μ, Σ, n)
+    @test typeof(X) == Matrix{Float64}
+    @test size(X) == (n, length(μ))
 
     μ = 0.0
     Σ = 1.0
     X = DynamicFactorModeling.mvn(μ, Σ)
     @test typeof(X) == Float64
     @test size(X) == ()
+    n = 100
+    X = DynamicFactorModeling.mvn(μ, Σ, n)
+    @test typeof(X) == Matrix{Float64}
+    @test size(X) == (n, 1)
+
+    μ = 0.0
+    Σ = 0.0
+    X = DynamicFactorModeling.mvn(μ, Σ)
+    @test typeof(X) == Float64
+    @test size(X) == ()
+    n = 100
+    X = DynamicFactorModeling.mvn(μ, Σ, n)
+    @test typeof(X) == Matrix{Float64}
+    @test size(X) == (n, 1)
 
     μ = 0
     Σ = 1
     X = DynamicFactorModeling.mvn(μ, Σ)
     @test typeof(X) == Float64
     @test size(X) == ()
+    n = 100
+    X = DynamicFactorModeling.mvn(μ, Σ, n)
+    @test typeof(X) == Matrix{Float64}
+    @test size(X) == (n, 1)
+
+    μ = 0
+    Σ = 0
+    X = DynamicFactorModeling.mvn(μ, Σ)
+    @test typeof(X) == Float64
+    @test size(X) == ()
+    n = 100
+    X = DynamicFactorModeling.mvn(μ, Σ, n)
+    @test typeof(X) == Matrix{Float64}
+    @test size(X) == (n, 1)
 
     Y = rand(100)
     X = rand(100, 2)
