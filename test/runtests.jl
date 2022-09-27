@@ -250,6 +250,20 @@ using Test
     ##########
     ##########
     ##########
+
+    # T = Int; θ = Float64
+    σ2 = DynamicFactorModeling.Γinv(100, 1.0)
+    @test size(σ2) == ()
+    @test typeof(σ2) == Float64
+
+    # T = Int; θ = Int
+    σ2 = DynamicFactorModeling.Γinv(100, 1)
+    @test size(σ2) == ()
+    @test typeof(σ2) == Float64
+
+    ##########
+    ##########
+    ##########
     Y = rand(100)
     X = rand(100, 2)
     σ2 = 2.0

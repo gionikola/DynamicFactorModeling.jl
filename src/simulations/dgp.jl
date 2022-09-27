@@ -316,12 +316,20 @@ Output:
 - σ2 = draw of X ~ Γ_inverse(T,θ)
 
 """
-function Γinv(T, θ)
+function Γinv(T::Int, θ::Float64)
 
     z0 = randn(T)
     z0z0 = z0' * z0
 
-    return σ2 = θ / z0z0
+    return σ2 = (θ/z0z0)::Float64
+end
+
+function Γinv(T::Int, θ::Int)
+
+    z0 = randn(T)
+    z0z0 = z0' * z0
+
+    return σ2 = (θ/z0z0)::Float64
 end
 
 """
