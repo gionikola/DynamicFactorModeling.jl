@@ -5,5 +5,6 @@ using Test
 
     include("distribution_functions.jl")
     include("parameter_draws.jl")
+    include("hdfm_ss_conversion.jl")
 
 end
