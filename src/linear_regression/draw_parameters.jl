@@ -47,7 +47,7 @@ function draw_parameters(Y::Matrix{Float64}, X::Matrix{Float64}, ϕ::Vector{Floa
     for i = 1:size(X)[2] # iterate over variables in X
         x_temp = X[:, i]
         for p = 1:length(ϕ) # iterate over lag params in ϕ
-            x_temp[(1+length(ϕ)):end, :] = x_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(x_temp, p)[(1+length(ϕ)):end, :]
+            x_temp[(1+length(ϕ)):end, :] = x_temp[(1+length(ϕ)):end, :] - ϕ[p] .* ShiftedArrays.lag(x_temp, p)[(1+length(ϕ)):end, :]
         end
         x_temp = x_temp[(1+length(ϕ)):end, :]
         X_star[:, i] = x_temp
@@ -58,7 +58,7 @@ function draw_parameters(Y::Matrix{Float64}, X::Matrix{Float64}, ϕ::Vector{Floa
     y_temp = Y
     for p = 1:length(ϕ)
         y_temp = Y
-        y_temp = y_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(y_temp, p)[(1+length(ϕ)):end, :]
+        y_temp = y_temp[(1+length(ϕ)):end, :] - ϕ[p] .* ShiftedArrays.lag(y_temp, p)[(1+length(ϕ)):end, :]
     end
     Y_star = y_temp
 
@@ -69,7 +69,7 @@ function draw_parameters(Y::Matrix{Float64}, X::Matrix{Float64}, ϕ::Vector{Floa
     error = Y - X * β
     errors = zeros(length(error), length(ϕ))
     for p = 1:length(ϕ)
-        errors[:, p] = lag(error, p, default = 0.0)
+        errors[:, p] = ShiftedArrays.lag(error, p, default = 0.0)
     end
     errors = errors[(1+length(ϕ)):end,:]
     error = error[(1+length(ϕ)):end]
@@ -90,7 +90,7 @@ function draw_parameters(Y::Vector{Float64}, X::Matrix{Float64}, ϕ::Vector{Floa
     for i = 1:size(X)[2] # iterate over variables in X
         x_temp = X[:, i]
         for p = 1:length(ϕ) # iterate over lag params in ϕ
-            x_temp[(1+length(ϕ)):end, :] = x_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(x_temp, p)[(1+length(ϕ)):end, :]
+            x_temp[(1+length(ϕ)):end, :] = x_temp[(1+length(ϕ)):end, :] - ϕ[p] .* ShiftedArrays.lag(x_temp, p)[(1+length(ϕ)):end, :]
         end
         x_temp = x_temp[(1+length(ϕ)):end, :]
         X_star[:, i] = x_temp
@@ -101,7 +101,7 @@ function draw_parameters(Y::Vector{Float64}, X::Matrix{Float64}, ϕ::Vector{Floa
     y_temp = Y
     for p = 1:length(ϕ)
         y_temp = Y
-        y_temp = y_temp[(1+length(ϕ)):end, :] - ϕ[p] .* lag(y_temp, p)[(1+length(ϕ)):end, :]
+        y_temp = y_temp[(1+length(ϕ)):end, :] - ϕ[p] .* ShiftedArrays.lag(y_temp, p)[(1+length(ϕ)):end, :]
     end
     Y_star = y_temp
 
@@ -112,7 +112,7 @@ function draw_parameters(Y::Vector{Float64}, X::Matrix{Float64}, ϕ::Vector{Floa
     error = Y - X * β
     errors = zeros(length(error), length(ϕ))
     for p = 1:length(ϕ)
-        errors[:, p] = lag(error, p, default=0.0)
+        errors[:, p] = ShiftedArrays.lag(error, p, default=0.0)
     end
     errors = errors[(1+length(ϕ)):end, :]
     error = error[(1+length(ϕ)):end]
