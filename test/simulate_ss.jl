@@ -15,7 +15,7 @@
     F = [0.5 0.0; 0.0 0.5]
     R = [1.0 0.0; 0.0 1.0]
     Q = [1.0 0.0; 0.0 1.0]
-    Z = zeros(2, 2)
+    Z = [1.0 0.0; 0.0 1.0]
 
     ssmodel = DynamicFactorModeling.SSModel(H, A, F, μ, R, Q, Z)
 
@@ -50,7 +50,7 @@ end
     F = [0.5 0.0; 0.0 0.5]
     R = [0.0 0.0; 0.0 1.0]
     Q = [0.0 0.0; 0.0 1.0]
-    Z = zeros(2, 2)
+    Z = [1.0 0.0; 0.0 0.0]
 
     ssmodel = DynamicFactorModeling.SSModel(H, A, F, μ, R, Q, Z)
 
@@ -83,8 +83,8 @@ end
     A = zeros(2, 2)
     μ = zeros(2)
     F = [0.5 0.0; 0.0 0.5]
-    R = [0.0 0.0; 0.0 0.0]
-    Q = [0.0 0.0; 0.0 0.0]
+    R = zeros(2, 2)
+    Q = zeros(2, 2)
     Z = zeros(2, 2)
 
     ssmodel = DynamicFactorModeling.SSModel(H, A, F, μ, R, Q, Z)
