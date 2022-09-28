@@ -26,6 +26,20 @@ function draw_coefficients(Y::Vector{Float64}, X::Matrix{Float64}, σ2::Float64)
     return β = mvn(β1, Σ1)::Vector{Float64}
 end 
 
+function draw_coefficients(Y::Matrix{Float64}, X::Vector{Float64}, σ2::Float64)
+
+    ## Prior parameters in N(β0,Σ0)
+    β0 = 0.0
+    Σ0 = 1000.0
+
+    ## Posterior parameters in N(β1,Σ1) 
+    β1 = inv(inv(Σ0) + inv(σ2) * dot(X, X)) * (inv(Σ0) * β0 + inv(σ2) * dot(X, Y))
+    Σ1 = inv(inv(Σ0) + inv(σ2) * dot(X, X))
+
+    ## Return draw of β
+    return β = mvn(β1, Σ1)::Float64 
+end 
+
 function draw_coefficients(Y::Vector{Float64}, X::Vector{Float64}, σ2::Float64)
 
     ## Prior parameters in N(β0,Σ0)
@@ -37,5 +51,5 @@ function draw_coefficients(Y::Vector{Float64}, X::Vector{Float64}, σ2::Float64)
     Σ1 = inv(inv(Σ0) + inv(σ2) * dot(X,X))
 
     ## Return draw of β
-    return β = mvn(β1, Σ1)
+    return β = mvn(β1, Σ1)::Float64 
 end 
