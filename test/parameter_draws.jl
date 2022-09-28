@@ -81,6 +81,7 @@ end
 
     @test typeof(β) == Vector{Float64}
     @test size(β) == (2,)
+    @test typeof(σ2) == Float64
 
     Y = rand(100)
     X = rand(100, 2)
@@ -89,6 +90,7 @@ end
 
     @test typeof(β) == Vector{Float64}
     @test size(β) == (2,)
+    @test typeof(σ2) == Float64
 
     Y = rand(100)[:, :]
     X = rand(100)
@@ -97,6 +99,7 @@ end
 
     @test typeof(β) == Float64
     @test size(β) == ()
+    @test typeof(σ2) == Float64
 
     Y = rand(100)
     X = rand(100)
@@ -105,5 +108,36 @@ end
 
     @test typeof(β) == Float64
     @test size(β) == ()
+    @test typeof(σ2) == Float64
+
+end
+
+@testset "Draw regression w/ autoregressive error parameters" begin
+
+    Y = rand(100)[:, :]
+    X = rand(100, 2)
+    σ2 = 1.0
+    ϕ = [0.5, 0.25]
+
+    β, ϕ, σ2 = DynamicFactorModeling.draw_parameters(Y, X, ϕ, σ2)
+
+    @test typeof(β) == Vector{Float64}
+    @test size(β) == (2,)
+    @test typeof(σ2) == Float64
+    @test typeof(ϕ) == Vector{Float64}
+    @test size(ϕ) == (2,)
+
+    Y = rand(100)
+    X = rand(100, 2)
+    σ2 = 1.0
+    ϕ = [0.5, 0.25]
+
+    β, ϕ, σ2 = DynamicFactorModeling.draw_parameters(Y, X, ϕ, σ2)
+
+    @test typeof(β) == Vector{Float64}
+    @test size(β) == (2,)
+    @test typeof(σ2) == Float64
+    @test typeof(ϕ) == Vector{Float64}
+    @test size(ϕ) == (2,)
 
 end 
