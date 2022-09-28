@@ -43,7 +43,7 @@ function draw_error_variance(Y::Vector{Float64}, X::Vector{Float64}, β::Vector{
     T1 = (T0 + T)
 
     ## Scale parameter posterior
-    θ1 = θ0 + dot((Y - X * β), (Y - X * β))
+    θ1 = θ0 + dot((Y - X * β[1]), (Y - X * β[1]))
 
     ## Return draw of σ2
     return σ2 = Γinv(T1, θ1)::Float64

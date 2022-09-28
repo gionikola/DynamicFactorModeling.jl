@@ -45,4 +45,13 @@ end
     @test typeof(σ2) == Float64
     @test size(σ2) == ()
 
+    Y = rand(100)
+    X = rand(100)
+    β = [1.0]
+
+    σ2 = DynamicFactorModeling.draw_error_variance(Y, X, β)
+
+    @test typeof(σ2) == Float64
+    @test size(σ2) == ()
+
 end 
