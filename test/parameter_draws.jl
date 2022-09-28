@@ -17,7 +17,7 @@
     @test typeof(β) == Vector{Float64}
     @test size(β) == (2,)
 
-    Y = rand(100)[:,:]
+    Y = rand(100)[:, :]
     X = rand(100)
     σ2 = 2.0
     β = DynamicFactorModeling.draw_coefficients(Y, X, σ2)
@@ -52,6 +52,14 @@ end
 
     @test typeof(σ2) == Float64
     @test size(σ2) == ()
+
+    X = rand(100)
+
+    σ2 = DynamicFactorModeling.draw_error_variance(Y, X, β)
+
+    @test typeof(σ2) == Float64
+    @test size(σ2) == ()
+
 
     Y = rand(100)
     X = rand(100)
