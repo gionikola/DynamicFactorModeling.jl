@@ -12,7 +12,7 @@
 ######################
 @doc """
 """
-function firstComponentFactor(data)
+function firstComponentFactor(data::Matrix{Float64})
 
     num_obs = size(data)[1]
     centering = I - 1 / (num_obs) * ones(num_obs, num_obs) # centering matrix
@@ -24,7 +24,7 @@ function firstComponentFactor(data)
     firstComponent = sqrt(num_obs) * firstComponent
     factor = data * firstComponent / num_obs
 
-    return factor, firstComponent
+    return factor::Vector{Float64}, firstComponent::Vector{Float64} 
 end;
 ######################
 ######################
