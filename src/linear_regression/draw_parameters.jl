@@ -1,9 +1,33 @@
-function draw_parameters(Y,X,σ2)
+function draw_parameters(Y::Matrix{Float64}, X::Matrix{Float64}, σ2::Float64)
 
     β = draw_coefficients(Y,X,σ2)
     σ2 = draw_error_variance(Y,X,β)
 
-    return β, σ2
+    return β::Vector{Float64}, σ2::Float64
+end 
+
+function draw_parameters(Y::Vector{Float64}, X::Matrix{Float64}, σ2::Float64)
+
+    β = draw_coefficients(Y, X, σ2)
+    σ2 = draw_error_variance(Y, X, β)
+
+    return β::Vector{Float64}, σ2::Float64
+end 
+
+function draw_parameters(Y::Matrix{Float64}, X::Vector{Float64}, σ2::Float64)
+
+    β = draw_coefficients(Y, X, σ2)
+    σ2 = draw_error_variance(Y, X, β)
+
+    return β::Float64, σ2::Float64
+end 
+
+function draw_parameters(Y::Vector{Float64}, X::Vector{Float64}, σ2::Float64)
+
+    β = draw_coefficients(Y, X, σ2)
+    σ2 = draw_error_variance(Y, X, β)
+
+    return β::Float64, σ2::Float64
 end 
 
 function draw_parameters(Y, X, ϕ, σ2)
