@@ -9,5 +9,6 @@ using Test
     include("simulate_ss.jl")
     include("linear_regression.jl")
     include("pca.jl")
+    include("kn_tools.jl")
 
 end
