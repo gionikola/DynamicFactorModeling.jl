@@ -36,7 +36,7 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function kalmanFilter(data_y, ssmodel)
+function kalmanFilter(data_y::Matrix{Float64}, ssmodel::SSModel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
@@ -44,12 +44,12 @@ function kalmanFilter(data_y, ssmodel)
     num_obs = size(data_y)[1]
 
     # Empty filtered data matrices 
-    data_filtered_y = similar(data_y)
-    data_filtered_β = zeros(num_obs, size(Q)[1])
+    data_filtered_y = zeros(num_obs, size(data_y)[2])[:,:]
+    data_filtered_β = zeros(num_obs, size(Q)[1])[:,:]
 
     # Create empty lists for P_{t}, P_{t|t-1}
-    Ptt = Any[]
-    Pttlag = Any[]
+    Ptt = Matrix{Float64}[]
+    Pttlag = Matrix{Float64}[]
 
     # Initialize β_pred and P_pred 
     β_pred_laglag = inv(I - F) * μ
@@ -67,7 +67,7 @@ function kalmanFilter(data_y, ssmodel)
         f_pred_lag = H * P_pred_lag * transpose(H) + R
 
         # Save P_{t|t-1}
-        push!(Pttlag, P_pred_lag)
+        push!(Pttlag, P_pred_lag[:,:])
 
         # Updating 
         K = P_pred_lag * transpose(H) * pinv(f_pred_lag)
@@ -75,7 +75,7 @@ function kalmanFilter(data_y, ssmodel)
         P_pred = P_pred_lag - K * H * P_pred_lag
 
         # Save P_{t|t}
-        push!(Ptt, P_pred)
+        push!(Ptt, P_pred[:,:])
 
         # Save data 
         data_filtered_y[t, :] = y_pred_lag
@@ -88,7 +88,7 @@ function kalmanFilter(data_y, ssmodel)
 
     # Returned filtered series 
     # for obs variable and state 
-    return data_filtered_y, data_filtered_β, Pttlag, Ptt
+    return data_filtered_y::Matrix{Float64}, data_filtered_β::Matrix{Float64}, Pttlag::Matrix{Float64}, Ptt::Matrix{Float64}
 end;
 ######################
 ######################
