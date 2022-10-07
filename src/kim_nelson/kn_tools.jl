@@ -88,7 +88,7 @@ function kalmanFilter(data_y::Matrix{Float64}, ssmodel::SSModel)
 
     # Returned filtered series 
     # for obs variable and state 
-    return data_filtered_y::Matrix{Float64}, data_filtered_β::Matrix{Float64}, Pttlag::Matrix{Float64}, Ptt::Matrix{Float64}
+    return data_filtered_y::Matrix{Float64}, data_filtered_β::Matrix{Float64}, Pttlag::Vector{Matrix{Float64}}, Ptt::Vector{Matrix{Float64}}
 end;
 ######################
 ######################
@@ -127,7 +127,7 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function kalmanSmoother(data_y, ssmodel)
+function kalmanSmoother(data_y::Matrix{Float64}, ssmodel::SSModel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
@@ -135,11 +135,11 @@ function kalmanSmoother(data_y, ssmodel)
     num_obs = size(data_y)[1]
 
     # Empty filtered data matrices 
-    data_smoothed_y = similar(data_y)
+    data_smoothed_y = zeros(num_obs, size(data_y)[2])
     data_smoothed_β = zeros(num_obs, size(Q)[1])
 
     # Create empty list for P_{t|T}
-    PtT = Any[]
+    PtT = Matrix{Float64}[]
 
     # Run Kalman filter 
     data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, ssmodel)
@@ -196,7 +196,7 @@ function kalmanSmoother(data_y, ssmodel)
 
     # Returned filtered series 
     # for obs variable and state 
-    return data_smoothed_y, data_smoothed_β, PtT
+    return data_smoothed_y::Matrix{Float64}, data_smoothed_β::Matrix{Float64}, PtT::Vector{Matrix{Float64}}
 end;
 ######################
 ######################

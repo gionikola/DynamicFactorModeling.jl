@@ -20,4 +20,9 @@
     @test size(data_filtered_y) == size(data_y) 
     @test size(data_filtered_β) == size(data_β) 
 
+    data_smoothed_y, data_smoothed_β, PtT = DynamicFactorModeling.kalmanSmoother(data_y, ssmodel)
+
+    @test size(data_smoothed_y) == size(data_y)
+    @test size(data_filtered_β) == size(data_β)
+
 end
