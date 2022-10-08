@@ -6,7 +6,7 @@
     μ = zeros(2)
     F = [0.5 0.0; 0.0 0.5]
     R = zeros(2, 2)
-    Q = zeros(2, 2)
+    Q = [1.0 0.0; 0.0 1.0]
     Z = zeros(2, 2)
 
     ssmodel = DynamicFactorModeling.SSModel(H, A, F, μ, R, Q, Z)
