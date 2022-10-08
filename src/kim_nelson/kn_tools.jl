@@ -145,21 +145,21 @@ function kalmanSmoother(data_y::Matrix{Float64}, ssmodel::SSModel)
     data_filtered_y, data_filtered_β, Pttlag, Ptt = kalmanFilter(data_y, ssmodel)
 
     # Initialize β_{t+1|T} (β_{T|T})
-    βtflagT = data_filtered_β[end]
-    data_smoothed_β[end] = βtflagT
+    βtflagT = data_filtered_β[end,:]
+    data_smoothed_β[end,:] = βtflagT
 
     # Initialize P_{t+1|T} (P_{T|T})
     Ptflag_T = Ptt[end]
     push!(PtT, Ptflag_T)
 
     # Initialize y_{t|T} (y_{T|T})
-    data_smoothed_y[end] = data_filtered_y[end]
+    data_smoothed_y[end,:] = data_filtered_y[end,:]
 
     # Run Kalman smoother 
     for i = 1:(num_obs-1)
 
         # Retrieve β_{t|t}
-        βtt = data_filtered_β[end-i]
+        βtt = data_filtered_β[end-i,:]
 
         # Compute β_{t|T} using β_{t+1|T}, β_{t|t}, P_{t|t}, and P_{t+1|t}
         βtT = βtt +
@@ -167,7 +167,7 @@ function kalmanSmoother(data_y::Matrix{Float64}, ssmodel::SSModel)
               (βtflagT - F * βtt - μ)
 
         # Store β_{t+1|T} in smoothed data 
-        data_smoothed_β[end-i] = βtT
+        data_smoothed_β[end-i,:] = βtT
 
         # Set β_{t|T} as new β_{t+1|T} for next iteration 
         βtflagT = βtT
@@ -188,7 +188,7 @@ function kalmanSmoother(data_y::Matrix{Float64}, ssmodel::SSModel)
         ytT = H * βtT
 
         # Store smoothed obs.
-        data_smoothed_y[end-i] = ytT
+        data_smoothed_y[end-i,:] = ytT
     end
 
     # Flip P_{t|T} list 
