@@ -17,8 +17,8 @@
 
     data_filtered_y, data_filtered_β, Pttlag, Ptt = DynamicFactorModeling.kalmanFilter(data_y, ssmodel)
 
-    @test size(data_filtered_y) == size(data_y) 
-    @test size(data_filtered_β) == size(data_β) 
+    @test size(data_filtered_y) == size(data_y)
+    @test size(data_filtered_β) == size(data_β)
 
     data_smoothed_y, data_smoothed_β, PtT = DynamicFactorModeling.kalmanSmoother(data_y, ssmodel)
 
@@ -27,6 +27,14 @@
 
     β_realized = DynamicFactorModeling.KNFactorSampler(data_y, ssmodel)
 
-    @test size(β_realized) == (num_obs, length(μ)) 
+    @test size(β_realized) == (num_obs, length(μ))
+
+    Q = [1.0 0.0; 0.0 0.0]
+
+    ssmodel = DynamicFactorModeling.SSModel(H, A, F, μ, R, Q, Z)
+
+    β_realized = DynamicFactorModeling.KNFactorSampler(data_y, ssmodel)
+
+    @test size(β_realized) == (num_obs, length(μ))
 
 end
