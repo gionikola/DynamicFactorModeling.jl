@@ -25,4 +25,8 @@
     @test size(data_smoothed_y) == size(data_y)
     @test size(data_filtered_β) == size(data_β)
 
+    β_realized = DynamicFactorModeling.KNFactorSampler(data_y, ssmodel)
+
+    @test size(β_realized) == (num_obs, length(μ)) 
+
 end
