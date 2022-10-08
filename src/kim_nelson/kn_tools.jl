@@ -235,7 +235,7 @@ Inputs:
 - Q         = covariance matrix on state disturbance
 - Z         = covariance matrix on predetermined var vector 
 """
-function KNFactorSampler(data_y, ssmodel)
+function KNFactorSampler(data_y::Matrix{Float64}, ssmodel::SSModel)
 
     @unpack H, A, F, μ, R, Q, Z = ssmodel
 
@@ -244,14 +244,14 @@ function KNFactorSampler(data_y, ssmodel)
 
     # Create placeholders for factor distr. 
     # mean vector and covariance matrix for all t 
-    β_t_mean = Any[]
-    β_t_var = Any[]
+    β_t_mean = Vector{Float64}[]
+    β_t_var = Matrix{Float64}[]
 
     # Record number of time periods 
     T = size(data_y)[1]
 
     # Create empty vector for factor realizations
-    β_realized = similar(data_filtered_β)
+    β_realized = zeros(T, size(data_filtered_β)[2])
 
     # Initialize β_realized 
     push!(β_t_mean, data_filtered_β[T, :])
@@ -312,7 +312,7 @@ function KNFactorSampler(data_y, ssmodel)
 
     # Return sampled factor series 
     # fot t = 1,...,T 
-    return β_realized
+    return β_realized::Matrix{Float64}
 end;
 ######################
 ######################
