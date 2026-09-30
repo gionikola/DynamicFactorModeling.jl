@@ -17,10 +17,11 @@ include("kim_nelson/kn_1level_estimator.jl")
 include("kim_nelson/kn_2level_estimator.jl")
 include("output_analysis/variance_decomposition.jl")
 
-export SSModel, HDFM, DFMStruct, HDFMStruct, DFMMeans, DFMResults
+export SSModel, HDFM, DFMStruct, HDFMStruct, DFMMeans, DFMResults, PCAResults
 export convertHDFMtoSS, simulateSSModel
 export kalmanFilter, kalmanSmoother, KNFactorSampler
 export KN1LevelEstimator, KN2LevelEstimator
+export firstComponentFactor, PCA1LevelEstimator, PCA2LevelEstimator
 export vardecomp2level
 export regress
 

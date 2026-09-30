@@ -184,3 +184,18 @@ struct DFMResults
     means::DFMMeans
 end
 DFMResults(; F, B, S, P, P2, means) = DFMResults(F, B, S, P, P2, means)
+
+"""
+    PCAResults
+
+Deterministic principal-component estimates: `factors` (time × factor),
+`loadings` (series × factor), `intercepts` (series), and `residuals`
+(time × series). Reconstruct data as
+`intercepts' .+ factors * loadings' + residuals`.
+"""
+struct PCAResults
+    factors::Matrix{Float64}
+    loadings::Matrix{Float64}
+    intercepts::Vector{Float64}
+    residuals::Matrix{Float64}
+end
