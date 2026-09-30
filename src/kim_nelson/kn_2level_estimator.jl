@@ -45,12 +45,21 @@ Keyword arguments:
   starting the chain. The default uses a sequential PCA initialization. Supply
   different matrices to check sensitivity to starting values across chains.
   This changes only the starting point; factor paths are still sampled normally.
+- `mixing_moves=:location_scale`: after drawing factor paths, jointly update
+  factor levels with intercepts, then factor sizes with loadings. These extra
+  updates preserve the posterior and can help the chain explore it faster.
+  `:location` uses only the first update; `:none` disables both and reproduces
+  the previous sampler's seeded draws in the same software environment.
+- `scale_step=0.1`: standard deviation of the fixed log-scale proposal. Must be
+  finite and positive. There is no automatic tuning.
 
 `ndraws` retained iterations follow `burnin` discarded iterations. Returns
 [`DFMResults`](@ref), with factors of size `(dates, sum(nfactors), ndraws)`.
 Sign and scale conventions do not make factors with indistinguishable loading
 patterns identifiable. Assess mixing and identification for the supplied model;
 a finite chain does not by itself establish convergence.
+The KN/OW names identify the factor-path engine; the extra mixing updates are
+package additions, not claims to reproduce the original published algorithms.
 """
 function KNHierarchicalEstimator(rng::AbstractRNG, data::AbstractMatrix,
                                 specification::HDFMStruct; kwargs...)

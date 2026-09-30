@@ -5,8 +5,7 @@ function _estimate_dynamic_factors(
     variance_shape::Real=2.0, variance_scale::Real=1.0,
     stationary::Bool=true, max_attempts::Integer=10000,
     sign_anchors=nothing, factor_sampler::Symbol=:state_space,
-    initial::Symbol=:stationary, initial_factors=nothing,
-    mixing_moves::Symbol=:location_scale, scale_step::Real=0.1)
+    initial::Symbol=:stationary, initial_factors=nothing)
 
     _validate_estimator_inputs(data, factor_counts, assignments, level_orders,
                                error_orders, ndraws, burnin)
@@ -21,9 +20,6 @@ function _estimate_dynamic_factors(
         throw(ArgumentError("initial must be :stationary or :zero"))
     initial == :stationary && !stationary &&
         throw(ArgumentError("stationary initialization requires stationary=true"))
-    mixing_moves in (:none, :location, :location_scale) ||
-        throw(ArgumentError("mixing_moves must be :none, :location, or :location_scale"))
-    scale_step = _positive_regression_parameter(scale_step, "scale_step")
 
     y = Matrix{Float64}(data)
     all(isfinite, y) || throw(ArgumentError("data must be finite in Float64"))
@@ -46,22 +42,6 @@ function _estimate_dynamic_factors(
     factor_orders = [level_orders[level] for level in 1:nlevels
                      for _ in 1:factor_counts[level]]
     anchors = _factor_sign_anchors(factor_indices, nfactors, sign_anchors)
-
-    # Free loadings are defined by the assignments, even if a draw equals zero.
-    # The :none branch does not prepare or consume any additional random draws.
-    active_loadings = nothing
-    loading_variances = nothing
-    if mixing_moves == :location_scale
-        active_loadings = falses(nseries, nfactors)
-        loading_variances = zeros(nseries, nfactors)
-        for series in 1:nseries, level in 1:nlevels
-            factor = factor_indices[series, level]
-            if factor != 0
-                active_loadings[series, factor] = true
-                loading_variances[series, factor] = beta_variances[level + 1]
-            end
-        end
-    end
 
     if initial_factors === nothing
         factors = _initialize_factors(y, factor_indices, nfactors)
@@ -132,23 +112,6 @@ function _estimate_dynamic_factors(
             factors = _draw_factors_sequential_precision(
                 rng, centered_data, factors, loadings, factor_ar, error_ar,
                 error_variances; initial)
-        end
-
-        if mixing_moves != :none
-            _shift_factor_locations!(rng, factors, view(coefficients, :, 1), loadings,
-                                     factor_ar; initial,
-                                     intercept_prior_variance=beta_variances[1])
-        end
-        if mixing_moves == :location_scale
-            _rescale_factors!(rng, factors, loadings, factor_ar; active_loadings, initial,
-                             loading_prior_variance=loading_variances, step_size=scale_step)
-            # Store the updated loadings used by the factor paths and next sweep.
-            for series in 1:nseries, level in 1:nlevels
-                factor = factor_indices[series, level]
-                if factor != 0
-                    coefficients[series, level + 1] = loadings[series, factor]
-                end
-            end
         end
 
         # This joint sign change leaves fitted values and symmetric priors unchanged.
