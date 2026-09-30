@@ -22,7 +22,7 @@ export kalmanFilter, kalmanSmoother, KNFactorSampler
 export KN1LevelEstimator, KN2LevelEstimator, KNHierarchicalEstimator
 export OW1LevelEstimator, OW2LevelEstimator
 export firstComponentFactor, PCA1LevelEstimator, PCA2LevelEstimator
-export vardecomp2level
+export variance_decomposition, vardecomp2level
 export regress
 
 end

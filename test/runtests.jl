@@ -5,6 +5,7 @@ using Statistics
 using Test
 
 @testset "DynamicFactorModeling.jl" begin
+    @test isempty(Test.detect_ambiguities(DynamicFactorModeling))
     include("common_types.jl")
     include("simulation_scenarios.jl")
     include("distribution_functions.jl")
@@ -17,6 +18,7 @@ using Test
     include("reference/check_statsmodels.jl")
     check_statsmodels_references()
     include("state_space_adversarial.jl")
+    include("variance_decomposition.jl")
     include("kim_nelson/estimators.jl")
     include("mixing_integration.jl")
     include("stationary_likelihood.jl")
