@@ -1,4 +1,3 @@
-include("kn_tools.jl")
 ######################
 ######################
 ######################
@@ -147,7 +146,7 @@ function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
         H[:, 1] = varcoefs[:, 2]
         H[:, 2:2+nvars-1] = I(nvars)
 
-        A = zeros(nvars, m)
+        A = zeros(nvars, nvars)
 
         F = zeros(m, m)
         for j in 1:factorlags

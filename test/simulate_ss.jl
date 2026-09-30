@@ -1,104 +1,45 @@
-@testset "Simulate state space model" begin
+using Random
+using Statistics
+using LinearAlgebra
 
-    # Measurement Equation:   
-    # y_{t} = H β_{t} + A z_{t} + e_{t} 
-    # Transition Equation:    
-    # β_{t} = μ + F β_{t-1} + v_{t}
-    # e_{t} ~ i.i.d.N(0,R)
-    # v_{t} ~ i.i.d.N(0,Q)
-    # z_{t} ~ i.i.d.N(0,Z)
-    # E(e_t v_s') = 0
+@testset "State-space simulation" begin
+    model = SSModel(H=[1.0 2.0], A=reshape([3.0], 1, 1),
+        F=[0.5 0; 0 0.25], μ=[1.0, -0.5], R=fill(0.4, 1, 1),
+        Q=[1.0 0.5; 0.5 2.0], Z=fill(0.6, 1, 1))
+    y, z, states = simulateSSModel(MersenneTwister(902), 40000, model)
+    @test (y, z, states) == simulateSSModel(MersenneTwister(902), 40000, model)
+    @test vec(mean(states; dims=1)) ≈ [2, -2/3] atol=0.04
+    expected_covariance = model.Q ./ (1 .- [0.5, 0.25] * [0.5, 0.25]')
+    @test cov(states) ≈ expected_covariance atol=0.07
+    innovations = states[2:end, :] - states[1:end-1, :] * model.F' .- model.μ'
+    @test cov(innovations) ≈ model.Q atol=0.05
+    measurement_errors = y - states * model.H' - z * model.A'
+    @test var(measurement_errors) ≈ 0.4 atol=0.015
+    @test var(z) ≈ 0.6 atol=0.025
+    @test abs(cor(vec(measurement_errors), z[:, 1])) < 0.025
 
-    H = [1.0 0.0; 0.0 1.0]
-    A = zeros(2, 2)
-    μ = zeros(2)
-    F = [0.5 0.0; 0.0 0.5]
-    R = [1.0 0.0; 0.0 1.0]
-    Q = [1.0 0.0; 0.0 1.0]
-    Z = [1.0 0.0; 0.0 1.0]
+    # A fixed initial state is β₀: row one still receives all three noises.
+    first_rows = reduce(vcat, [simulateSSModel(MersenneTwister(i), 1, model;
+        initial_state=zeros(2))[1] for i in 1:2000])
+    @test var(first_rows) ≈ (model.H * model.Q * model.H')[1] + 9 * 0.6 + 0.4 atol=1.3
 
-    ssmodel = DynamicFactorModeling.SSModel(H, A, F, μ, R, Q, Z)
+    deterministic = SSModel([1.0 0], zeros(1, 0), [1.0 1; 0 1], [0.0, 1.0],
+        zeros(1, 1), zeros(2, 2), zeros(0, 0))
+    yd, zd, xd = simulateSSModel(3, deterministic; initial_state=[2, 3])
+    @test xd == [5 4; 9 5; 14 6]
+    @test yd[:, 1] == [5, 9, 14]
+    @test size(zd) == (3, 0)
+    @test_throws ArgumentError simulateSSModel(3, deterministic)
+    @test_throws ArgumentError simulateSSModel(3, model; initial_state=zeros(2), initial_cov=zeros(2, 2))
+    @test_throws ArgumentError simulateSSModel(-1, model)
+    @test_throws DimensionMismatch simulateSSModel(1, model; initial_state=[1])
+    @test size.(simulateSSModel(0, model)) == ((0, 1), (0, 1), (0, 2))
 
-    num_obs = 100
-
-    data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
-
-    @test typeof(data_y) == Matrix{Float64}
-    @test typeof(data_z) == Matrix{Float64}
-    @test typeof(data_β) == Matrix{Float64}
-
-    @test size(data_y) == (num_obs, 2)
-    @test size(data_z) == (num_obs, 2)
-    @test size(data_β) == (num_obs, 2)
-
-end
-
-@testset "Simulate state space model with some degenerate RVs" begin
-
-    # Measurement Equation:   
-    # y_{t} = H β_{t} + A z_{t} + e_{t} 
-    # Transition Equation:    
-    # β_{t} = μ + F β_{t-1} + v_{t}
-    # e_{t} ~ i.i.d.N(0,R)
-    # v_{t} ~ i.i.d.N(0,Q)
-    # z_{t} ~ i.i.d.N(0,Z)
-    # E(e_t v_s') = 0
-
-    H = [1.0 0.0; 0.0 1.0]
-    A = zeros(2, 2)
-    μ = zeros(2)
-    F = [0.5 0.0; 0.0 0.5]
-    R = [0.0 0.0; 0.0 1.0]
-    Q = [0.0 0.0; 0.0 1.0]
-    Z = [1.0 0.0; 0.0 0.0]
-
-    ssmodel = DynamicFactorModeling.SSModel(H, A, F, μ, R, Q, Z)
-
-    num_obs = 100
-
-    data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
-
-    @test typeof(data_y) == Matrix{Float64}
-    @test typeof(data_z) == Matrix{Float64}
-    @test typeof(data_β) == Matrix{Float64}
-
-    @test size(data_y) == (num_obs, 2)
-    @test size(data_z) == (num_obs, 2)
-    @test size(data_β) == (num_obs, 2)
-
-end
-
-@testset "Simulate state space model with all degenerate RVs" begin
-
-    # Measurement Equation:   
-    # y_{t} = H β_{t} + A z_{t} + e_{t} 
-    # Transition Equation:    
-    # β_{t} = μ + F β_{t-1} + v_{t}
-    # e_{t} ~ i.i.d.N(0,R)
-    # v_{t} ~ i.i.d.N(0,Q)
-    # z_{t} ~ i.i.d.N(0,Z)
-    # E(e_t v_s') = 0
-
-    H = [1.0 0.0; 0.0 1.0]
-    A = zeros(2, 2)
-    μ = zeros(2)
-    F = [0.5 0.0; 0.0 0.5]
-    R = zeros(2, 2)
-    Q = zeros(2, 2)
-    Z = zeros(2, 2)
-
-    ssmodel = DynamicFactorModeling.SSModel(H, A, F, μ, R, Q, Z)
-
-    num_obs = 100
-
-    data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel)
-
-    @test typeof(data_y) == Matrix{Float64}
-    @test typeof(data_z) == Matrix{Float64}
-    @test typeof(data_β) == Matrix{Float64}
-
-    @test size(data_y) == (num_obs, 2)
-    @test size(data_z) == (num_obs, 2)
-    @test size(data_β) == (num_obs, 2)
-
+    @test_throws ArgumentError SSModel(ones(1, 2), zeros(1, 0), zeros(2, 2), zeros(2),
+        ones(1, 1), [1.0 2e-9; 2e-9 1e-18], zeros(0, 0))
+    singular = SSModel(Matrix{Float64}(I, 2, 2), zeros(2, 0), zeros(2, 2), [1., -1.],
+        zeros(2, 2), [1.0 2; 2 4], zeros(0, 0))
+    ys, _, xs = simulateSSModel(MersenneTwister(56), 100, singular)
+    @test ys == xs
+    @test xs[:, 2] .+ 1 ≈ 2 .* (xs[:, 1] .- 1)
 end

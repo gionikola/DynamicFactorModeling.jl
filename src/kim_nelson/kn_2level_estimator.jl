@@ -1,4 +1,3 @@
-include("kn_tools.jl")
 ######################
 ######################
 ######################
@@ -281,7 +280,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
         H[:, 1] = betas[:, 2]
         H[:, 2:2+nvars-1] = I(nvars)
     
-        A = zeros(nvars, m)
+        A = zeros(nvars, nvars)
     
         F = zeros(m, m)
         for j in 1:factorlags
@@ -339,7 +338,7 @@ function KN2LevelEstimator(data::Array{Float64,2}, hdfm::HDFMStruct)
             H[:, 1] = betas[varassign[c], 3]
             H[:, 2:2+numvars-1] = I(numvars)
     
-            A = zeros(numvars, m)
+            A = zeros(numvars, numvars)
     
             F = zeros(m, m)
             for j in 1:factorlags
