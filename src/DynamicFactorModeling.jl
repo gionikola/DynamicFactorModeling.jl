@@ -22,5 +22,6 @@ export convertHDFMtoSS, simulateSSModel
 export kalmanFilter, kalmanSmoother, KNFactorSampler
 export KN1LevelEstimator, KN2LevelEstimator
 export vardecomp2level
+export regress
 
 end
