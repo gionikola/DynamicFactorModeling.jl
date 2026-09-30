@@ -1,581 +1,332 @@
-"""
-    mvn(μ, Σ)
-
-Draw from a multivariate normal distribution with mean vector μ and covariance matrix Σ.
-Use cholesky decomposition to generate X = Z Q + μ, where Z is (d × 1) N(0,1) vector, and Q is upper-triangular cholesky matrix. 
-Cov. matrix Σ does not require non-degenerate random variables (nonzero diagonal). 
-
-Inputs:
-- μ = mean vector 
-- Σ = covariance matrix 
-
-Outputs:
-- X::Array{Float64, 1} = observed draw of X ~ N(μ,Σ)
-"""
-function mvn(μ::Vector{Float64}, Σ::Matrix{Float64})
-
-    nvar = size(Σ)[1]         # Num. of variables 
-
-    if (0 in diag(Σ)) == false  # No degenerate random vars.
-        Q = cholesky(Hermitian(Σ), Val(true), check=false).U       # Upper triang. Cholesky mat.  
-        X = Q * randn(length(μ)) + μ    # Multiv. normal vector draw  
-    else                        # in case of degenerate random vars.
-        keep = Any[]
-        for i in 1:nvar
-            if Σ[i, i] != 0
-                push!(keep, i)
-            end
-        end
-        Σsub = Σ[keep, keep]
-        μsub = μ[keep]
-        Q = cholesky(Hermitian(Σsub), Val(true), check=false).U       # Upper triang. Cholesky mat.  
-        Xsub = Q * randn(length(μsub)) + μsub    # Multiv. normal vector draw  
-        X = zeros(nvar)
-        j = 1
-        for i in 1:nvar
-            if i in keep    # If i-th var. is non-degen. 
-                X[i] = Xsub[j]
-                j = j + 1
-            else
-                X[i] = μ[i] # If i-th var. is degen. 
-            end
+# Scale covariance matrices to correlations before checking their numerical
+# rank. This preserves small-variance coordinates and avoids overflow when a
+# valid covariance is near the largest representable Float64 value.
+function _scaled_covariance(Σ::AbstractMatrix, name::AbstractString="covariance")
+    size(Σ, 1) == size(Σ, 2) || throw(DimensionMismatch("$name must be square"))
+    all(x -> x isa Real && isfinite(x), Σ) ||
+        throw(ArgumentError("$name must contain finite real numbers"))
+    covariance = Matrix{Float64}(Σ)
+    all(isfinite, covariance) || throw(ArgumentError("$name must be finite in Float64"))
+    variances = diag(covariance)
+    all(>=(0), variances) || throw(ArgumentError("$name must have nonnegative diagonal entries"))
+    for index in axes(covariance, 1)
+        if iszero(variances[index]) &&
+           !(all(iszero, covariance[index, :]) && all(iszero, covariance[:, index]))
+            throw(ArgumentError("$name cannot correlate a zero-variance coordinate with another coordinate"))
         end
     end
-
-    return X::Vector{Float64}
+    active = findall(>(0), variances)
+    scales = sqrt.(variances[active])
+    # Divide in two steps: forming scales * scales' can underflow or overflow.
+    correlation = covariance[active, active] ./ scales ./ scales'
+    all(isfinite, correlation) || throw(ArgumentError("$name must be positive semidefinite"))
+    relative_tolerance = 100 * eps(Float64) * max(1, length(active))
+    all(x -> abs(x) <= 1 + relative_tolerance, correlation) ||
+        throw(ArgumentError("$name must be positive semidefinite"))
+    tolerance = relative_tolerance * (isempty(active) ? 0.0 : opnorm(correlation, Inf))
+    isapprox(correlation, correlation'; atol=tolerance, rtol=0) ||
+        throw(ArgumentError("$name must be symmetric"))
+    decomposition = eigen(Symmetric((correlation + correlation') / 2))
+    all(λ -> λ >= -tolerance, decomposition.values) ||
+        throw(ArgumentError("$name must be positive semidefinite"))
+    return active, scales, decomposition, tolerance
 end
 
-function mvn(μ::Vector{Float64}, Σ::Matrix{Int})
-
-    nvar = size(Σ)[1]         # Num. of variables 
-
-    if (0 in diag(Σ)) == false  # No degenerate random vars.
-        Q = cholesky(Hermitian(Σ), Val(true), check=false).U       # Upper triang. Cholesky mat.  
-        X = Q * randn(length(μ)) + μ    # Multiv. normal vector draw  
-    else                        # in case of degenerate random vars.
-        keep = Any[]
-        for i in 1:nvar
-            if Σ[i, i] != 0
-                push!(keep, i)
-            end
-        end
-        Σsub = Σ[keep, keep]
-        μsub = μ[keep]
-        Q = cholesky(Hermitian(Σsub), Val(true), check=false).U       # Upper triang. Cholesky mat.  
-        Xsub = Q * randn(length(μsub)) + μsub    # Multiv. normal vector draw  
-        X = zeros(nvar)
-        j = 1
-        for i in 1:nvar
-            if i in keep    # If i-th var. is non-degen. 
-                X[i] = Xsub[j]
-                j = j + 1
-            else
-                X[i] = μ[i] # If i-th var. is degen. 
-            end
-        end
-    end
-
-    return X::Vector{Float64}
+function _covariance_root(Σ::AbstractMatrix, name::AbstractString="covariance")
+    active, scales, decomposition, tolerance = _scaled_covariance(Σ, name)
+    keep = decomposition.values .> tolerance
+    root = zeros(size(Σ, 1), count(keep))
+    root[active, :] = scales .* (decomposition.vectors[:, keep] * Diagonal(sqrt.(decomposition.values[keep])))
+    return root
 end
 
-function mvn(μ::Vector{Int}, Σ::Matrix{Float64})
-
-    nvar = size(Σ)[1]         # Num. of variables 
-
-    if (0 in diag(Σ)) == false  # No degenerate random vars.
-        Q = cholesky(Hermitian(Σ), Val(true), check=false).U       # Upper triang. Cholesky mat.  
-        X = Q * randn(length(μ)) + μ    # Multiv. normal vector draw  
-    else                        # in case of degenerate random vars.
-        keep = Any[]
-        for i in 1:nvar
-            if Σ[i, i] != 0
-                push!(keep, i)
-            end
-        end
-        Σsub = Σ[keep, keep]
-        μsub = μ[keep]
-        Q = cholesky(Hermitian(Σsub), Val(true), check=false).U       # Upper triang. Cholesky mat.  
-        Xsub = Q * randn(length(μsub)) + μsub    # Multiv. normal vector draw  
-        X = zeros(nvar)
-        j = 1
-        for i in 1:nvar
-            if i in keep    # If i-th var. is non-degen. 
-                X[i] = Xsub[j]
-                j = j + 1
-            else
-                X[i] = μ[i] # If i-th var. is degen. 
-            end
-        end
-    end
-
-    return X::Vector{Float64}
+function _root_covariance(root)
+    covariance = root * root'
+    all(isfinite, covariance) || throw(ArgumentError("state covariance overflowed; rescale the model"))
+    return covariance
 end
 
-function mvn(μ::Vector{Int}, Σ::Matrix{Int})
-
-    nvar = size(Σ)[1]         # Num. of variables 
-
-    if (0 in diag(Σ)) == false  # No degenerate random vars.
-        Q = cholesky(Hermitian(Σ), Val(true), check=false).U       # Upper triang. Cholesky mat.  
-        X = Q * randn(length(μ)) + μ    # Multiv. normal vector draw  
-    else                        # in case of degenerate random vars.
-        keep = Any[]
-        for i in 1:nvar
-            if Σ[i, i] != 0
-                push!(keep, i)
-            end
-        end
-        Σsub = Σ[keep, keep]
-        μsub = μ[keep]
-        Q = cholesky(Hermitian(Σsub), Val(true), check=false).U       # Upper triang. Cholesky mat.  
-        Xsub = Q * randn(length(μsub)) + μsub    # Multiv. normal vector draw  
-        X = zeros(nvar)
-        j = 1
-        for i in 1:nvar
-            if i in keep    # If i-th var. is non-degen. 
-                X[i] = Xsub[j]
-                j = j + 1
-            else
-                X[i] = μ[i] # If i-th var. is degen. 
-            end
-        end
-    end
-
-    return X::Vector{Float64}
-end
-
-function mvn(μ::Float64, Σ::Float64)
-
-    if Σ != 0  # No degenerate random vars.     # Upper triang. Cholesky mat.  
-        X = sqrt(Σ) * randn() + μ    # Multiv. normal vector draw  
-    else # in case of degenerate random vars.
-        X = μ
-    end
-
-    return X::Float64
-end
-
-function mvn(μ::Float64, Σ::Int)
-
-    if Σ != 0  # No degenerate random vars.     # Upper triang. Cholesky mat.  
-        X = sqrt(Σ) * randn() + μ    # Multiv. normal vector draw  
-    else # in case of degenerate random vars.
-        X = μ
-    end
-
-    return X::Float64
-end
-
-function mvn(μ::Int, Σ::Float64)
-
-    if Σ != 0  # No degenerate random vars.     # Upper triang. Cholesky mat.  
-        X = sqrt(Σ) * randn() + μ    # Multiv. normal vector draw  
-    else # in case of degenerate random vars.
-        X = μ * 1.0
-    end
-
-    return X::Float64
-end
-
-function mvn(μ::Int, Σ::Int)
-
-    if Σ != 0  # No degenerate random vars.     # Upper triang. Cholesky mat.  
-        X = sqrt(Σ) * randn() + μ    # Multiv. normal vector draw  
-    else # in case of degenerate random vars.
-        X = μ * 1.0
-    end
-
-    return X::Float64
+function _finite_vector(values, n::Integer, name::AbstractString)
+    values isa AbstractVector || throw(ArgumentError("$name must be a vector"))
+    length(values) == n || throw(DimensionMismatch("$name must have length $n"))
+    all(x -> x isa Real && isfinite(x), values) ||
+        throw(ArgumentError("$name must contain finite real numbers"))
+    converted = Vector{Float64}(values)
+    all(isfinite, converted) || throw(ArgumentError("$name must be finite in Float64"))
+    return converted
 end
 
 """
-    mvn(μ, Σ, n::Int64)
+    mvn([rng], μ, Σ[, n]; rng=Random.default_rng())
 
-Draw `n` number of observations from a multivariate normal distribution with mean vector μ and covariance matrix Σ.
-Use cholesky decomposition to generate `n` draws of X = Z Q + μ, where Z is (d × 1) N(0,1) vector, and Q is upper-triangular cholesky matrix. 
-Cov. matrix Σ does not require non-degenerate random variables (nonzero diag.). 
-
-Inputs:
-- μ = mean vector 
-- Σ = covariance matrix 
-- n = number of draws 
-
-Output:
-- X::Array{Float64, 2} = simulated data matrix composed of n-number of draws of X ~ N(μ,Σ)
+Draw a normal vector with mean `μ` and covariance `Σ`. Singular covariance
+matrices are allowed. Scalar arguments produce a scalar draw. With `n`, return
+an `n × length(μ)` matrix (one column for scalar arguments).
 """
-function mvn(μ::Vector{Float64}, Σ::Matrix{Float64}, n::Int)
-
-    d = size(Σ)[1]         # Num. of variables  
-    X = zeros(n, d)    # Empty data matrix 
-
-    # Draw `n` observations 
-    for i in 1:n
-        X[i, :] = mvn(μ, Σ)
-    end
-
-    return X::Matrix{Float64}
+function mvn(rng::AbstractRNG, μ::AbstractVector, Σ::AbstractMatrix)
+    mean = _finite_vector(μ, size(Σ, 1), "mean")
+    root = _covariance_root(Σ)
+    return mean + root * randn(rng, size(root, 2))
 end
 
-function mvn(μ::Vector{Int}, Σ::Matrix{Float64}, n::Int)
-
-    d = size(Σ)[1]         # Num. of variables  
-    X = zeros(n, d)    # Empty data matrix 
-
-    # Draw `n` observations 
-    for i in 1:n
-        X[i, :] = mvn(μ, Σ)
-    end
-
-    return X::Matrix{Float64}
+function mvn(rng::AbstractRNG, μ::Real, variance::Real)
+    isfinite(μ) || throw(ArgumentError("mean must be finite"))
+    isfinite(variance) && variance >= 0 ||
+        throw(ArgumentError("variance must be finite and nonnegative"))
+    mean, converted_variance = Float64(μ), Float64(variance)
+    isfinite(mean) && isfinite(converted_variance) ||
+        throw(ArgumentError("mean and variance must be finite in Float64"))
+    return mean + sqrt(converted_variance) * randn(rng)
 end
 
-function mvn(μ::Vector{Float64}, Σ::Matrix{Int}, n::Int)
-
-    d = size(Σ)[1]         # Num. of variables  
-    X = zeros(n, d)    # Empty data matrix 
-
-    # Draw `n` observations 
-    for i in 1:n
-        X[i, :] = mvn(μ, Σ)
-    end
-
-    return X::Matrix{Float64}
+function mvn(rng::AbstractRNG, μ::AbstractVector, Σ::AbstractMatrix, n::Integer)
+    n >= 0 || throw(ArgumentError("number of draws must be nonnegative"))
+    mean = _finite_vector(μ, size(Σ, 1), "mean")
+    root = _covariance_root(Σ)
+    return Matrix((mean .+ root * randn(rng, size(root, 2), n))')
 end
 
-function mvn(μ::Vector{Int}, Σ::Matrix{Int}, n::Int)
-
-    d = size(Σ)[1]         # Num. of variables  
-    X = zeros(n, d)    # Empty data matrix 
-
-    # Draw `n` observations 
-    for i in 1:n
-        X[i, :] = mvn(μ, Σ)
-    end
-
-    return X::Matrix{Float64}
+function mvn(rng::AbstractRNG, μ::Real, variance::Real, n::Integer)
+    n >= 0 || throw(ArgumentError("number of draws must be nonnegative"))
+    isfinite(μ) || throw(ArgumentError("mean must be finite"))
+    isfinite(variance) && variance >= 0 ||
+        throw(ArgumentError("variance must be finite and nonnegative"))
+    mean, converted_variance = Float64(μ), Float64(variance)
+    isfinite(mean) && isfinite(converted_variance) ||
+        throw(ArgumentError("mean and variance must be finite in Float64"))
+    return mean .+ sqrt(converted_variance) .* randn(rng, n, 1)
 end
 
-function mvn(μ::Float64, Σ::Float64, n::Int)
-
-    X = zeros(n, 1)    # Empty data matrix 
-
-    # Draw `n` observations 
-    for i in 1:n
-        X[i, 1] = mvn(μ, Σ)
-    end
-
-    return X::Matrix{Float64}
-end
-
-function mvn(μ::Float64, Σ::Int, n::Int)
-
-    X = zeros(n, 1)    # Empty data matrix 
-
-    # Draw `n` observations 
-    for i in 1:n
-        X[i, 1] = mvn(μ, Σ)
-    end
-
-    return X::Matrix{Float64}
-end
-
-function mvn(μ::Int, Σ::Float64, n::Int)
-
-    X = zeros(n, 1)    # Empty data matrix 
-
-    # Draw `n` observations 
-    for i in 1:n
-        X[i, 1] = mvn(μ, Σ)
-    end
-
-    return X::Matrix{Float64}
-end
-
-function mvn(μ::Int, Σ::Int, n::Int)
-
-    X = zeros(n, 1)    # Empty data matrix 
-
-    # Draw `n` observations 
-    for i in 1:n
-        X[i, 1] = mvn(μ, Σ)
-    end
-
-    return X::Matrix{Float64}
-end
+mvn(μ::Union{Real,AbstractVector}, Σ::Union{Real,AbstractMatrix}; rng::AbstractRNG=Random.default_rng()) = mvn(rng, μ, Σ)
+mvn(μ::Union{Real,AbstractVector}, Σ::Union{Real,AbstractMatrix}, n::Integer; rng::AbstractRNG=Random.default_rng()) = mvn(rng, μ, Σ, n)
 
 """
-    Γinv(T::Int64, θ::Float64)
+    Γinv([rng], ν, θ; rng=Random.default_rng())
 
-Gamma inverse distribution with T degrees of freedom and scale parameter θ.
-
-Inputs:
-- T = degrees of freedom 
-- θ = scale parameter 
-
-Output:
-- σ2 = draw of X ~ Γ_inverse(T,θ)
-
+Draw `θ / X`, where `X` is chi-squared with `ν` degrees of freedom. This is
+`InverseGamma(ν / 2, θ / 2)`, with positive finite `ν` and `θ`.
 """
-function Γinv(T::Int, θ::Float64)
+function Γinv(rng::AbstractRNG, ν::Real, θ::Real)
+    isfinite(ν) && ν > 0 || throw(ArgumentError("degrees of freedom must be positive and finite"))
+    isfinite(θ) && θ > 0 || throw(ArgumentError("scale must be positive and finite"))
+    degrees, scale = Float64(ν), Float64(θ)
+    isfinite(degrees) && degrees > 0 && isfinite(scale) && scale > 0 ||
+        throw(ArgumentError("degrees of freedom and scale must be positive and finite in Float64"))
+    return scale / rand(rng, Chisq(degrees))
+end
+Γinv(ν::Real, θ::Real; rng::AbstractRNG=Random.default_rng()) = Γinv(rng, ν, θ)
 
-    z0 = randn(T)
-    z0z0 = z0' * z0
-
-    return σ2 = (θ/z0z0)::Float64
+function validate_ssmodel(model::SSModel)
+    H, A, F, μ, R, Q, Z = model.H, model.A, model.F, model.μ, model.R, model.Q, model.Z
+    n, m = size(H)
+    n > 0 && m > 0 || throw(ArgumentError("a state-space model needs observations and states"))
+    size(F) == (m, m) || throw(DimensionMismatch("F must be $m × $m"))
+    length(μ) == m || throw(DimensionMismatch("μ must have length $m"))
+    size(R) == (n, n) || throw(DimensionMismatch("R must be $n × $n"))
+    size(Q) == (m, m) || throw(DimensionMismatch("Q must be $m × $m"))
+    size(A, 1) == n || throw(DimensionMismatch("A must have $n rows"))
+    size(Z) == (size(A, 2), size(A, 2)) ||
+        throw(DimensionMismatch("Z must match the number of columns of A"))
+    for (name, values) in (("H", H), ("A", A), ("F", F), ("μ", μ))
+        all(isfinite, values) || throw(ArgumentError("$name must contain finite numbers"))
+    end
+    for (name, covariance) in (("R", R), ("Q", Q), ("Z", Z))
+        _scaled_covariance(covariance, name)
+    end
+    return nothing
 end
 
-function Γinv(T::Int, θ::Int)
-
-    z0 = randn(T)
-    z0z0 = z0' * z0
-
-    return σ2 = (θ/z0z0)::Float64
+function validate_hdfm(model::HDFM)
+    L, n = model.nlevels, model.nvar
+    L > 0 && n > 0 || throw(ArgumentError("nlevels and nvar must be positive"))
+    length(model.nfactors) == L || throw(DimensionMismatch("nfactors must have length nlevels"))
+    length(model.flags) == L || throw(DimensionMismatch("flags must have length nlevels"))
+    length(model.varlags) == n || throw(DimensionMismatch("varlags must have length nvar"))
+    size(model.fassign) == (n, L) || throw(DimensionMismatch("fassign must be nvar × nlevels"))
+    size(model.varcoefs) == (n, L + 1) || throw(DimensionMismatch("varcoefs must be nvar × (nlevels + 1)"))
+    all(>(0), model.nfactors) || throw(ArgumentError("nfactors must be positive"))
+    all(>=(0), model.flags) && all(>=(0), model.varlags) ||
+        throw(ArgumentError("lag orders must be nonnegative"))
+    size(model.varlagcoefs, 1) == n && size(model.varlagcoefs, 2) >= maximum(model.varlags) ||
+        throw(DimensionMismatch("varlagcoefs needs nvar rows and at least maximum(varlags) columns"))
+    length(model.fcoefs) == L && length(model.fvars) == L ||
+        throw(DimensionMismatch("fcoefs and fvars must have length nlevels"))
+    length(model.varvars) == n || throw(DimensionMismatch("varvars must have length nvar"))
+    for level in 1:L
+        all(a -> 0 <= a <= model.nfactors[level], model.fassign[:, level]) ||
+            throw(ArgumentError("factor assignments must be between zero and nfactors[level]"))
+        size(model.fcoefs[level]) == (model.nfactors[level], model.flags[level]) ||
+            throw(DimensionMismatch("fcoefs[level] must be nfactors[level] × flags[level]"))
+        length(model.fvars[level]) == model.nfactors[level] ||
+            throw(DimensionMismatch("fvars[level] must have nfactors[level] entries"))
+    end
+    for values in (model.varcoefs, model.varlagcoefs, model.fcoefs...)
+        all(x -> x isa Real && isfinite(x), values) ||
+            throw(ArgumentError("coefficients must contain finite real numbers"))
+    end
+    for values in (model.varvars, model.fvars...)
+        all(x -> x isa Real && isfinite(x) && x >= 0, values) ||
+            throw(ArgumentError("innovation variances must be finite and nonnegative"))
+    end
+    return nothing
 end
 
 """
-    createSSforHDFM(hdfm::HDFM))
+    createSSforHDFM(hdfm)
 
-Description:
-Create state-space form coefficient and variance matrices for an HDFM object.
-Measurement Equation:   
-- y_{t} = H β_{t} + A z_{t} + e_{t} 
-Transition Equation:    
-- β_{t} = μ + F β_{t-1} + v_{t}
-- e_{t} ~ i.i.d.N(0,R)
-- v_{t} ~ i.i.d.N(0,Q)
-- z_{t} ~ i.i.d.N(0,Z)
-- E(e_{t} v_{s}') = 0
+Return `(H, A, F, μ, R, Q, Z)` for a hierarchical factor model. Each series is
+its intercept plus its assigned factor contributions and an independent AR
+error. Factor innovations are independent of one another and of series errors.
+An assignment of zero omits that level's contribution.
 
-Inputs:
-- hdfm::HDFM
-
-Output:
-- H = measurement equation state vector coefficient matrix.
-- A = measurement equation predetermined vector coefficient matrix. 
-- F = state equation companion matrix.
-- μ = state equation intercept vector.
-- R = measurement equation error covariance matrix. 
-- Q = state equation innovation covariance matrix.
-- Z = predetermined vector covariance matrix.
+The state contains a constant equal to one, then one block per factor (by level
+and factor), then one block per series error. Each block holds its current value
+followed by its lags, with length `max(1, lag_order)`. Zero lag orders represent
+white noise. Thus unequal lag orders need no padding. `R`, `A`, and `Z` are zero.
 """
 function createSSforHDFM(hdfm::HDFM)
+    validate_hdfm(hdfm)
+    n = hdfm.nvar
+    state_count = 1 + sum(hdfm.nfactors .* max.(1, hdfm.flags)) + sum(max.(1, hdfm.varlags))
+    H = zeros(n, state_count)
+    F = zeros(state_count, state_count)
+    μ = zeros(state_count)
+    Q = zeros(state_count, state_count)
 
-    ######################################
-    ## Import all HDFM parameters 
-    @unpack nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs, varlagcoefs, fcoefs, fvars, varvars = hdfm
-
-    ######################################
-    ## Specify observation equation coefficient matrix 
-
-    # Store number of total lag terms in the state vector 
-    ntotlags = sum(varlags) + dot(nfactors, flags)           # variable error lags
-
-    # Create empty observation eq. coefficient matrix 
-    H = zeros(nvar, 1 + ntotlags)               # intercept + total lags 
-
-    # Fill out observation eq. coefficient matrix 
-    for i = 1:nvar
-        H[i, 1] = varcoefs[i, 1]
-        for j = 1:nlevels
-            for k = 1:nfactors[j]
-                if k == fassign[i, j]
-                    H[i, 1+sum(nfactors[1:(j-1)])+k] = varcoefs[i, 1+j]
+    # Reset the constant to one on every transition; it has no uncertainty.
+    H[:, 1] = hdfm.varcoefs[:, 1]
+    μ[1] = 1
+    first_state = 2
+    for level in 1:hdfm.nlevels
+        order = hdfm.flags[level]
+        for factor in 1:hdfm.nfactors[level]
+            for series in 1:n
+                if hdfm.fassign[series, level] == factor
+                    H[series, first_state] = hdfm.varcoefs[series, level + 1]
                 end
             end
+            _fill_ar_block!(F, Q, first_state, hdfm.fcoefs[level][factor, :], hdfm.fvars[level][factor])
+            first_state += max(1, order)
         end
     end
-    H[:, (1+sum(nfactors)+1):(1+sum(nfactors)+nvar)] = 1.0 .* Matrix(I(nvar))
-
-    ######################################
-    ## Specify observation equation error covariance matrix
-    R = zeros(nvar, nvar)
-
-    ######################################
-    ## Specify state equation companion matrix
-    ## and intercept vector 
-
-    # Create empty state equation companion matrix and intercept vector 
-    slength = size(H)[2]                 # length of state vector
-    F = zeros(slength, slength)
-    μ = zeros(slength)
-
-    # Total number of factors 
-    ntotfactors = sum(nfactors)
-
-    # Fill out transition eq. companion matrix 
-    μ[1, 1] = 1.0
-    for i = 1:nlevels
-        for j = 1:nfactors[i]
-
-            rowind = 0
-            if i > 1
-                rowind = sum(nfactors[1:(i-1)]) + j
-            else
-                rowind = j
-            end
-
-            for k = 1:flags[i]
-                F[1+rowind, 1+rowind+(ntotfactors+nvar)*(k-1)] = (fcoefs[i])[j, k] # factor autoregressive lag coefficients
-            end
-        end
+    for series in 1:n
+        order = hdfm.varlags[series]
+        H[series, first_state] = 1
+        coefficients = hdfm.varlagcoefs[series, 1:order]
+        _fill_ar_block!(F, Q, first_state, coefficients, hdfm.varvars[series])
+        first_state += max(1, order)
     end
-    for i = 1:nvar
-        for j = 1:varlags[i]
-            F[ntotfactors+i, 1+ntotfactors+(nvar)*(j-1)+i] = varlagcoefs[i, j] # obs. eq. error lag coefficients 
-        end
+    return H, zeros(n, 0), F, μ, zeros(n, n), Q, zeros(0, 0)
+end
+
+function _fill_ar_block!(F, Q, first_state, coefficients, variance)
+    order = length(coefficients)
+    F[first_state, first_state:(first_state + order - 1)] = coefficients
+    for lag in 1:(order - 1)
+        F[first_state + lag, first_state + lag - 1] = 1
     end
-    for i = (ntotfactors+nvar+1):(slength)
-        for j = 1:(slength-ntotfactors-nvar)
-            if i == ntotfactors + nvar + j
-                F[i, j] = 1.0
-            end
-        end
-    end
-
-    ######################################
-    ## Specify state equation error covariance matrix
-
-    # Create empty state equation error covariance matrix 
-    Q = zeros(slength, slength)
-
-    # Fill out state equation error covariance matrix 
-    for i = 1:nlevels
-        for j = 1:nfactors[i]
-
-            rowind = 0
-            if i > 1
-                rowind = sum(nfactors[1:(i-1)]) + j
-            else
-                rowind = j
-            end
-
-            Q[1+rowind, 1+rowind] = (fvars[i])[j]
-        end
-    end
-    for i = 1:nvar
-        Q[1+ntotfactors+i, 1+ntotfactors+i] = varvars[i]
-    end
-
-    ######################################
-    ## Specify all predetermined variable-related parameters 
-    A = zeros(nvar, nvar)
-    Z = zeros(nvar, nvar)
-
-    ######################################
-    return H, A, F, μ, R, Q, Z
-end;
+    Q[first_state, first_state] = variance
+    return nothing
+end
 
 """
-    convertHDFMtoSS(hdfm::HDFM) 
+    convertHDFMtoSS(hdfm)
 
-Description:
-Converts an `HDFM` object to an `SSModel` object. 
-
-Inputs:
-- hdfm::HDFM
-
-Output:
-- ssmodel::SSModel 
+Convert a hierarchical factor model to an [`SSModel`](@ref). See
+[`createSSforHDFM`](@ref) for the state ordering.
 """
-function convertHDFMtoSS(hdfm::HDFM)
+convertHDFMtoSS(hdfm::HDFM) = SSModel(createSSforHDFM(hdfm)...)
 
-    H, A, F, μ, R, Q, Z = createSSforHDFM(hdfm::HDFM)
+# Sum Q + F*Q*F' + ... by doubling the number of terms at each step.
+# This avoids constructing a state_count² × state_count² linear system.
+function _stationary_covariance(F, Q)
+    covariance = copy(Q)
+    transition = copy(F)
+    for iteration in 1:100
+        addition = transition * covariance * transition'
+        updated = Matrix(Symmetric(covariance + addition))
+        all(isfinite, updated) || throw(ArgumentError("stationary covariance overflowed"))
+        active = findall(>(0), diag(updated))
+        isempty(active) && return updated
+        scales = sqrt.(diag(updated)[active])
+        scaled_addition = addition[active, active] ./ scales ./ scales'
+        scaled_transition = transition[active, active] ./ scales .* scales'
+        contraction = all(isfinite, scaled_transition) ? opnorm(scaled_transition, 2) : Inf
+        # Bound the omitted geometric tail in units of each state's variance.
+        # A global norm could hide a small, slowly converging state variance.
+        if contraction < 1 && opnorm(scaled_addition, Inf) / (1 - contraction^2) <= 1e-12
+            return updated
+        end
+        covariance = updated
+        transition = transition * transition
+    end
+    throw(ArgumentError("stationary covariance did not converge; provide initial_cov"))
+end
 
-    ssmodel = SSModel(H, A, F, μ, R, Q, Z)
-
-    return ssmodel::SSModel
-end;
+function _initial_distribution(model::SSModel, initial_mean, initial_cov)
+    m = length(model.μ)
+    if initial_mean === nothing || initial_cov === nothing
+        # A tiny margin keeps an exact unit root from being rounded below one.
+        margin = m == 1 ? 0.0 : 100 * m * eps(Float64)
+        maximum(abs, eigvals(model.F)) < 1 - margin ||
+            throw(ArgumentError("default initialization requires numerically stable F; provide initial_mean and initial_cov"))
+    end
+    mean = initial_mean === nothing ? (I - model.F) \ model.μ :
+        _finite_vector(initial_mean, m, "initial_mean")
+    all(isfinite, mean) || throw(ArgumentError("initial mean overflowed; rescale the model"))
+    covariance = initial_cov === nothing ? _stationary_covariance(model.F, model.Q) : initial_cov
+    covariance isa AbstractMatrix || throw(ArgumentError("initial_cov must be a matrix"))
+    size(covariance) == (m, m) || throw(DimensionMismatch("initial_cov must be $m × $m"))
+    root = _covariance_root(covariance, "initial_cov")
+    return mean, _root_covariance(root)
+end
 
 """
-    simulateSSModel(num_obs::Int64, ssmodel::SSModel)
+    simulateSSModel([rng], num_obs, model; initial_mean=nothing,
+                    initial_cov=nothing, initial_state=nothing,
+                    rng=Random.default_rng())
 
-Generate data from a DGP in state space form.
-Measurement Equation:   
-    y_{t} = H β_{t} + A z_{t} + e_{t} 
-Transition Equation:    
-    β_{t} = μ + F β_{t-1} + v_{t}
-    e_{t} ~ i.i.d.N(0,R)
-    v_{t} ~ i.i.d.N(0,Q)
-    z_{t} ~ i.i.d.N(0,Z)
-    E(e_t v_s') = 0
+Simulate `βₜ = μ + F*βₜ₋₁ + vₜ` and `yₜ = H*βₜ + A*zₜ + eₜ`, with
+independent Gaussian innovations having covariances `Q`, `Z`, and `R`.
+Return `(data_y, data_z, data_β)`, with observations in rows.
 
-Inputs: 
-- num_obs           = number of observations
-- ssmodel::SSModel 
-
-Output:
-- data_y = simulated sample of observed vector  
-- data_z = simulated sample of exogenous variables
-- data_β = simulated sample of state vector 
+By default `β₀` is drawn from the stationary distribution, requiring all
+eigenvalues of `F` to have magnitude below one (with a small numerical margin).
+Supply `initial_mean` and
+`initial_cov` for another distribution, or `initial_state` for a fixed `β₀`.
+Every returned row, including the first, includes a transition and fresh noise.
 """
-function simulateSSModel(num_obs::Int64, ssmodel::SSModel)
-
-    @unpack H, A, F, μ, R, Q, Z = ssmodel
-
-    # Convert cov matrices to PSDMat 
-    # to allow for simulation using MvNormal()
-    # (MvNormal() needs a positive definite cov matrix)
-
-    # Create empty data storage matrices 
-    data_y = zeros(num_obs, size(H)[1])
-    data_z = zeros(num_obs, size(Z)[1])
-    data_β = zeros(num_obs, size(Q)[1])
-
-    # Initialize β and y 
-    β0 = inv(I - F) * μ
-    y0 = H * β0
-
-    # Initialize z
-    if Z == zeros(size(Z)[1], size(Z)[1])
-        z0 = zeros(size(Z)[1])
+function simulateSSModel(rng::AbstractRNG, num_obs::Integer, model::SSModel;
+                         initial_mean=nothing, initial_cov=nothing, initial_state=nothing)
+    num_obs >= 0 || throw(ArgumentError("num_obs must be nonnegative"))
+    validate_ssmodel(model)
+    if initial_state === nothing
+        mean, covariance = _initial_distribution(model, initial_mean, initial_cov)
+        state = mvn(rng, mean, covariance)
     else
-        #z0 = rand(MvNormal(zeros(size(Z)[1]), Z))
-        z0 = mvn(zeros(size(Z)[1]), Z)
+        initial_mean === nothing && initial_cov === nothing ||
+            throw(ArgumentError("initial_state cannot be combined with initial_mean or initial_cov"))
+        state = _finite_vector(initial_state, length(model.μ), "initial_state")
     end
-
-    # Save first observations of y and z
-    data_y[1, :] = y0
-    data_z[1, :] = z0
-    data_β[1, :] = β0
-
-    # Initialize β lag for recursion 
-    β_lag = β0
-
-    # Recursively generate data
-    for t = 2:num_obs
-        # Draw transition distrubance 
-        if Q == zeros(size(Q)[1], size(Q)[1])
-            v = zeros(size(Q)[1])
-        else
-            #v = rand(MvNormal(zeros(size(Q)[1]), Q))
-            v = mvn(zeros(size(Q)[1]), Q)
-        end
-        # Record new state observation 
-        β = μ + F * β_lag + v
-        # Draw new z observation
-        if Z == zeros(size(Z)[1], size(Z)[1])
-            z = zeros(size(Z)[1])
-        else
-            #z = rand(MvNormal(zeros(size(Z)[1]), Z))
-            z = mvn(zeros(size(Z)[1]), Z)
-        end
-        # Draw measurement distrubance 
-        if R == zeros(size(R)[1], size(R)[1])
-            e = zeros(size(R)[1])
-        else
-            #e = rand(MvNormal(zeros(size(R)[1]), R))
-            e = mvn(zeros(size(R)[1]), R)
-        end
-        # Record new measurement observation 
-        y = H * β + A * z + e
-        # Save generated data 
-        data_y[t, :] = y
-        data_z[t, :] = z
-        data_β[t, :] = β
-        # Update β lag for recursion 
-        β_lag = β
+    process_root = _covariance_root(model.Q)
+    observation_root = _covariance_root(model.R)
+    exogenous_root = _covariance_root(model.Z)
+    data_y = zeros(num_obs, size(model.H, 1))
+    data_z = zeros(num_obs, size(model.A, 2))
+    data_β = zeros(num_obs, length(model.μ))
+    for t in 1:num_obs
+        state = model.μ + model.F * state + process_root * randn(rng, size(process_root, 2))
+        exogenous = exogenous_root * randn(rng, size(exogenous_root, 2))
+        measurement_noise = observation_root * randn(rng, size(observation_root, 2))
+        observation = model.H * state + model.A * exogenous + measurement_noise
+        all(isfinite, state) && all(isfinite, observation) ||
+            throw(ArgumentError("simulated state or observation overflowed at row $t; rescale the model"))
+        data_y[t, :] = observation
+        data_z[t, :] = exogenous
+        data_β[t, :] = state
     end
-
-    # Return data 
     return data_y, data_z, data_β
-end;
+end
+
+simulateSSModel(num_obs::Integer, model::SSModel; rng::AbstractRNG=Random.default_rng(), kwargs...) =
+    simulateSSModel(rng, num_obs, model; kwargs...)

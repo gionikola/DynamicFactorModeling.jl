@@ -1,157 +1,47 @@
+using LinearAlgebra
+using Random
 
+@testset "HDFM state-space conversion" begin
+    # Factor orders 2 and 0, series-error orders 1, 3, and 0.
+    model = HDFM(nlevels=2, nvar=3, nfactors=[1, 2],
+        fassign=[1 1; 1 2; 0 1], flags=[2, 0], varlags=[1, 3, 0],
+        varcoefs=[1.0 2.0 3.0; -2.0 0.5 -1.0; 4.0 9.0 0.2],
+        varlagcoefs=[0.4 0.0 0.0; 0.2 -0.1 0.05; 0.0 0.0 0.0],
+        fcoefs=[[0.5 -0.2], zeros(2, 0)], fvars=[[0.7], [0.8, 0.9]],
+        varvars=[0.1, 0.2, 0.3])
+    ss = convertHDFMtoSS(model)
+    @test size(ss.F) == (10, 10)
+    @test ss.H == [1 2 0 3 0 1 0 0 0 0;
+                   -2 0.5 0 0 -1 0 1 0 0 0;
+                   4 0 0 0.2 0 0 0 0 0 1]
+    expected_F = zeros(10, 10)
+    expected_F[2, 2:3] = [0.5, -0.2]
+    expected_F[3, 2] = 1
+    expected_F[6, 6] = 0.4
+    expected_F[7, 7:9] = [0.2, -0.1, 0.05]
+    expected_F[8, 7] = expected_F[9, 8] = 1
+    @test ss.F == expected_F
+    @test ss.μ == [1; zeros(9)]
+    @test ss.Q == Diagonal([0, 0.7, 0, 0.8, 0.9, 0.1, 0.2, 0, 0, 0.3])
+    @test iszero(ss.R)
+    @test size(ss.A) == (3, 0)
+    @test size(ss.Z) == (0, 0)
 
-@testset "Create SS for HDFM" begin
+    # Verify the defining equations directly, independently of state indexing code.
+    y, z, states = simulateSSModel(MersenneTwister(804), 50, ss)
+    @test states[:, 1] == ones(50)
+    @test states[2:end, 3] ≈ states[1:end-1, 2]
+    @test states[2:end, 8] ≈ states[1:end-1, 7]
+    @test states[2:end, 9] ≈ states[1:end-1, 8]
+    @test y[:, 1] ≈ 1 .+ 2states[:, 2] .+ 3states[:, 4] .+ states[:, 6]
+    @test y[:, 2] ≈ -2 .+ 0.5states[:, 2] .- states[:, 5] .+ states[:, 7]
+    @test y[:, 3] ≈ 4 .+ 0.2states[:, 4] .+ states[:, 10]
+    @test size(z) == (50, 0)
 
-    nlevels = 2
-
-    nvar = 20
-
-    nfactors = [1, 5]
-
-    fassign = ones(Int, nvar, 2)
-    fassign[1:4, 2] = ones(Int, 4)
-    fassign[5:8, 2] = 2 * ones(Int, 4)
-    fassign[9:12, 2] = 3 * ones(Int, 4)
-    fassign[13:16, 2] = 4 * ones(Int, 4)
-    fassign[17:20, 2] = 5 * ones(Int, 4)
-
-    flags = [2, 2]
-
-    varlags = 2 * ones(Int, nvar)
-
-    varcoefs = zeros(nvar, 1 + nlevels)
-    varcoefs[:, 2] = 0.5 * ones(nvar)
-    varcoefs[1, 2] = 1.0
-    varcoefs[:, 3] = 0.1 * ones(nvar)
-    varcoefs[1, 3] = 1.0
-    varcoefs[5, 3] = 1.0
-    varcoefs[9, 3] = 1.0
-    varcoefs[13, 3] = 1.0
-    varcoefs[17, 3] = 1.0
-
-
-    varlagcoefs = ones(nvar, 2)
-    varlagcoefs[:, 1] = 0.5 * varlagcoefs[:, 1]
-    varlagcoefs[:, 2] = 0.25 * varlagcoefs[:, 2]
-
-    fcoefs = Any[]
-    fmat = [0.45 -0.2][:, :]
-    push!(fcoefs, fmat)
-    fmat = [0.6 0.00
-        0.2 -0.05
-        -0.3 0.2
-        0.2 -0.1
-        -0.4 0.15]
-    push!(fcoefs, fmat)
-
-    fvars = Any[]
-    fmat = [1.0]
-    push!(fvars, fmat)
-    fmat = [1.0, 1.0, 1.0, 1.0, 1.0]
-    push!(fvars, fmat)
-
-    varvars = 0.2 * ones(nvar)
-
-    hdfm = HDFM(nlevels=nlevels,
-        nvar=nvar,
-        nfactors=nfactors,
-        fassign=fassign,
-        flags=flags,
-        varlags=varlags,
-        varcoefs=varcoefs,
-        varlagcoefs=varlagcoefs,
-        fcoefs=fcoefs,
-        fvars=fvars,
-        varvars=varvars)
-
-    H, A, F, μ, R, Q, Z = DynamicFactorModeling.createSSforHDFM(hdfm)
-
-    @test typeof(H) == Array{Float64,2}
-    @test typeof(A) == Array{Float64,2}
-    @test typeof(F) == Array{Float64,2}
-    @test typeof(μ) == Array{Float64,1}
-    @test typeof(R) == Array{Float64,2}
-    @test typeof(Q) == Array{Float64,2}
-    @test typeof(Z) == Array{Float64,2}
-
-    #=
-    @test size(H) == 
-    @test size(A) == 
-    @test size(F) == 
-    @test size(μ) == 
-    @test size(R) == 
-    @test size(Q) == 
-    @test size(Z) == 
-    =#
-
+    # Array fields remain mutable, so conversion must validate them again.
+    model.fassign[1, 1] = 2
+    @test_throws ArgumentError convertHDFMtoSS(model)
+    model.fassign[1, 1] = 1
+    model.varvars[1] = -1
+    @test_throws ArgumentError convertHDFMtoSS(model)
 end
-
-@testset "Convert HDFM to SS" begin
-
-    nlevels = 2
-
-    nvar = 20
-
-    nfactors = [1, 5]
-
-    fassign = ones(Int, nvar, 2)
-    fassign[1:4, 2] = ones(Int, 4)
-    fassign[5:8, 2] = 2 * ones(Int, 4)
-    fassign[9:12, 2] = 3 * ones(Int, 4)
-    fassign[13:16, 2] = 4 * ones(Int, 4)
-    fassign[17:20, 2] = 5 * ones(Int, 4)
-
-    flags = [2, 2]
-
-    varlags = 2 * ones(Int, nvar)
-
-    varcoefs = zeros(nvar, 1 + nlevels)
-    varcoefs[:, 2] = 0.5 * ones(nvar)
-    varcoefs[1, 2] = 1.0
-    varcoefs[:, 3] = 0.1 * ones(nvar)
-    varcoefs[1, 3] = 1.0
-    varcoefs[5, 3] = 1.0
-    varcoefs[9, 3] = 1.0
-    varcoefs[13, 3] = 1.0
-    varcoefs[17, 3] = 1.0
-
-
-    varlagcoefs = ones(nvar, 2)
-    varlagcoefs[:, 1] = 0.5 * varlagcoefs[:, 1]
-    varlagcoefs[:, 2] = 0.25 * varlagcoefs[:, 2]
-
-    fcoefs = Any[]
-    fmat = [0.45 -0.2][:, :]
-    push!(fcoefs, fmat)
-    fmat = [0.6 0.00
-        0.2 -0.05
-        -0.3 0.2
-        0.2 -0.1
-        -0.4 0.15]
-    push!(fcoefs, fmat)
-
-    fvars = Any[]
-    fmat = [1.0]
-    push!(fvars, fmat)
-    fmat = [1.0, 1.0, 1.0, 1.0, 1.0]
-    push!(fvars, fmat)
-
-    varvars = 0.2 * ones(nvar)
-
-    hdfm = HDFM(nlevels=nlevels,
-        nvar=nvar,
-        nfactors=nfactors,
-        fassign=fassign,
-        flags=flags,
-        varlags=varlags,
-        varcoefs=varcoefs,
-        varlagcoefs=varlagcoefs,
-        fcoefs=fcoefs,
-        fvars=fvars,
-        varvars=varvars)
-
-    ssmodel = convertHDFMtoSS(hdfm)
-
-    @test typeof(ssmodel) == DynamicFactorModeling.SSModel
-
-end 

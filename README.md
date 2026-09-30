@@ -1,175 +1,121 @@
-# DynamicFactorModeling.jl (Incomplete)
+# DynamicFactorModeling.jl
 
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://gionikola.github.io/DynamicFactorModeling.jl/dev)
-[![Build Status](https://github.com/gionikola/DynamicFactorModeling.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/gionikola/DynamicFactorModeling.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/gionikola/DynamicFactorModeling.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/gionikola/DynamicFactorModeling.jl)
+Simulate and estimate linear Gaussian dynamic factor models in Julia. A few
+unobserved time series (the **factors**) explain shared movements in a panel;
+each observed series also has an error that can depend on its past values.
 
-**Currently not open to contributions!**
+The package provides:
 
-## Overview 
+- Single-factor and hierarchical Bayesian estimation, with state-space or
+  direct Gaussian factor sampling.
+- Single-factor and two-stage hierarchical PCA estimates.
+- Model simulation, Kalman filtering and smoothing, and conditional state draws.
+- Sample and long-run variance decompositions.
 
-This is Julia package allows the user to easily construct, simulate, and estimate linear multi-level/hierarchical dynamic factor models (HDFMs) using a variety of Bayesian approaches. 
-A wonderful explanation of HDFMs is provided in [[5]](#5). For an example, check out [[4]](#4).
-
-The following three HDFM estimation approaches are offered: 
-1. Principal component analysis (PCA) (overviewed in [[1]](#1));
-2. Kim-Nelson (KM) state-space approach (introduced in [[2]](#2) and [[3]](#3));
-3. Otrok-Whiteman (OW) approach (introduced in [[5]](#6) and [[3]](#4)).
+Rows are observations in time order; columns are series. An autoregressive (AR)
+order is the number of past values a process uses. Models allow different AR
+orders across levels and series, including order zero. The Bayesian estimators
+require complete, finite data; the state-space tools also accept `missing` values.
 
 ## Installation
 
-DynamicFactorModeling.jl is still in development and not available through the Julia registry.
-Thereofore, you may install and load the package using the GitHub repo url in the following manner:
+Use Julia 1.10 or later. From a local checkout:
 
 ```julia
 using Pkg
-Pkg.add(url = "https://github.com/gionikola/DynamicFactorModeling.jl")
+Pkg.activate(".")
+Pkg.instantiate()
 using DynamicFactorModeling
 ```
 
-## Walkthrough 
+To install from GitHub, use
+`Pkg.add(url="https://github.com/gionikola/DynamicFactorModeling.jl")`.
 
-### 1. **Specify HDFM** 
-
-```julia
-
-#
-nlevels = 2
-
-#
-nvar = 9
-
-#
-nfactors = [1, 2]
-
-#
-fassign = [1 1
-    1 1
-    1 1
-    1 1
-    1 2
-    1 2
-    1 2
-    1 2
-    1 2]
-
-#
-flags = [2, 2]
-
-#
-varlags = [2, 2, 2, 2, 2, 2, 2, 2, 2]
-
-#
-varcoefs = [0.0 1.0 1.0
-    0.0 0.5 0.2
-    0.0 0.7 0.4
-    0.0 0.3 0.5
-    0.0 0.5 1.0
-    0.0 0.5 0.7
-    0.0 0.4 0.5
-    0.0 0.5 0.2
-    0.0 0.5 0.2]
-
-#
-varlagcoefs = [0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25
-    0.5 0.25]
-
-#
-fcoefs = Any[]
-fmat = [0.85 -0.3][:, :]
-push!(fcoefs, fmat)
-fmat = [0.5 0.05
-    0.2 -0.1]
-push!(fcoefs, fmat)
-
-#
-fvars = Any[]
-fmat = [1.0]
-push!(fvars, fmat)
-fmat = [1.0, 1.0]
-push!(fvars, fmat)
-
-#
-varvars = 0.5 * ones(nvar);
-
-#
-hdfm = HDFM(nlevels = nlevels,
-    nvar = nvar,
-    nfactors = nfactors,
-    fassign = fassign,
-    flags = flags,
-    varlags = varlags,
-    varcoefs = varcoefs,
-    varlagcoefs = varlagcoefs,
-    fcoefs = fcoefs,
-    fvars = fvars,
-    varvars = varvars)
-
-```
-
-### 2. Simulate HDFM 
+## A small example
 
 ```julia
+using DynamicFactorModeling, Random
 
-#
-ssmodel = convertHDFMtoSS(hdfm)
+model = HDFM(
+    nlevels=1, nvar=3, nfactors=[1], fassign=ones(Int, 3, 1),
+    flags=[1], varlags=[1, 1, 1],
+    varcoefs=[0.0 1.0; 1.0 0.8; -1.0 1.2],
+    varlagcoefs=fill(0.2, 3, 1),
+    fcoefs=[reshape([0.7], 1, 1)], fvars=[[1.0]],
+    varvars=fill(0.3, 3),
+)
+state_space = convertHDFMtoSS(model)
+y, _, states = simulateSSModel(MersenneTwister(42), 100, state_space)
 
-#
-num_obs = 100
-data_y, data_z, data_β = simulateSSModel(num_obs, ssmodel::SSModel)
+settings = DFMStruct(factorlags=1, errorlags=1, ndraws=500, burnin=500)
+fit = KN1LevelEstimator(MersenneTwister(43), y, settings)
+factor_mean = fit.means.F[:, 1]
+coefficient_means = reshape(vec(fit.means.B), 2, 3)'
 
+pca = PCA1LevelEstimator(y)
+long_run_shares = variance_decomposition(model)
 ```
 
-### 3. Estimate HDFM 
+`ndraws` counts retained draws, in addition to `burnin`. The example is a
+workflow demonstration, not a convergence guarantee. Run several chains and
+inspect their traces and agreement before interpreting posterior summaries.
 
-```julia
+## Choosing an estimator
 
-#
-hdfmpriors = HDFMStruct(nlevels = nlevels,
-    nfactors = nfactors,
-    factorassign = fassign,
-    factorlags = flags,
-    errorlags = varlags,
-    ndraws = 1000,
-    burnin = 50)
+| Function | Result | Use |
+|---|---|---|
+| `KN1LevelEstimator` | Posterior draws | One common factor |
+| `KN2LevelEstimator` | Posterior draws | Two factor levels |
+| `KNHierarchicalEstimator` | Posterior draws | Any declared number of levels |
+| `OW1LevelEstimator`, `OW2LevelEstimator` | Posterior draws | Direct Gaussian factor sampling for small problems |
+| `PCA1LevelEstimator` | Deterministic fit | Fast rank-one approximation |
+| `PCA2LevelEstimator` | Deterministic fit | Global PCA, then PCA within each residual group |
 
-#
-results = PCA2LevelEstimator(data_y, hdfmpriors)
+The Bayesian methods share one model: unit factor innovation variances,
+explicit coefficient and variance priors, and stationary initial distributions
+for factors and errors. Set `initial=:zero` for fixed zero presample values.
+The samplers estimate intercepts on the original data and include joint
+location and scale updates to help explore the posterior. PCA is a deterministic
+approximation; it does not estimate AR parameters or produce posterior draws.
 
+KN uses state-space calculations; OW uses dense matrices spanning the dates.
+KN is generally preferable for longer time series, while direct factor draws
+can be useful for many series observed over a short period. Individual factors
+may still be weakly identified, especially when their assignments and dynamics
+are similar.
+
+Read the [model guide](docs/src/model.md), [state-space guide](docs/src/state_space.md),
+and [upgrade notes](docs/src/migration.md). Runnable scripts are in [examples](examples).
+The [method audit](docs/src/method_audit.md) maps the algorithms to the inspected
+sources and distinguishes them from individual papers' experimental settings.
+
+## Validation and limitations
+
+Tests compare the estimators with independent Gaussian calculations, numerical
+posterior integration, and external state-space references. A calibration screen
+on 64 small one-factor datasets passed its declared checks. These checks support
+the tested models and settings; each fitted dataset still needs sampling diagnostics.
+
+In a small hierarchical example, four chains still disagree about individual
+factor contributions after 16,000 retained draws. Combined signals agree more
+closely. Both larger panels in the paired pilot pass, but one paired example
+does not establish general performance. The [checks guide](docs/src/validation.md)
+summarizes the evidence, including the remaining sampling-precision limits.
+
+## Development
+
+```sh
+julia --project=. -e 'using Pkg; Pkg.test()'
+julia --project=. examples/single_factor.jl
+julia --project=. examples/hierarchical.jl
+julia --project=docs -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
+julia --project=docs docs/make.jl
 ```
 
-### 4. Variance decomposition
+[CONTRIBUTING.md](CONTRIBUTING.md) describes the code layout, testing conventions,
+and release checks. Normal package tests use the included small reference fixtures.
+The [checks guide](docs/src/validation.md) also gives the command for extended
+sampler and diagnostic tests. Research-study programs and generated outputs are
+not distributed with the package.
 
-```julia
-
-#
-vardecomp = vardecomp2level(datamat, results.means.F, reshape(results.means.B, 3, 50)', fassign)
-
-```
-
-## References 
-
-<a id="1">[1]</a> 
-Jackson, L.E., Kose, M.A., Otrok, C. and Owyang, M.T. (2016), "Specification and Estimation of Bayesian Dynamic Factor Models: A Monte Carlo Analysis with an Application to Global House Price Comovement", Dynamic Factor Models (Advances in Econometrics, Vol. 35), Emerald Group Publishing Limited, Bingley, pp. 361-400.
-
-<a id="2">[2]</a> 
-Kim, Chang-Jin and Nelson, Charles, (1998), Business Cycle Turning Points, A New Coincident Index, And Tests Of Duration Dependence Based On A Dynamic Factor Model With Regime Switching, The Review of Economics and Statistics, 80, issue 2, p. 188-201.
-
-<a id="3">[3]</a> 
-Kim, Chang-Jin and Nelson, Charles, (1999), State-Space Models with Regime Switching: Classical and Gibbs-Sampling Approaches with Applications, vol. 1, 1 ed., The MIT Press.
-
-<a id="4">[4]</a> 
-Kose, M. Ayhan, Christopher Otrok, and Charles H. Whiteman. 2003. "International Business Cycles: World, Region, and Country-Specific Factors." American Economic Review, 93 (4): 1216-1239.
-
-<a id="5">[5]</a> 
-Moench, Emanuel, Serena Ng, Simon Potter. 2013. Dynamic Hierarchical Factor Models. The Review of Economics and Statistics, 95 (5): 1811–1817.
-
-<a id="6">[6]</a> 
-Otrok, Christopher and Whiteman, Charles, (1998), Bayesian Leading Indicators: Measuring and Predicting Economic Conditions in Iowa, International Economic Review, 39, issue 4, p. 997-1014.
+This project is [MIT licensed](LICENSE).

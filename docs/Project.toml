@@ -1,2 +1,8 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DynamicFactorModeling = "d26fc6f6-4598-442a-ab75-ae1dece03a7b"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[compat]
+Documenter = "1"
+julia = "1.10"

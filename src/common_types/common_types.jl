@@ -1,229 +1,201 @@
 """
-SSModel(
-    H::Array{Float64,2}, 
-    A::Array{Float64,2}, 
-    F::Array{Float64,2}, 
-    μ::Array{Float64,1}, 
-    R::Array{Float64,2}, 
-    Q::Array{Float64,2}, 
-    Z::Array{Float64,2}
-)
+    SSModel(; H, A, F, μ, R, Q, Z)
 
-A type object containing all parameters necessary to specify a data-generating process in state-space form. 
-Measurement Equation:   
-- y_{t} = H β_{t} + A z_{t} + e_{t} 
-Transition Equation:    
-- β_{t} = μ + F β_{t-1} + v_{t}
-- e_{t} ~ i.i.d.N(0,R)
-- v_{t} ~ i.i.d.N(0,Q)
-- z_{t} ~ i.i.d.N(0,Z)
-- E(e_{t} v_{s}') = 0
+Linear Gaussian state-space model:
+`y[t] = H * β[t] + A * z[t] + e[t]`,
+`β[t] = μ + F * β[t-1] + v[t]`.
 
-Inputs:
-- H = measurement equation state vector coefficient matrix.
-- A = measurement equation predetermined vector coefficient matrix. 
-- F = state equation companion matrix.
-- μ = state equation intercept vector.
-- R = measurement equation error covariance matrix. 
-- Q = state equation innovation covariance matrix.
-- Z = predetermined vector covariance matrix.
+`R`, `Q`, and `Z` are the covariance matrices of mutually independent
+measurement errors, state innovations, and simulated regressors. Rows of data
+matrices are times. Covariances may be singular. For no regressors use an
+`nseries × 0` matrix `A` and a `0 × 0` matrix `Z`.
 """
-@with_kw mutable struct SSModel
-H::Array{Float64,2}  
-A::Array{Float64,2}  
-F::Array{Float64,2}    
-μ::Array{Float64,1}   
-R::Array{Float64,2}  
-Q::Array{Float64,2}  
-Z::Array{Float64,2}  
-end;
+struct SSModel
+    H::Matrix{Float64}
+    A::Matrix{Float64}
+    F::Matrix{Float64}
+    μ::Vector{Float64}
+    R::Matrix{Float64}
+    Q::Matrix{Float64}
+    Z::Matrix{Float64}
+
+    function SSModel(H, A, F, μ, R, Q, Z)
+        model = new(Matrix{Float64}(H), Matrix{Float64}(A), Matrix{Float64}(F),
+                    Vector{Float64}(μ), Matrix{Float64}(R), Matrix{Float64}(Q),
+                    Matrix{Float64}(Z))
+        validate_ssmodel(model)
+        return model
+    end
+end
+SSModel(; H, A, F, μ, R, Q, Z) = SSModel(H, A, F, μ, R, Q, Z)
 
 """
-    HDFM(
-        nlevels::Int64                   
-        nvar::Int64                     
-        nfactors::Array{Int64,1}        
-        fassign::Array{Int64,2}          
-        flags::Array{Int64,1}         
-        varlags::Array{Int64,1}        
-        varcoefs::Array{Any,2}          
-        varlagcoefs::Array{Any,2}    
-        fcoefs::Array{Any,1}           
-        fvars::Array{Any,1}             
-        varvars::Array{Any,1}  
-    ) 
+    HDFM(; nlevels, nvar, nfactors, fassign, flags, varlags,
+           varcoefs, varlagcoefs, fcoefs, fvars, varvars)
 
-Creates an object of type `HDFM` that contains all parameters necessary to specify a multi-level linear dynamic factor data-generating process.
-This is a convenient alternative to specifying an HDFM directly in state-space form. 
+Specify a hierarchical dynamic factor model for simulation. Each series has
+an intercept, at most one assigned factor per level, and an autoregressive
+error. Factors have independent autoregressive dynamics.
 
-Inputs: 
-- nlevels = number of levels in the multi-level model structure.
-- nvar = number of variables.
-- nfactors = number of factors for each level (vector of length `nlevels`). 
-- fassign = determines which factor is assigned to which variable for each level (integer matrix of size `nvar` × `nlevels`).
-- flags = number of autoregressive lags for factors of each level (factors of the same level are restricted to having the same number of lags; vector of length `nlevels`).
-- varlags = number of observed variable error autoregressive lags (vector of length `nvar`).
-- varcoefs = vector of coefficients for each variable in the observation equation (length 1+`nlevels`, where first entry represents the intercept). 
-- fcoefs = list of `nlevels` number of matrices, for which each row contains vectors of the autoregressive lag coefficients of the corresponding factor. 
-- fvars = list of `nlevels` number of vectors, where each entry contains the disturbance variance of the corresponding factors.
-- varvars = vector of `nvar` number of entries, where each entry contains the innovation variance of the corresponding variable.
+- `nfactors[l]` and `flags[l]`: factor count and AR order at level `l`.
+- `fassign[i,l]`: factor number within level `l`; zero means no factor.
+- `varcoefs[i,:]`: intercept followed by one loading per level.
+- `varlags[i]`: error AR order; `varlagcoefs[i,1:varlags[i]]`: coefficients.
+- `fcoefs[l]`: `nfactors[l] × flags[l]` matrix of factor AR coefficients.
+- `fvars[l]`: factor innovation variances; `varvars`: error innovation variances.
+
+AR order zero is allowed. Entries beyond a series' `varlags` are ignored.
+Variances must be nonnegative. Stationarity is checked when a stationary
+initial distribution is requested, rather than when constructing the model.
 """
-@with_kw mutable struct HDFM
-    nlevels::Int64                   
-    nvar::Int64                     
-    nfactors::Array{Int64,1}        
-    fassign::Array{Int64,2}          
-    flags::Array{Int64,1}         
-    varlags::Array{Int64,1}        
-    varcoefs::Array{Any,2}          
-    varlagcoefs::Array{Any,2}    
-    fcoefs::Array{Any,1}           
-    fvars::Array{Any,1}             
-    varvars::Array{Any,1}         
-end;
+struct HDFM
+    nlevels::Int
+    nvar::Int
+    nfactors::Vector{Int}
+    fassign::Matrix{Int}
+    flags::Vector{Int}
+    varlags::Vector{Int}
+    varcoefs::Matrix{Float64}
+    varlagcoefs::Matrix{Float64}
+    fcoefs::Vector{Matrix{Float64}}
+    fvars::Vector{Vector{Float64}}
+    varvars::Vector{Float64}
 
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-    DFMStruct(factorlags::Int64, errorlags::Int64, ndraws::Int64, burnin::Int64)
+    function HDFM(nlevels, nvar, nfactors, fassign, flags, varlags,
+                  varcoefs, varlagcoefs, fcoefs, fvars, varvars)
+        model = new(Int(nlevels), Int(nvar), Vector{Int}(nfactors),
+                    Matrix{Int}(fassign), Vector{Int}(flags), Vector{Int}(varlags),
+                    Matrix{Float64}(varcoefs), Matrix{Float64}(varlagcoefs),
+                    [Matrix{Float64}(c) for c in fcoefs],
+                    [Vector{Float64}(v) for v in fvars], Vector{Float64}(varvars))
+        validate_hdfm(model)
+        return model
+    end
+end
+HDFM(; nlevels, nvar, nfactors, fassign, flags, varlags, varcoefs,
+       varlagcoefs, fcoefs, fvars, varvars) =
+    HDFM(nlevels, nvar, nfactors, fassign, flags, varlags,
+         varcoefs, varlagcoefs, fcoefs, fvars, varvars)
 
-Description:
-1-level DFM lag structure specification and MCMC sample size for Bayesian estimation. 
-
-Inputs:
-- factorlags = Number of lags in the autoregressive specification of the latent factors. 
-- errorlags = Number of lags in the autoregressive specification of the observable variable idiosyncratic errors.
-- ndraws = Number of MCMC draws used for posterior distributions.
-- burnin = Number of initial MCMC draws discarded. 
 """
-@with_kw mutable struct DFMStruct
-    factorlags::Int64
-    errorlags::Int64
-    ndraws::Int64
-    burnin::Int64
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-    HDFMStruct(nlevels::Int64, nfactors::Array{Int64,1}, factorassign::Array{Int64,2}, factorlags::Array{Int64,1}, errorlags::Array{Int64,1}, ndraws::Int64, burnin::Int64)
+    DFMStruct(; factorlags, errorlags, ndraws=1000, burnin=500)
 
-Description:
-Multi-level/hierarchical DFM (HDFM) level, factor assignment, and lag structure specification, and MCMC sample size for Bayesian estimation. 
-
-Inputs:
-- nlevels = Number of levels in the HDFM specification. 
-- nvars = Number of observable variables in the HDFM specification. 
-- nfactors = Number of factor per level in the HDFM specification. 
-- factorassign = Factors assigned to each variable across all levels. 
-- factorlags = Number of lags in the autoregressive specification of the latent factors. 
-- errorlags = Number of lags in the autoregressive specification of the observable variable idiosyncratic errors.
-- ndraws = Number of MCMC draws used for posterior distributions.
-- burnin = Number of initial MCMC draws discarded. 
+Single-factor estimation settings. AR orders may be zero. `ndraws` is the
+number of retained Gibbs draws; `burnin` is the number discarded beforehand.
+The estimator performs `burnin + ndraws` iterations.
 """
-@with_kw mutable struct HDFMStruct
-    nlevels::Int64                  # number of levels in the multi-level model structure 
-    nfactors::Array{Int64,1}        # number of factors for each level (vector of length `nlevels`)
-    factorassign::Array{Int64,2}         # integer matrix of size `nvar` × `nlevels` 
-    factorlags::Array{Int64,1}           # number of autoregressive lags for each factor level (vector of length `nlevels`)
-    errorlags::Array{Int64,1}         # number of obs. variable error autoregressive lags (vector of length `nvar`)
-    ndraws::Int64
-    burnin::Int64
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-    DFMMeans(F::Array{Float64}, B::Array{Float64}, S::Array{Float64}, P::Array{Float64}, P2::Array{Float64})
+struct DFMStruct
+    factorlags::Int
+    errorlags::Int
+    ndraws::Int
+    burnin::Int
 
-Description:
-HDFM Bayesian estimator-generated latent factor and hyperparameter sample means (expected values). 
+    function DFMStruct(factorlags, errorlags, ndraws, burnin)
+        factorlags >= 0 || throw(ArgumentError("factorlags must be nonnegative"))
+        errorlags >= 0 || throw(ArgumentError("errorlags must be nonnegative"))
+        ndraws > 0 || throw(ArgumentError("ndraws must be positive"))
+        burnin >= 0 || throw(ArgumentError("burnin must be nonnegative"))
+        return new(Int(factorlags), Int(errorlags), Int(ndraws), Int(burnin))
+    end
+end
+DFMStruct(; factorlags, errorlags, ndraws=1000, burnin=500) =
+    DFMStruct(factorlags, errorlags, ndraws, burnin)
 
-Inputs:
-- F = MCMC-generated latent factor sample mean.
-- B = MCMC-generated observation equation regression coefficient sample means.
-- S = MCMC-generated observable variable idiosyncratic error disturbance variance sample means. 
-- P = MCMC-generated latent factor autoregressive coefficient sample means. 
-- P2 = MCMC-generated idiosyncratic error autoregressive coefficient sample means. 
 """
-@with_kw mutable struct DFMMeans
-    F::Array{Float64}   # Factor means 
-    B::Array{Float64}   # Obs. equation coefficient means 
-    S::Array{Float64}   # Idiosyncratic disturbance variance means 
-    P::Array{Float64}   # Factor autoregressive coefficient means 
-    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive means 
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-    DFMResults(F::Array{Float64}, B::Array{Float64}, S::Array{Float64}, P::Array{Float64}, P2::Array{Float64}, means::DFMMeans)
+    HDFMStruct(; nlevels, nfactors, factorassign, factorlags, errorlags,
+                ndraws=1000, burnin=500)
 
-Description:
-HDMF Bayesian estimator-generated MCMC posterior distribution samples and their means for latent factors and hyperparameters. 
-
-Inputs:
-- F = MCMC-generated latent factor sample.
-- B = MCMC-generated observation equation regression coefficient sample.
-- S = MCMC-generated observable variable idiosyncratic error disturbance variance sample. 
-- P = MCMC-generated latent factor autoregressive coefficient sample. 
-- P2 = MCMC-generated idiosyncratic error autoregressive coefficient sample. 
-- means = HDFM Bayesian estimator-generated latent factor and hyperparameter sample means (expected values).
+Hierarchical estimation settings. `factorassign[i,l]` is a factor number
+within level `l`, or zero for no factor. `factorlags[l]` is the AR order for
+that level; `errorlags[i]` is the AR order for series `i`. `ndraws` counts
+retained draws and `burnin` counts additional discarded iterations.
 """
-@with_kw mutable struct DFMResults
-    F::Array{Float64}   # Factor sample 
-    B::Array{Float64}   # Obs. equation coefficient sample 
-    S::Array{Float64}   # Idiosyncratic disturbance variance sample 
-    P::Array{Float64}   # Factor autoregressive coefficient sample 
-    P2::Array{Float64}  # Idiosyncratic disturbance autoregressive sample 
-    means::DFMMeans     # Factor and hyperparameter means
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
+struct HDFMStruct
+    nlevels::Int
+    nfactors::Vector{Int}
+    factorassign::Matrix{Int}
+    factorlags::Vector{Int}
+    errorlags::Vector{Int}
+    ndraws::Int
+    burnin::Int
+
+    function HDFMStruct(nlevels, nfactors, factorassign, factorlags, errorlags,
+                        ndraws, burnin)
+        nlevels > 0 || throw(ArgumentError("nlevels must be positive"))
+        length(nfactors) == length(factorlags) == nlevels ||
+            throw(DimensionMismatch("nfactors and factorlags must have nlevels entries"))
+        size(factorassign) == (length(errorlags), nlevels) ||
+            throw(DimensionMismatch("factorassign must be nseries × nlevels"))
+        !isempty(errorlags) || throw(ArgumentError("at least one series is required"))
+        all(>(0), nfactors) || throw(ArgumentError("each level needs at least one factor"))
+        all(>=(0), factorlags) && all(>=(0), errorlags) ||
+            throw(ArgumentError("AR orders must be nonnegative"))
+        for l in 1:nlevels
+            all(x -> 0 <= x <= nfactors[l], factorassign[:,l]) ||
+                throw(ArgumentError("factor assignment is outside its level's range"))
+            for k in 1:nfactors[l]
+                any(==(k), factorassign[:,l]) ||
+                    throw(ArgumentError("every factor must be assigned to at least one series"))
+            end
+        end
+        ndraws > 0 || throw(ArgumentError("ndraws must be positive"))
+        burnin >= 0 || throw(ArgumentError("burnin must be nonnegative"))
+        return new(Int(nlevels), Vector{Int}(nfactors), Matrix{Int}(factorassign),
+                   Vector{Int}(factorlags), Vector{Int}(errorlags), Int(ndraws), Int(burnin))
+    end
+end
+HDFMStruct(; nlevels, nfactors, factorassign, factorlags, errorlags,
+             ndraws=1000, burnin=500) =
+    HDFMStruct(nlevels, nfactors, factorassign, factorlags, errorlags, ndraws, burnin)
+
+"""
+    DFMMeans(F, B, S, P, P2)
+
+Posterior means: factors `F`, observation coefficients `B`, error innovation
+variances `S`, factor AR coefficients `P`, and error AR coefficients `P2`.
+Observation coefficients are stored series by series (intercept, then level
+loadings). AR coefficients are stored process by process, in lag order.
+"""
+struct DFMMeans
+    F::Array{Float64}
+    B::Array{Float64}
+    S::Array{Float64}
+    P::Array{Float64}
+    P2::Array{Float64}
+end
+DFMMeans(; F, B, S, P, P2) = DFMMeans(F, B, S, P, P2)
+
+"""
+    DFMResults(F, B, S, P, P2, means)
+
+Retained Gibbs draws and their [`DFMMeans`](@ref). `F` is time × draw for a
+single-factor estimator, and time × factor × draw for a hierarchical one.
+`B`, `S`, `P`, and `P2` have draws in rows. Factor order is level first,
+then factor within level; AR coefficients omit padding for unused lags.
+Samples are Monte Carlo output: assess mixing across several chains before
+using posterior summaries.
+"""
+struct DFMResults
+    F::Array{Float64}
+    B::Array{Float64}
+    S::Array{Float64}
+    P::Array{Float64}
+    P2::Array{Float64}
+    means::DFMMeans
+end
+DFMResults(; F, B, S, P, P2, means) = DFMResults(F, B, S, P, P2, means)
+
+"""
+    PCAResults
+
+Deterministic principal-component estimates: `factors` (time × factor),
+`loadings` (series × factor), `intercepts` (series), and `residuals`
+(time × series). Reconstruct data as
+`intercepts' .+ factors * loadings' + residuals`.
+"""
+struct PCAResults
+    factors::Matrix{Float64}
+    loadings::Matrix{Float64}
+    intercepts::Vector{Float64}
+    residuals::Matrix{Float64}
+end
