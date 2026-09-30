@@ -1,224 +1,61 @@
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-@doc """
-    KNSingleFactorEstimator(data::Array{Float64,2}, dfm::DFMStruct)
-
-Description:
-Estimate a single-factor DFM using the Kim-Nelson approach. 
-
-Inputs:
-- data = Matrix with each column being a data series. 
-- dfm = Model structure specification. 
-
-Outputs:
-- results = HDMF Bayesian estimator-generated MCMC posterior distribution samples and their means for latent factors and hyperparameters.
 """
-function KN1LevelEstimator(data::Array{Float64,2}, dfm::DFMStruct)
+    KN1LevelEstimator(data, specification::DFMStruct; kwargs...)
+    KN1LevelEstimator(rng, data, specification::DFMStruct; kwargs...)
 
-    # Unpack simulation parameters 
-    @unpack factorlags, errorlags, ndraws, burnin = dfm
+Sample the posterior of a single-factor model with Gaussian innovations.
+Rows of `data` are dates and columns are series. Intercepts are estimated on
+the supplied data; the estimator does not center or standardize it.
 
-    # Save total number of Monte Carlo draws 
-    totdraws = ndraws + burnin
+Factor innovations have variance one. By default the initial factors and errors
+follow their stationary distributions; `initial=:zero` instead fixes presample
+values at zero. By default, the first series' loading is made positive
+by changing its factor's sign and all corresponding loadings together.
+Use `sign_anchors` to choose a different anchoring series.
 
-    # Store data as separate object 
-    y = data
+See [`KNHierarchicalEstimator`](@ref) for priors and keyword arguments.
+`results.F` has size `(dates, ndraws)`; the other draws follow [`DFMResults`](@ref).
+"""
+function KN1LevelEstimator(rng::AbstractRNG, data::AbstractMatrix,
+                           specification::DFMStruct; kwargs...)
+    return _estimate_single_factor(rng, data, specification; kwargs...)
+end
 
-    # nvar = number of variables including the variable with missing date
-    # nobs = length of data of complete dataset
-    nobs, nvar = size(y)
-    nvars = nvar
+KN1LevelEstimator(data::AbstractMatrix, specification::DFMStruct;
+                  rng::AbstractRNG=Random.default_rng(), kwargs...) =
+    KN1LevelEstimator(rng, data, specification; kwargs...)
 
-    # Number of regressors in each observable equation
-    # (constant + global factor)
-    nreg = 2
+"""
+    OW1LevelEstimator(data, specification::DFMStruct; kwargs...)
+    OW1LevelEstimator(rng, data, specification::DFMStruct; kwargs...)
 
-    # De-mean data series 
-    y = y - repeat(mean(y, dims=1), nobs, 1)
+Fit the same model as [`KN1LevelEstimator`](@ref), drawing the whole factor
+path from its Gaussian precision matrix instead of a state-space sampler.
+With the default `initial=:stationary`, parameter updates include the initial
+stationary density and its Metropolis-Hastings correction as in Otrok–Whiteman.
+The default proper priors are documented in [`KNHierarchicalEstimator`](@ref).
+It forms a dense `dates × dates`
+matrix, so the state-space method is preferable for long series.
+"""
+function OW1LevelEstimator(rng::AbstractRNG, data::AbstractMatrix,
+                           specification::DFMStruct; kwargs...)
+    return _estimate_single_factor(rng, data, specification;
+                                   factor_sampler=:precision, kwargs...)
+end
 
-    # Set up some matricies for storage (optional)
-    Xtsave = zeros(nobs, totdraws)                  # just keep draw of factor, not all states (others are trivial)
-    bsave = zeros(totdraws, nreg * nvar)           # observable equation regression coefficients
-    ssave = zeros(totdraws, nvar)                  # innovation variances
-    psave = zeros(totdraws, factorlags)            # factor autoregressive polynomials
-    psave2 = zeros(totdraws, nvar * errorlags)      # factor autoregressive polynomials
+OW1LevelEstimator(data::AbstractMatrix, specification::DFMStruct;
+                  rng::AbstractRNG=Random.default_rng(), kwargs...) =
+    OW1LevelEstimator(rng, data, specification; kwargs...)
 
-    # Initialize global factor 
-    factor = zeros(nobs, 1)           # Random starting factor series matrix 
-    factor[:, 1], component = firstComponentFactor(y)     # Starting global factor = crosssectional mean of obs. series 
-    if cor(factor[:, 1], y[:, 1]) < 0
-        factor[:, 1] = -factor[:, 1]
-    end
+function _estimate_single_factor(rng, data, specification; kwargs...)
+    specification.factorlags >= 0 || throw(ArgumentError("factorlags must be nonnegative"))
+    specification.errorlags >= 0 || throw(ArgumentError("errorlags must be nonnegative"))
+    nseries = size(data, 2)
+    result = _estimate_dynamic_factors(
+        rng, data, [1], ones(Int, nseries, 1), [specification.factorlags],
+        fill(specification.errorlags, nseries), specification.ndraws,
+        specification.burnin; kwargs...)
 
-    ## Initialize β, σ2, ϕ
-    β = ones(2)
-    ϕ = zeros(errorlags)
-    σ2 = 1.0
-    ψ = zeros(factorlags)
-
-    # Begin Monte Carlo Loop
-    for dr = 1:totdraws
-
-        println(dr)
-
-        sigmas = zeros(nvar)
-        if dr == 1
-            sigmas = ones(nvar)
-        else
-            sigmas = vec(ssave[dr-1, :])
-        end
-
-        # Create HDFM parameter containers 
-        varcoefs = zeros(nvar, 2)[:, :]
-        varlagcoefs = zeros(nvar, errorlags)[:, :]
-        fcoefs = Any[]
-        push!(fcoefs, zeros(1 + factorlags))
-        fvars = Any[]
-        push!(fvars, ones(1))
-        varvars = zeros(nvar)
-
-        ##################################
-        ##################################
-        # Draw β, σ2, ϕ
-
-        ## Gather all regressors into `X`
-        X = [ones(nobs) factor]
-
-        ## Iterate over all data series 
-        ## to draw obs. eq. hyperparameters 
-        for i = 1:nvar
-
-            ## Save i-th series 
-            Y = y[:, i]
-
-            β, ϕ, σ2 = draw_parameters(Y, X, ϕ, σ2)
-
-            ## Fill out HDFM objects 
-            varcoefs[i, :] = β'
-            varvars[i] = σ2
-            varlagcoefs[i, :] = ϕ'
-
-            ## Save observation eq. hyperparameter draws 
-            bsave[dr, ((i-1)*nreg)+1:i*nreg] = β'
-            ssave[dr, i] = σ2
-            psave2[dr, ((i-1)*errorlags)+1:i*errorlags] = ϕ'
-
-        end
-
-        ##################################
-        ##################################
-        # Draw factor lag coefficients 
-
-        ## Create factor regressor matrix 
-        X = zeros(nobs, factorlags)
-        for j in 1:factorlags
-            X[:, j] = lag(factor, j, default=0.0)
-        end
-        X = X[(factorlags+1):nobs, :]
-
-        ## Draw ψ
-        ψ = draw_coefficients(factor[(factorlags+1):nobs, 1], X, 1.0)
-
-        ## Fill out HDFM objects 
-        fcoefs = ψ
-
-        ## Save new draw of ψ
-        psave[dr, :] = ψ'
-
-        ##################################
-        ##################################
-        # Draw factor  
-
-        # Size of the state vector 
-        m = factorlags + nvars * errorlags
-
-        H = zeros(nvars, m)
-        H[:, 1] = varcoefs[:, 2]
-        H[:, 2:2+nvars-1] = I(nvars)
-
-        A = zeros(nvars, nvars)
-
-        F = zeros(m, m)
-        for j in 1:factorlags
-            F[1, 1+(j-1)*nvars] = fcoefs[j]
-        end
-        for i in 1:nvars
-            for j in 1:errorlags
-                F[1+i, 1+i+(j-1)*nvars] = varlagcoefs[i, j]
-            end
-        end
-
-        μ = zeros(m)
-
-        R = zeros(nvars, nvars)
-
-        Q = zeros(m, m)
-        Q[1, 1] = 1
-        for i in 1:nvars
-            Q[1+i, 1+i] = varvars[i]
-        end
-
-        Z = zeros(nvars, nvars)
-
-        ssmodel = SSModel(H, A, F, μ, R, Q, Z)
-
-        data_partial = similar(data)
-
-        for i in 1:nvars
-            data_partial[:, i] = data[:, i]
-        end
-
-        factor = KNFactorSampler(data_partial, ssmodel)
-        factor = factor[:, 1]
-
-        ## Save factor 
-        Xtsave[:, dr] = factor
-
-        println(dr)
-    end
-
-    # Save resulting samples 
-    Xtsave = Xtsave[:, (burnin)+1:(burnin+ndraws)]
-    bsave = bsave[burnin+1:burnin+ndraws, :]
-    ssave = ssave[burnin+1:burnin+ndraws, :]
-    psave = psave[burnin+1:burnin+ndraws, :]
-    psave2 = psave2[burnin+1:burnin+ndraws, :]
-
-    # Save resulting sample means 
-    F = mean(Xtsave, dims=2)
-    B = mean(bsave, dims=1)
-    S = mean(ssave, dims=1)
-    P = mean(psave, dims=1)
-    P2 = mean(psave2, dims=1)
-    means = DFMMeans(F, B, S, P, P2)
-
-    # Gather all results 
-    results = DFMResults(Xtsave, bsave, ssave, psave, psave2, means)
-
-    ##################################
-    ##################################
-    # Return results as single object 
-    return results
-end;
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
-######################
+    # Keep the original single-factor shape, without a singleton factor axis.
+    factors = dropdims(result.F; dims=2)
+    return DFMResults(factors, result.B, result.S, result.P, result.P2, result.means)
+end

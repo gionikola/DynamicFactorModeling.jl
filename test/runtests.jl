@@ -17,4 +17,7 @@ using Test
     include("reference/check_statsmodels.jl")
     check_statsmodels_references()
     include("state_space_adversarial.jl")
+    include("kim_nelson/estimators.jl")
+    include("stationary_likelihood.jl")
+    include("posterior_validation.jl")
 end
